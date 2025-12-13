@@ -241,28 +241,6 @@ class StorageService {
     });
   }
 
-  async deleteCard(id: string): Promise<void> {
-    const db = this.ensureDb();
-    return new Promise((resolve, reject) => {
-      const tx = db.transaction(STORES.cards, "readwrite");
-      const store = tx.objectStore(STORES.cards);
-      const request = store.delete(id);
-      request.onsuccess = () => resolve();
-      request.onerror = () => reject(request.error);
-    });
-  }
-
-  async deleteReview(cardId: string): Promise<void> {
-    const db = this.ensureDb();
-    return new Promise((resolve, reject) => {
-      const tx = db.transaction(STORES.reviews, "readwrite");
-      const store = tx.objectStore(STORES.reviews);
-      const request = store.delete(cardId);
-      request.onsuccess = () => resolve();
-      request.onerror = () => reject(request.error);
-    });
-  }
-
   // Review operations
   async saveReview(review: Review): Promise<void> {
     const db = this.ensureDb();
