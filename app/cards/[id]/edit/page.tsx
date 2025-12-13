@@ -1,0 +1,463 @@
+"use client";
+
+import { useEffect, useState, useRef, useLayoutEffect } from "react";
+import { useRouter, useParams } from "next/navigation";
+import { storage } from "@/lib/storage";
+import { Card } from "@/types/models";
+import { tts, TTSSpeed } from "@/lib/tts";
+
+export default function EditCardPage() {
+  const router = useRouter();
+  const params = useParams();
+  const cardId = params.id as string;
+  const [card, setCard] = useState<Card | null>(null);
+  const [promptJp, setPromptJp] = useState("");
+  const [targetEn, setTargetEn] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isRecordingJp, setIsRecordingJp] = useState(false);
+  const [isRecordingEn, setIsRecordingEn] = useState(false);
+  const [isSpeakingEn, setIsSpeakingEn] = useState(false);
+  const [isPausedEn, setIsPausedEn] = useState(false);
+  const [ttsSpeed, setTtsSpeed] = useState<TTSSpeed>(1);
+  const recognitionJpRef = useRef<any>(null);
+  const recognitionEnRef = useRef<any>(null);
+  const textareaJpRef = useRef<HTMLTextAreaElement>(null);
+  const textareaEnRef = useRef<HTMLTextAreaElement>(null);
+  const ttsCheckIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    loadCard();
+
+    // クリーンアップ: コンポーネントアンマウント時にTTSを停止
+    return () => {
+      tts.stop();
+      if (ttsCheckIntervalRef.current) {
+        clearInterval(ttsCheckIntervalRef.current);
+      }
+    };
+  }, [cardId]);
+
+  // TTSの状態を監視
+  useEffect(() => {
+    if (!tts.isAvailable()) return;
+
+    const checkTTSState = () => {
+      setIsSpeakingEn(tts.getIsSpeaking());
+      setIsPausedEn(tts.getIsPaused());
+    };
+
+    // 定期的に状態をチェック
+    ttsCheckIntervalRef.current = setInterval(checkTTSState, 100);
+
+    return () => {
+      if (ttsCheckIntervalRef.current) {
+        clearInterval(ttsCheckIntervalRef.current);
+      }
+    };
+  }, []);
+
+  // テキストエリアの自動リサイズ
+  useLayoutEffect(() => {
+    if (textareaJpRef.current) {
+      textareaJpRef.current.style.height = "auto";
+      textareaJpRef.current.style.height = `${textareaJpRef.current.scrollHeight}px`;
+    }
+    if (textareaEnRef.current) {
+      textareaEnRef.current.style.height = "auto";
+      textareaEnRef.current.style.height = `${textareaEnRef.current.scrollHeight}px`;
+    }
+  }, [promptJp, targetEn]);
+
+  async function loadCard() {
+    try {
+      await storage.init();
+      const cardData = await storage.getCard(cardId);
+      if (!cardData) {
+        alert("カードが見つかりません。");
+        router.back();
+        return;
+      }
+      setCard(cardData);
+      setPromptJp(cardData.prompt_jp);
+      setTargetEn(cardData.target_en);
+    } catch (error) {
+      console.error("Failed to load card:", error);
+      alert("カードの読み込みに失敗しました。");
+      router.back();
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  async function handleSave() {
+    if (!card) return;
+
+    if (!targetEn.trim()) {
+      alert("英語を入力してください。");
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      const updatedCard: Card = {
+        ...card,
+        prompt_jp: promptJp.trim() || "(後で追加)",
+        target_en: targetEn.trim(),
+      };
+      await storage.saveCard(updatedCard);
+      alert("カードを更新しました！");
+      router.back();
+    } catch (error) {
+      console.error("Failed to save card:", error);
+      alert("カードの更新に失敗しました。");
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
+  function handleVoiceInput(lang: "jp" | "en") {
+    const langCode = lang === "jp" ? "ja-JP" : "en-US";
+    const setIsRecording = lang === "jp" ? setIsRecordingJp : setIsRecordingEn;
+    const textareaRef = lang === "jp" ? textareaJpRef : textareaEnRef;
+    const recognitionRef = lang === "jp" ? recognitionJpRef : recognitionEnRef;
+
+    // 既に録音中の場合は停止
+    if (recognitionRef.current) {
+      recognitionRef.current.stop();
+      recognitionRef.current = null;
+      setIsRecording(false);
+      return;
+    }
+
+    if (!("webkitSpeechRecognition" in window) && !("SpeechRecognition" in window)) {
+      alert("お使いのブラウザは音声認識に対応していません。");
+      return;
+    }
+
+    const SpeechRecognition =
+      (window as any).SpeechRecognition ||
+      (window as any).webkitSpeechRecognition;
+    const recognition = new SpeechRecognition();
+    recognition.lang = langCode;
+    recognition.continuous = true; // 連続認識に変更
+    recognition.interimResults = true; // 中間結果も取得
+
+    recognition.onstart = () => {
+      setIsRecording(true);
+      recognitionRef.current = recognition;
+    };
+
+    recognition.onresult = (event: any) => {
+      const textarea = textareaRef.current;
+      if (!textarea) return;
+
+      // カーソル位置を取得（状態更新前に保存）
+      const cursorPosition = textarea.selectionStart;
+      const currentText = lang === "jp" ? promptJp : targetEn;
+      
+      // 認識されたテキストを取得（中間結果も含む）
+      let transcript = "";
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        transcript += event.results[i][0].transcript;
+      }
+
+      // カーソル位置にテキストを挿入
+      const newText =
+        currentText.substring(0, cursorPosition) +
+        transcript +
+        currentText.substring(cursorPosition);
+
+      // 新しいカーソル位置を計算
+      const newCursorPosition = cursorPosition + transcript.length;
+
+      // 状態を更新
+      if (lang === "jp") {
+        setPromptJp(newText);
+      } else {
+        setTargetEn(newText);
+      }
+
+      // カーソル位置を復元（requestAnimationFrameを使用して確実に実行）
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          if (textareaRef.current) {
+            textareaRef.current.selectionStart = newCursorPosition;
+            textareaRef.current.selectionEnd = newCursorPosition;
+            textareaRef.current.focus();
+          }
+        });
+      });
+    };
+
+    recognition.onerror = (event: any) => {
+      if (event.error !== "no-speech") {
+        console.error("Speech recognition error:", event.error);
+      }
+    };
+
+    recognition.onend = () => {
+      setIsRecording(false);
+      recognitionRef.current = null;
+    };
+
+    recognition.start();
+  }
+
+  function stopVoiceInput(lang: "jp" | "en") {
+    const recognitionRef = lang === "jp" ? recognitionJpRef : recognitionEnRef;
+    const setIsRecording = lang === "jp" ? setIsRecordingJp : setIsRecordingEn;
+
+    if (recognitionRef.current) {
+      recognitionRef.current.stop();
+      recognitionRef.current = null;
+      setIsRecording(false);
+    }
+  }
+
+  async function handleDelete() {
+    if (!card) return;
+
+    if (!confirm("このカードを削除しますか？\n関連する復習データも削除されます。")) {
+      return;
+    }
+
+    try {
+      await storage.init();
+      // カードに関連するReviewも削除
+      const review = await storage.getReview(card.id);
+      if (review) {
+        await storage.deleteReview(card.id);
+      }
+      // カードを削除
+      await storage.deleteCard(card.id);
+      alert("カードを削除しました。");
+      router.back();
+    } catch (error) {
+      console.error("Failed to delete card:", error);
+      alert("カードの削除に失敗しました。");
+    }
+  }
+
+  const handleTTSPlay = () => {
+    if (!targetEn.trim()) {
+      alert("英語を入力してください。");
+      return;
+    }
+
+    if (isPausedEn) {
+      tts.resume();
+    } else if (isSpeakingEn) {
+      tts.stop();
+    } else {
+      tts.speak(targetEn, "en", ttsSpeed);
+    }
+  };
+
+  const handleTTSSpeedChange = (speed: TTSSpeed) => {
+    setTtsSpeed(speed);
+    if (isSpeakingEn && !isPausedEn) {
+      // 現在読み上げ中の場合は、新しい速度で再読み上げ
+      tts.stop();
+      setTimeout(() => {
+        if (targetEn.trim()) {
+          tts.speak(targetEn, "en", speed);
+        }
+      }, 100);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="text-lg">読み込み中...</div>
+      </div>
+    );
+  }
+
+  if (!card) {
+    return null;
+  }
+
+  return (
+    <div className="flex min-h-screen flex-col bg-gray-50">
+      <main className="flex-1 px-4 py-8 max-w-2xl mx-auto w-full">
+        <div className="flex items-center justify-between mb-6">
+          <h1 className="text-3xl font-bold">カードを編集</h1>
+          <button
+            onClick={() => router.back()}
+            className="text-gray-600 hover:text-gray-800"
+          >
+            ← 戻る
+          </button>
+        </div>
+
+        <div className="bg-white rounded-lg shadow-lg p-6 space-y-6">
+          {/* 日本語入力 */}
+          <div>
+            <label className="block text-sm font-semibold mb-2">
+              日本語
+            </label>
+            <div className="flex gap-2">
+              <textarea
+                ref={textareaJpRef}
+                value={promptJp}
+                onChange={(e) => {
+                  const cursorPos = e.target.selectionStart;
+                  setPromptJp(e.target.value);
+                  // 自動リサイズ
+                  e.target.style.height = "auto";
+                  e.target.style.height = `${e.target.scrollHeight}px`;
+                  // カーソル位置を復元
+                  requestAnimationFrame(() => {
+                    if (textareaJpRef.current) {
+                      textareaJpRef.current.selectionStart = cursorPos;
+                      textareaJpRef.current.selectionEnd = cursorPos;
+                    }
+                  });
+                }}
+                placeholder="日本語文を入力..."
+                className="flex-1 border border-gray-300 rounded-lg px-4 py-3 min-h-[100px] resize-none overflow-hidden"
+                style={{ height: "auto" }}
+              />
+              <div className="flex flex-col gap-2">
+                <button
+                  onClick={() => handleVoiceInput("jp")}
+                  className={`px-4 py-2 rounded-lg font-semibold text-sm ${
+                    isRecordingJp
+                      ? "bg-red-600 hover:bg-red-700"
+                      : "bg-green-600 hover:bg-green-700"
+                  } text-white`}
+                  title={isRecordingJp ? "音声入力を停止" : "音声入力（日本語）"}
+                >
+                  {isRecordingJp ? "⏹" : "🎤"}
+                </button>
+                {isRecordingJp && (
+                  <button
+                    onClick={() => stopVoiceInput("jp")}
+                    className="px-4 py-2 rounded-lg font-semibold text-sm bg-gray-600 hover:bg-gray-700 text-white"
+                    title="停止"
+                  >
+                    停止
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* 英語入力 */}
+          <div>
+            <label className="block text-sm font-semibold mb-2">
+              英語
+            </label>
+            <div className="flex gap-2">
+              <textarea
+                ref={textareaEnRef}
+                value={targetEn}
+                onChange={(e) => {
+                  const cursorPos = e.target.selectionStart;
+                  setTargetEn(e.target.value);
+                  // 自動リサイズ
+                  e.target.style.height = "auto";
+                  e.target.style.height = `${e.target.scrollHeight}px`;
+                  // カーソル位置を復元
+                  requestAnimationFrame(() => {
+                    if (textareaEnRef.current) {
+                      textareaEnRef.current.selectionStart = cursorPos;
+                      textareaEnRef.current.selectionEnd = cursorPos;
+                    }
+                  });
+                }}
+                placeholder="英語文を入力..."
+                className="flex-1 border border-gray-300 rounded-lg px-4 py-3 min-h-[100px] resize-none overflow-hidden"
+                style={{ height: "auto" }}
+              />
+              <div className="flex flex-col gap-2">
+                <button
+                  onClick={() => handleVoiceInput("en")}
+                  className={`px-4 py-2 rounded-lg font-semibold text-sm ${
+                    isRecordingEn
+                      ? "bg-red-600 hover:bg-red-700"
+                      : "bg-green-600 hover:bg-green-700"
+                  } text-white`}
+                  title={isRecordingEn ? "Stop recording" : "Voice input (English)"}
+                >
+                  {isRecordingEn ? "⏹" : "🎤"}
+                </button>
+                {isRecordingEn && (
+                  <button
+                    onClick={() => stopVoiceInput("en")}
+                    className="px-4 py-2 rounded-lg font-semibold text-sm bg-gray-600 hover:bg-gray-700 text-white"
+                    title="Stop"
+                  >
+                    停止
+                  </button>
+                )}
+                {/* TTSボタン */}
+                {tts.isAvailable() && targetEn.trim() && (
+                  <>
+                    <button
+                      onClick={handleTTSPlay}
+                      className={`px-4 py-2 rounded-lg font-semibold text-sm ${
+                        isSpeakingEn && !isPausedEn
+                          ? "bg-red-500 hover:bg-red-600"
+                          : isPausedEn
+                          ? "bg-yellow-500 hover:bg-yellow-600"
+                          : "bg-blue-600 hover:bg-blue-700"
+                      } text-white`}
+                      title={isSpeakingEn && !isPausedEn ? "停止" : isPausedEn ? "再開" : "音声読み上げ"}
+                    >
+                      {isSpeakingEn && !isPausedEn ? "⏹" : isPausedEn ? "▶" : "🔊"}
+                    </button>
+                    <select
+                      value={ttsSpeed}
+                      onChange={(e) => handleTTSSpeedChange(Number(e.target.value) as TTSSpeed)}
+                      className="text-xs border border-gray-300 rounded px-2 py-1 bg-white"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <option value={0.5}>0.5x</option>
+                      <option value={0.75}>0.75x</option>
+                      <option value={1}>1x</option>
+                      <option value={1.25}>1.25x</option>
+                      <option value={1.5}>1.5x</option>
+                      <option value={2}>2x</option>
+                    </select>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* カード情報 */}
+          <div className="text-sm text-gray-600">
+            <p>タイプ: {card.source_type}</p>
+            <p>レッスンID: {card.lessonId}</p>
+          </div>
+
+          {/* ボタン */}
+          <div className="flex gap-3">
+            <button
+              onClick={handleSave}
+              disabled={isSaving || !targetEn.trim()}
+              className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-bold py-3 px-4 rounded-lg"
+            >
+              {isSaving ? "保存中..." : "保存"}
+            </button>
+            <button
+              onClick={handleDelete}
+              className="bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-4 rounded-lg"
+            >
+              削除
+            </button>
+            <button
+              onClick={() => router.back()}
+              className="bg-gray-500 hover:bg-gray-600 text-white font-bold py-3 px-4 rounded-lg"
+            >
+              キャンセル
+            </button>
+          </div>
+        </div>
+      </main>
+    </div>
+  );
+}

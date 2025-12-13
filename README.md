@@ -1,36 +1,166 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Instant Output
 
-## Getting Started
+初級〜中級英語学習者のための瞬間英作文PWAアプリ。
 
-First, run the development server:
+## 概要
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+「Instant Output」は、毎日短時間で「瞬間英作文（アウトプット反射）」と復習習慣を身につけるためのプログレッシブウェブアプリ（PWA）です。
+
+## 技術スタック
+
+- **Next.js 16** (App Router)
+- **TypeScript**
+- **React 19**
+- **Tailwind CSS**
+- **IndexedDB** (ローカルストレージ)
+- **PWA対応**
+- **Tesseract.js** (OCR機能)
+
+## 機能（MVP）
+
+### 実装済み
+
+- ✅ **Home画面**：今日の5問をワンタップで開始
+  - コース進捗表示（進捗バー、残り日数）
+  - 未消化復習の表示
+- ✅ **Practice画面**：日本語→英語の瞬間英作文練習
+  - タイピング入力
+  - 音声入力（ブラウザ標準機能）
+  - 自己採点（OK / MAYBE / NG）
+- ✅ **復習システム（簡易SRS）**
+  - OK：復習間隔を延ばす（1.5倍、最大30日）
+  - MAYBE：短い間隔で再出題（0.5倍、最小1日）
+  - NG：翌日に再出題
+- ✅ **カード登録機能**
+  - 手入力（日英ペア / 英語のみ）
+  - テンプレート登録（60個の基本英文）
+  - スクリーンショット登録（画像アップロード、編集機能）
+- ✅ **レッスン管理**
+  - レッスンの作成・一覧・詳細表示
+  - レッスンに属するカードの管理
+- ✅ **コース管理**
+  - コースの作成・一覧・詳細表示
+  - レッスンの追加・削除
+  - 進捗トラッキング
+- ✅ **IndexedDBによるローカルデータ保存**
+- ✅ **サンプルデータ追加機能**
+
+### 実装済み（OCR機能）
+
+- ✅ **OCR機能（Tesseract.js）**
+  - クライアントサイドで動作する無料OCR
+  - 英語・日本語の両方に対応
+  - 進捗表示と信頼度表示
+  - 抽出結果の編集機能
+  - 初回使用時は言語データのダウンロードが必要（自動）
+
+### 技術的な注意点
+
+- **OCR機能**: Tesseract.jsを使用（初回使用時は約10-20MBの言語データをダウンロード）
+- **ブラウザ対応**: モダンブラウザ（Chrome、Firefox、Edge、Safari）推奨
+- **画像サイズ**: 10MB以下推奨（大きな画像は処理に時間がかかります）
+
+## データモデル
+
+```
+Course (optional)
+ └─ Lesson (multiple)
+     └─ Card (multiple)
+         └─ Review (1対1)
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+- **Course**: 継続コース（期間全体）
+- **Lesson**: 通常レッスン単位
+- **Card**: 1問（日本語 → 英語）
+- **Review**: 復習スケジュール（SRS）
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## セットアップ
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+# 依存関係のインストール
+npm install
 
-## Learn More
+# 開発サーバー起動
+npm run dev
+```
 
-To learn more about Next.js, take a look at the following resources:
+ブラウザで [http://localhost:3000](http://localhost:3000) を開く
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## 使い方
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### 初回セットアップ
 
-## Deploy on Vercel
+1. 初回起動時、`/seed` にアクセスしてサンプルデータを追加
+   - または「テンプレートから追加」で基本英文を一括追加
+   - または「カードを追加」で手動でカードを作成
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### 学習の流れ
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+1. ホーム画面で「今日の5問を開始」をタップ
+2. 日本語文を見て、英語で回答（タイピング or 音声入力）
+3. 模範解答を確認して自己採点（OK / MAYBE / NG）
+4. 採点結果に応じて復習スケジュールが自動更新
+
+### カードの追加方法
+
+- **手動入力**: 「カードを追加」から日英ペアまたは英語のみで登録
+- **テンプレート**: 「テンプレートから追加」で60個の基本英文から選択
+- **スクリーンショット**: 「スクリーンショットから追加」で画像からテキストを抽出
+  - 画像をアップロード（ドラッグ&ドロップ対応）
+  - 「テキストを抽出（OCR）」ボタンをクリック
+  - 初回使用時は言語データのダウンロードに時間がかかります（約10-20MB）
+  - 抽出されたテキストを確認・編集して保存
+
+### コース・レッスンの管理
+
+- **レッスン管理**: レッスンを作成し、カードを追加
+- **コース管理**: 複数のレッスンをまとめてコースとして管理（任意）
+
+## プロジェクト構造
+
+```
+instant_output/
+├── app/
+│   ├── page.tsx              # Home画面
+│   ├── practice/
+│   │   └── page.tsx          # Practice画面
+│   ├── courses/
+│   │   ├── page.tsx          # コース一覧
+│   │   └── [id]/
+│   │       └── page.tsx      # コース詳細
+│   ├── lessons/
+│   │   ├── page.tsx          # レッスン一覧
+│   │   └── [id]/
+│   │       └── page.tsx      # レッスン詳細
+│   ├── cards/
+│   │   ├── new/
+│   │   │   └── page.tsx      # カード追加（手動）
+│   │   ├── template/
+│   │   │   └── page.tsx      # テンプレートから追加
+│   │   └── screenshot/
+│   │       └── page.tsx      # スクリーンショットから追加
+│   ├── seed/
+│   │   └── page.tsx          # サンプルデータ追加
+│   └── layout.tsx
+├── lib/
+│   ├── storage.ts            # IndexedDB ストレージ層
+│   ├── learning.ts           # 学習ドメインロジック
+│   ├── seed.ts               # サンプルデータ
+│   ├── templates.ts          # テンプレートカード定義
+│   └── ocr.ts                # OCR実装（Tesseract.js）
+├── types/
+│   └── models.ts             # データモデル型定義
+└── public/
+    └── manifest.json         # PWA設定
+```
+
+## UX設計方針
+
+- 学習開始までの操作は最大2タップ
+- 初級者が説明なしで使える
+- 1回の学習は2〜4分で完結
+- 設定画面は深い階層に置く
+
+## ライセンス
+
+教育用途の学習補助ツールとして開発されています。
