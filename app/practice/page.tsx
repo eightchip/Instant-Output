@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { storage } from "@/lib/storage";
 import { getTodayCards, saveCardResult } from "@/lib/learning";
@@ -9,7 +9,7 @@ import { Card, ReviewResult, StudySession } from "@/types/models";
 import { tts, TTSSpeed } from "@/lib/tts";
 import { PracticeMode } from "@/types/modes";
 
-export default function PracticePage() {
+function PracticeContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const mode = (searchParams.get("mode") || "normal") as PracticeMode;
@@ -480,6 +480,18 @@ export default function PracticePage() {
         </button>
       </main>
     </div>
+  );
+}
+
+export default function PracticePage() {
+  return (
+    <Suspense fallback={
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="text-lg">読み込み中...</div>
+      </div>
+    }>
+      <PracticeContent />
+    </Suspense>
   );
 }
 

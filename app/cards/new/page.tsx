@@ -1,13 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { storage } from "@/lib/storage";
 import { Lesson, Card, SourceType } from "@/types/models";
 
 type InputMode = "pair" | "english_only";
 
-export default function NewCardPage() {
+function NewCardContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const preSelectedLessonId = searchParams.get("lessonId");
@@ -211,6 +211,18 @@ export default function NewCardPage() {
         </div>
       </main>
     </div>
+  );
+}
+
+export default function NewCardPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="text-lg">読み込み中...</div>
+      </div>
+    }>
+      <NewCardContent />
+    </Suspense>
   );
 }
 
