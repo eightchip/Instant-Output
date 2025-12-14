@@ -1,4 +1,4 @@
-// AIカード化機能の型定義
+// 自動分割・自動翻訳カード化機能の型定義
 
 export interface Source {
   id: string;
@@ -9,10 +9,10 @@ export interface Source {
 
 export interface DraftCard {
   en: string; // 英語文（OCRノイズ除去済み）
-  jp: string; // 日本語訳（AI生成）
+  jp: string; // 日本語訳（自動翻訳）
   confidence: number; // 信頼度（0-1）
   needsReview: boolean; // レビュー必要フラグ
-  flags: string[]; // フラグ（ocr_noise, split_suspect, incomplete_sentence等）
+  flags: string[]; // フラグ（translation_error, split_suspect, incomplete_sentence等）
   sourceSentence: string; // 元のOCR文（デバッグ用）
   notes: string; // メモ
 }
