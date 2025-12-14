@@ -1,7 +1,6 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useRef, useEffect } from "react";
 
 interface MenuButtonProps {
   icon: string;
@@ -39,13 +38,39 @@ export default function MenuButton({
   badge,
 }: MenuButtonProps) {
   const [showTooltip, setShowTooltip] = useState(false);
+  const tooltipRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+    };
+  }, []);
+
+  const handleMouseEnter = () => {
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+    }
+    setShowTooltip(true);
+  };
+
+  const handleMouseLeave = () => {
+    // 少し遅延を入れてちらつきを防ぐ
+    timeoutRef.current = setTimeout(() => {
+      setShowTooltip(false);
+    }, 100);
+  };
 
   return (
     <div className="relative">
       <button
+        ref={buttonRef}
         onClick={onClick}
-        onMouseEnter={() => setShowTooltip(true)}
-        onMouseLeave={() => setShowTooltip(false)}
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
         className={`w-full ${colorClasses[color]} border-2 font-semibold py-3 px-4 rounded-lg transition-all duration-200 flex items-center gap-3 group`}
       >
         <div
@@ -76,7 +101,12 @@ export default function MenuButton({
 
       {/* ツールチップ */}
       {showTooltip && (
-        <div className="absolute left-0 top-full mt-2 w-64 p-3 bg-gray-900 rounded-lg shadow-xl z-50 pointer-events-none">
+        <div
+          ref={tooltipRef}
+          onMouseEnter={handleMouseEnter}
+          onMouseLeave={handleMouseLeave}
+          className="absolute left-0 top-full mt-2 w-64 p-3 bg-gray-900 rounded-lg shadow-xl z-50"
+        >
           <div className="font-semibold mb-1 text-white text-base">{title}</div>
           <div className="text-gray-300 leading-relaxed text-sm">{description}</div>
           <div className="absolute -top-2 left-6 w-0 h-0 border-l-4 border-r-4 border-b-4 border-transparent border-b-gray-900"></div>

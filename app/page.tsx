@@ -66,42 +66,47 @@ export default function Home() {
       <main className="flex-1 px-4 py-8 max-w-2xl mx-auto w-full">
         <h1 className="text-3xl font-bold mb-8 text-center">Instant Output</h1>
 
-        {/* 今日の5問ボタン */}
-        <div className="mb-8">
-          <button
-            onClick={handleStartPractice}
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-6 px-6 rounded-lg text-xl shadow-lg transition-colors"
-          >
-            今日の5問を開始
-          </button>
-          <p className="text-center text-gray-600 mt-2">
-            {todayCards.length}問のカードが準備できています
-          </p>
-          <div className="grid grid-cols-2 gap-2 mt-2">
+        {/* Instant Menu */}
+        <div className="mb-8 space-y-2">
+          <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2">
+            Instant Menu
+          </h3>
+          <div className="bg-white rounded-lg border border-gray-200 p-4 shadow-sm">
             <button
-              onClick={() => router.push("/practice/mode-select")}
-              className="bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-4 rounded-lg shadow transition-colors"
+              onClick={handleStartPractice}
+              className="w-full bg-slate-700 hover:bg-slate-800 text-white font-semibold py-4 px-6 rounded-lg text-lg shadow-sm transition-colors mb-3"
             >
-              学習モードを選択
+              今日の5問を開始
             </button>
-            <button
-              onClick={() => router.push("/practice/select")}
-              className="bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-lg shadow transition-colors"
-            >
-              カードを選択
-            </button>
-            <button
-              onClick={() => router.push("/practice?mode=favorite&count=10")}
-              className="bg-yellow-600 hover:bg-yellow-700 text-white font-bold py-3 px-4 rounded-lg shadow transition-colors"
-            >
-              ⭐ お気に入り
-            </button>
-            <button
-              onClick={() => router.push("/practice?mode=weak&count=10")}
-              className="bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-4 rounded-lg shadow transition-colors"
-            >
-              💪 苦手克服
-            </button>
+            <p className="text-center text-gray-600 mb-4 text-sm">
+              {todayCards.length}問のカードが準備できています
+            </p>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                onClick={() => router.push("/practice/mode-select")}
+                className="bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-800 font-semibold py-3 px-4 rounded-lg transition-colors"
+              >
+                学習モードを選択
+              </button>
+              <button
+                onClick={() => router.push("/practice/select")}
+                className="bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-800 font-semibold py-3 px-4 rounded-lg transition-colors"
+              >
+                カードを選択
+              </button>
+              <button
+                onClick={() => router.push("/practice?mode=favorite&count=10")}
+                className="bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-800 font-semibold py-3 px-4 rounded-lg transition-colors"
+              >
+                ⭐ お気に入り
+              </button>
+              <button
+                onClick={() => router.push("/practice?mode=weak&count=10")}
+                className="bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-800 font-semibold py-3 px-4 rounded-lg transition-colors"
+              >
+                💪 苦手克服
+              </button>
+            </div>
           </div>
         </div>
 
@@ -232,26 +237,20 @@ export default function Home() {
 
         {/* カードがない場合のメッセージ */}
         {todayCards.length === 0 && (
-          <div className="p-6 bg-gray-100 rounded-lg text-center">
-            <p className="text-gray-600 mb-4">
+          <div className="p-6 bg-white rounded-lg border border-gray-200 text-center shadow-sm">
+            <p className="text-gray-700 mb-4 text-lg">
               まだカードが登録されていません。
             </p>
-            <div className="flex flex-col gap-2">
-              <button
-                onClick={() => router.push("/seed")}
-                className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
-              >
-                サンプルデータを追加
-              </button>
+            <div className="flex flex-col gap-3">
               <button
                 onClick={() => router.push("/cards/screenshot")}
-                className="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded"
+                className="bg-slate-600 hover:bg-slate-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors"
               >
                 スクリーンショットから追加
               </button>
               <button
                 onClick={() => router.push("/cards/new")}
-                className="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded"
+                className="bg-slate-500 hover:bg-slate-600 text-white font-semibold py-3 px-6 rounded-lg transition-colors"
               >
                 カードを手動で追加
               </button>
@@ -261,24 +260,32 @@ export default function Home() {
 
         {/* 管理メニュー */}
         <div className="mt-8 space-y-3">
-          {/* 学習・統計系 */}
+          {/* 追加系 */}
           <div className="space-y-2">
             <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2">
-              学習・統計
+              カード追加
             </h3>
             <MenuButton
-              icon="📊"
-              title="学習統計"
-              description="学習の進捗、正答率、連続学習日数などを確認できます。グラフで学習の推移も見られます。"
-              color="blue"
-              onClick={() => router.push("/statistics")}
+              icon="➕"
+              title="カードを追加"
+              description="日本語と英語を手動で入力してカードを作成。音声入力にも対応しています。"
+              color="orange"
+              onClick={() => router.push("/cards/new")}
             />
             <MenuButton
-              icon="🔄"
-              title="復習管理"
-              description="復習スケジュールをカレンダーで確認。期限超過カードや今週の復習予定を一目で把握できます。"
-              color="purple"
-              onClick={() => router.push("/reviews")}
+              icon="📷"
+              title="スクリーンショットから追加"
+              description="画像からOCRで英語テキストを抽出してカードを作成。複数画像の一括処理にも対応。日本語は後から追加できます。"
+              color="orange"
+              onClick={() => router.push("/cards/screenshot")}
+            />
+            <MenuButton
+              icon="🤖"
+              title="AIでカード化"
+              description="英文教材の画像からOCR→AI整形で自動的にカード候補を生成。自然な日本語訳付きで効率的に学習素材を作成できます。"
+              color="orange"
+              badge="プレミアム"
+              onClick={() => router.push("/cards/ai-card")}
             />
           </div>
 
@@ -317,32 +324,24 @@ export default function Home() {
             />
           </div>
 
-          {/* 追加系 */}
+          {/* 学習・統計系 */}
           <div className="space-y-2">
             <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2">
-              カード追加
+              学習・統計
             </h3>
             <MenuButton
-              icon="➕"
-              title="カードを追加"
-              description="日本語と英語を手動で入力してカードを作成。音声入力にも対応しています。"
-              color="orange"
-              onClick={() => router.push("/cards/new")}
+              icon="📊"
+              title="学習統計"
+              description="学習の進捗、正答率、連続学習日数などを確認できます。グラフで学習の推移も見られます。"
+              color="blue"
+              onClick={() => router.push("/statistics")}
             />
             <MenuButton
-              icon="📷"
-              title="スクリーンショットから追加"
-              description="画像からOCRで英語テキストを抽出してカードを作成。複数画像の一括処理にも対応。日本語は後から追加できます。"
-              color="orange"
-              onClick={() => router.push("/cards/screenshot")}
-            />
-            <MenuButton
-              icon="🤖"
-              title="AIでカード化"
-              description="英文教材の画像からOCR→AI整形で自動的にカード候補を生成。自然な日本語訳付きで効率的に学習素材を作成できます。"
-              color="orange"
-              badge="プレミアム"
-              onClick={() => router.push("/cards/ai-card")}
+              icon="🔄"
+              title="復習管理"
+              description="復習スケジュールをカレンダーで確認。期限超過カードや今週の復習予定を一目で把握できます。"
+              color="purple"
+              onClick={() => router.push("/reviews")}
             />
           </div>
 

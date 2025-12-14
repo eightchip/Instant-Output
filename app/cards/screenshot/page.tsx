@@ -25,6 +25,20 @@ export default function ScreenshotCardPage() {
   const [splitSentences, setSplitSentences] = useState<string[]>([]);
   const [selectedSentences, setSelectedSentences] = useState<Set<number>>(new Set());
   const [showSplitView, setShowSplitView] = useState(false);
+  const [isTranslating, setIsTranslating] = useState(false);
+  const [translatedSentences, setTranslatedSentences] = useState<Map<number, string>>(new Map());
+  const [editingSentenceIndex, setEditingSentenceIndex] = useState<number | null>(null);
+  const [editingSentenceEn, setEditingSentenceEn] = useState<string>("");
+  const [editingSentenceJp, setEditingSentenceJp] = useState<string>("");
+  const [showNewLessonForm, setShowNewLessonForm] = useState(false);
+  const [newLessonTitle, setNewLessonTitle] = useState("");
+  const [isCropMode, setIsCropMode] = useState(false);
+  const [cropArea, setCropArea] = useState<{ x: number; y: number; width: number; height: number } | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStart, setDragStart] = useState<{ x: number; y: number } | null>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const imageRef = useRef<HTMLImageElement | null>(null);
+  const displaySizeRef = useRef<{ width: number; height: number } | null>(null);
   const progressUpdateIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const ocrAbortControllerRef = useRef<AbortController | null>(null);
 
@@ -37,16 +51,68 @@ export default function ScreenshotCardPage() {
       await storage.init();
       const allLessons = await storage.getAllLessons();
       setLessons(allLessons);
-      if (allLessons.length === 0) {
-        alert("まずレッスンを作成してください。");
-        router.push("/lessons");
-        return;
-      }
     } catch (error) {
       console.error("Failed to load lessons:", error);
     } finally {
       setIsLoading(false);
     }
+  }
+
+  async function handleCreateLesson() {
+    if (!newLessonTitle.trim()) {
+      alert("レッスン名を入力してください。");
+      return;
+    }
+
+    try {
+      await storage.init();
+      const newLesson: Lesson = {
+        id: `lesson_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        title: newLessonTitle.trim(),
+      };
+      await storage.saveLesson(newLesson);
+      setNewLessonTitle("");
+      setShowNewLessonForm(false);
+      await loadLessons();
+      setSelectedLessonId(newLesson.id);
+    } catch (error) {
+      console.error("Failed to create lesson:", error);
+      alert("レッスンの作成に失敗しました。");
+    }
+  }
+
+  function handleEditSentence(index: number) {
+    setEditingSentenceIndex(index);
+    setEditingSentenceEn(splitSentences[index]);
+    setEditingSentenceJp(translatedSentences.get(index) || "");
+  }
+
+  function handleSaveEditedSentence() {
+    if (editingSentenceIndex === null) return;
+
+    const updatedSentences = [...splitSentences];
+    updatedSentences[editingSentenceIndex] = editingSentenceEn.trim();
+    setSplitSentences(updatedSentences);
+
+    if (editingSentenceJp.trim()) {
+      const updatedTranslations = new Map(translatedSentences);
+      updatedTranslations.set(editingSentenceIndex, editingSentenceJp.trim());
+      setTranslatedSentences(updatedTranslations);
+    } else {
+      const updatedTranslations = new Map(translatedSentences);
+      updatedTranslations.delete(editingSentenceIndex);
+      setTranslatedSentences(updatedTranslations);
+    }
+
+    setEditingSentenceIndex(null);
+    setEditingSentenceEn("");
+    setEditingSentenceJp("");
+  }
+
+  function handleCancelEdit() {
+    setEditingSentenceIndex(null);
+    setEditingSentenceEn("");
+    setEditingSentenceJp("");
   }
 
   function handleImageSelect(event: React.ChangeEvent<HTMLInputElement>) {
@@ -272,6 +338,12 @@ export default function ScreenshotCardPage() {
           setSplitSentences(sentences);
           setSelectedSentences(new Set(sentences.map((_, i) => i))); // すべて選択
           setShowSplitView(true);
+          
+          // 自動的に日本語翻訳を実行
+          await handleAutoTranslate(sentences);
+        } else {
+          // 1文のみの場合も翻訳を試みる
+          await handleAutoTranslate([result.text]);
         }
       }
     } catch (error) {
@@ -346,10 +418,11 @@ export default function ScreenshotCardPage() {
       await storage.init();
       const cardsToSave: Card[] = Array.from(selectedSentences).map((index) => {
         const sentence = splitSentences[index];
+        const translatedText = translatedSentences.get(index) || "(後で追加)";
         return {
           id: `card_${Date.now()}_${index}_${Math.random().toString(36).substr(2, 9)}`,
           lessonId: selectedLessonId,
-          prompt_jp: "(後で追加)",
+          prompt_jp: translatedText,
           target_en: sentence.trim(),
           source_type: "screenshot",
           imageData: imagePreview || undefined,
@@ -391,10 +464,151 @@ export default function ScreenshotCardPage() {
     setImageFile(null);
     setImagePreview(null);
     setExtractedText("");
+    setIsCropMode(false);
+    setCropArea(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
   }
+
+  function handleCropImage() {
+    if (!imageFile || !imagePreview || !cropArea || !displaySizeRef.current) return;
+
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return;
+
+      // 表示サイズと実際の画像サイズの比率を計算
+      const scaleX = img.width / displaySizeRef.current.width;
+      const scaleY = img.height / displaySizeRef.current.height;
+
+      // トリミング領域を実際の画像サイズに変換
+      const cropX = Math.max(0, Math.round(cropArea.x * scaleX));
+      const cropY = Math.max(0, Math.round(cropArea.y * scaleY));
+      const cropWidth = Math.min(img.width - cropX, Math.round(cropArea.width * scaleX));
+      const cropHeight = Math.min(img.height - cropY, Math.round(cropArea.height * scaleY));
+
+      if (cropWidth <= 0 || cropHeight <= 0) {
+        alert("有効なトリミング領域を選択してください。");
+        return;
+      }
+
+      canvas.width = cropWidth;
+      canvas.height = cropHeight;
+
+      ctx.drawImage(
+        img,
+        cropX, cropY, cropWidth, cropHeight,
+        0, 0, cropWidth, cropHeight
+      );
+
+      canvas.toBlob((blob) => {
+        if (blob) {
+          const croppedFile = new File([blob], imageFile.name, {
+            type: imageFile.type,
+            lastModified: Date.now(),
+          });
+          setImageFile(croppedFile);
+          
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            setImagePreview(e.target?.result as string);
+          };
+          reader.readAsDataURL(croppedFile);
+          
+          setIsCropMode(false);
+          setCropArea(null);
+          displaySizeRef.current = null;
+        }
+      }, imageFile.type, 0.95);
+    };
+    img.src = imagePreview;
+  }
+
+  function handleStartCrop() {
+    setIsCropMode(true);
+    setCropArea(null);
+  }
+
+  function handleCancelCrop() {
+    setIsCropMode(false);
+    setCropArea(null);
+  }
+
+  function handleCanvasMouseDown(e: React.MouseEvent<HTMLCanvasElement>) {
+    if (!isCropMode || !canvasRef.current) return;
+    
+    const rect = canvasRef.current.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    
+    setIsDragging(true);
+    setDragStart({ x, y });
+    setCropArea({ x, y, width: 0, height: 0 });
+  }
+
+  function handleCanvasMouseMove(e: React.MouseEvent<HTMLCanvasElement>) {
+    if (!isCropMode || !isDragging || !dragStart || !canvasRef.current) return;
+    
+    const rect = canvasRef.current.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    
+    const width = x - dragStart.x;
+    const height = y - dragStart.y;
+    
+    setCropArea({
+      x: Math.min(dragStart.x, x),
+      y: Math.min(dragStart.y, y),
+      width: Math.abs(width),
+      height: Math.abs(height),
+    });
+  }
+
+  function handleCanvasMouseUp() {
+    setIsDragging(false);
+  }
+
+  useEffect(() => {
+    if (imagePreview && isCropMode && canvasRef.current) {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+        
+        const ctx = canvas.getContext("2d");
+        if (!ctx) return;
+        
+        imageRef.current = img;
+        
+        // キャンバスのサイズを画像の表示サイズに合わせる
+        const maxWidth = 800;
+        const maxHeight = 600;
+        let displayWidth = img.width;
+        let displayHeight = img.height;
+        
+        if (displayWidth > maxWidth) {
+          displayHeight = (displayHeight * maxWidth) / displayWidth;
+          displayWidth = maxWidth;
+        }
+        if (displayHeight > maxHeight) {
+          displayWidth = (displayWidth * maxHeight) / displayHeight;
+          displayHeight = maxHeight;
+        }
+        
+        canvas.width = displayWidth;
+        canvas.height = displayHeight;
+        
+        // 表示サイズを保存（トリミング時に使用）
+        displaySizeRef.current = { width: displayWidth, height: displayHeight };
+        
+        ctx.drawImage(img, 0, 0, displayWidth, displayHeight);
+      };
+      img.src = imagePreview;
+    }
+  }, [imagePreview, isCropMode]);
 
   function handleCancelExtraction() {
     if (progressUpdateIntervalRef.current) {
@@ -405,6 +619,54 @@ export default function ScreenshotCardPage() {
     setOcrProgress(null);
     // Tesseract.jsのworkerを終了（可能であれば）
     // 注意: 現在の実装ではworkerの終了は難しいため、状態をリセットするのみ
+  }
+
+  async function handleAutoTranslate(sentences: string[]) {
+    if (sentences.length === 0) return;
+
+    setIsTranslating(true);
+    const translations = new Map<number, string>();
+
+    try {
+      // 各文章を順番に翻訳（APIのレート制限を考慮）
+      for (let i = 0; i < sentences.length; i++) {
+        const sentence = sentences[i].trim();
+        if (!sentence) continue;
+
+        try {
+          const response = await fetch("/api/translate", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ text: sentence }),
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            if (data.translatedText) {
+              translations.set(i, data.translatedText);
+            }
+          } else {
+            const error = await response.json();
+            console.warn(`翻訳エラー (${i}):`, error.message);
+            // エラーが発生しても続行
+          }
+        } catch (error) {
+          console.error(`翻訳エラー (${i}):`, error);
+          // エラーが発生しても続行
+        }
+
+        // APIのレート制限を考慮して少し待機
+        if (i < sentences.length - 1) {
+          await new Promise((resolve) => setTimeout(resolve, 200));
+        }
+      }
+
+      setTranslatedSentences(translations);
+    } catch (error) {
+      console.error("翻訳処理中にエラーが発生しました:", error);
+    } finally {
+      setIsTranslating(false);
+    }
   }
 
   if (isLoading) {
@@ -434,18 +696,64 @@ export default function ScreenshotCardPage() {
             <label className="block text-sm font-semibold mb-2">
               レッスン
             </label>
-            <select
-              value={selectedLessonId}
-              onChange={(e) => setSelectedLessonId(e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-4 py-2"
-            >
-              <option value="">レッスンを選択...</option>
-              {lessons.map((lesson) => (
-                <option key={lesson.id} value={lesson.id}>
-                  {lesson.title}
-                </option>
-              ))}
-            </select>
+            {showNewLessonForm ? (
+              <div className="space-y-2">
+                <input
+                  type="text"
+                  value={newLessonTitle}
+                  onChange={(e) => setNewLessonTitle(e.target.value)}
+                  placeholder="新しいレッスン名を入力..."
+                  className="w-full border border-gray-300 rounded-lg px-4 py-2"
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      handleCreateLesson();
+                    } else if (e.key === "Escape") {
+                      setShowNewLessonForm(false);
+                      setNewLessonTitle("");
+                    }
+                  }}
+                  autoFocus
+                />
+                <div className="flex gap-2">
+                  <button
+                    onClick={handleCreateLesson}
+                    className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg"
+                  >
+                    作成
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowNewLessonForm(false);
+                      setNewLessonTitle("");
+                    }}
+                    className="flex-1 bg-gray-500 hover:bg-gray-600 text-white font-semibold py-2 px-4 rounded-lg"
+                  >
+                    キャンセル
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="flex gap-2">
+                <select
+                  value={selectedLessonId}
+                  onChange={(e) => setSelectedLessonId(e.target.value)}
+                  className="flex-1 border border-gray-300 rounded-lg px-4 py-2"
+                >
+                  <option value="">レッスンを選択...</option>
+                  {lessons.map((lesson) => (
+                    <option key={lesson.id} value={lesson.id}>
+                      {lesson.title}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  onClick={() => setShowNewLessonForm(true)}
+                  className="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-lg whitespace-nowrap"
+                >
+                  ➕ 新規作成
+                </button>
+              </div>
+            )}
           </div>
 
           {/* 画像アップロード */}
@@ -478,36 +786,148 @@ export default function ScreenshotCardPage() {
               </div>
             ) : (
               <div className="space-y-3">
-                <div className="relative">
-                  <img
-                    src={imagePreview}
-                    alt="Preview"
-                    className="w-full rounded-lg border border-gray-300"
-                  />
-                  <button
-                    onClick={handleRemoveImage}
-                    className="absolute top-2 right-2 bg-red-600 hover:bg-red-700 text-white rounded-full w-8 h-8 flex items-center justify-center"
-                  >
-                    ×
-                  </button>
-                </div>
-                <div className="flex gap-2">
-                  <button
-                    onClick={handleExtractText}
-                    disabled={isExtracting}
-                    className="flex-1 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-bold py-2 px-4 rounded-lg"
-                  >
-                    {isExtracting ? "テキスト抽出中..." : "テキストを抽出（OCR）"}
-                  </button>
-                  {isExtracting && (
-                    <button
-                      onClick={handleCancelExtraction}
-                      className="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg"
-                    >
-                      キャンセル
-                    </button>
-                  )}
-                </div>
+                {!isCropMode ? (
+                  <>
+                    <div className="relative">
+                      <img
+                        src={imagePreview}
+                        alt="Preview"
+                        className="w-full rounded-lg border border-gray-300"
+                      />
+                      <button
+                        onClick={handleRemoveImage}
+                        className="absolute top-2 right-2 bg-red-600 hover:bg-red-700 text-white rounded-full w-8 h-8 flex items-center justify-center"
+                      >
+                        ×
+                      </button>
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={handleStartCrop}
+                        className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg"
+                      >
+                        ✂️ 画像をトリミング
+                      </button>
+                      <button
+                        onClick={handleExtractText}
+                        disabled={isExtracting}
+                        className="flex-1 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-bold py-2 px-4 rounded-lg"
+                      >
+                        {isExtracting ? "テキスト抽出中..." : "テキストを抽出（OCR）"}
+                      </button>
+                      {isExtracting && (
+                        <button
+                          onClick={handleCancelExtraction}
+                          className="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg"
+                        >
+                          キャンセル
+                        </button>
+                      )}
+                    </div>
+                  </>
+                ) : (
+                  <div className="space-y-3">
+                    <div className="relative border-2 border-blue-400 rounded-lg overflow-hidden bg-gray-100">
+                      <canvas
+                        ref={canvasRef}
+                        onMouseDown={handleCanvasMouseDown}
+                        onMouseMove={handleCanvasMouseMove}
+                        onMouseUp={handleCanvasMouseUp}
+                        onMouseLeave={handleCanvasMouseUp}
+                        className="cursor-crosshair w-full"
+                        style={{ maxHeight: "600px" }}
+                      />
+                      {/* 選択領域外を暗くするオーバーレイ */}
+                      {cropArea && canvasRef.current && (
+                        <>
+                          {/* 上部 */}
+                          {cropArea.y > 0 && (
+                            <div
+                              className="absolute bg-black bg-opacity-50 pointer-events-none"
+                              style={{
+                                left: 0,
+                                top: 0,
+                                width: `${canvasRef.current.width}px`,
+                                height: `${cropArea.y}px`,
+                              }}
+                            />
+                          )}
+                          {/* 左側 */}
+                          {cropArea.x > 0 && (
+                            <div
+                              className="absolute bg-black bg-opacity-50 pointer-events-none"
+                              style={{
+                                left: 0,
+                                top: `${cropArea.y}px`,
+                                width: `${cropArea.x}px`,
+                                height: `${cropArea.height}px`,
+                              }}
+                            />
+                          )}
+                          {/* 右側 */}
+                          {cropArea.x + cropArea.width < canvasRef.current.width && (
+                            <div
+                              className="absolute bg-black bg-opacity-50 pointer-events-none"
+                              style={{
+                                left: `${cropArea.x + cropArea.width}px`,
+                                top: `${cropArea.y}px`,
+                                width: `${canvasRef.current.width - (cropArea.x + cropArea.width)}px`,
+                                height: `${cropArea.height}px`,
+                              }}
+                            />
+                          )}
+                          {/* 下部 */}
+                          {cropArea.y + cropArea.height < canvasRef.current.height && (
+                            <div
+                              className="absolute bg-black bg-opacity-50 pointer-events-none"
+                              style={{
+                                left: 0,
+                                top: `${cropArea.y + cropArea.height}px`,
+                                width: `${canvasRef.current.width}px`,
+                                height: `${canvasRef.current.height - (cropArea.y + cropArea.height)}px`,
+                              }}
+                            />
+                          )}
+                          {/* 選択領域の枠 */}
+                          <div
+                            className="absolute border-2 border-blue-500 pointer-events-none"
+                            style={{
+                              left: `${cropArea.x}px`,
+                              top: `${cropArea.y}px`,
+                              width: `${cropArea.width}px`,
+                              height: `${cropArea.height}px`,
+                            }}
+                          />
+                        </>
+                      )}
+                    </div>
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                      <p className="text-sm text-blue-800 mb-2">
+                        📐 マウスでドラッグしてトリミング領域を選択してください
+                      </p>
+                      {cropArea && (
+                        <p className="text-xs text-blue-600">
+                          選択範囲: {Math.round(cropArea.width)} × {Math.round(cropArea.height)} px
+                        </p>
+                      )}
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={handleCropImage}
+                        disabled={!cropArea || cropArea.width < 10 || cropArea.height < 10}
+                        className="flex-1 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-bold py-2 px-4 rounded-lg"
+                      >
+                        ✓ トリミングを適用
+                      </button>
+                      <button
+                        onClick={handleCancelCrop}
+                        className="bg-gray-500 hover:bg-gray-600 text-white font-semibold py-2 px-4 rounded-lg"
+                      >
+                        キャンセル
+                      </button>
+                    </div>
+                  </div>
+                )}
 
                 {/* OCR進捗表示 */}
                 {isExtracting && ocrProgress && (
@@ -637,6 +1057,14 @@ export default function ScreenshotCardPage() {
                 </button>
               </div>
               
+              {isTranslating && (
+                <div className="mb-4 bg-blue-50 border border-blue-200 rounded-lg p-3">
+                  <p className="text-sm text-blue-800">
+                    🌐 日本語翻訳中... しばらくお待ちください
+                  </p>
+                </div>
+              )}
+              
               <div className="mb-4 flex gap-2">
                 <button
                   onClick={selectAllSentences}
@@ -659,28 +1087,91 @@ export default function ScreenshotCardPage() {
                 {splitSentences.map((sentence, index) => (
                   <div
                     key={index}
-                    className={`bg-white rounded-lg p-3 border-2 cursor-pointer transition-colors ${
+                    className={`bg-white rounded-lg p-3 border-2 transition-colors ${
                       selectedSentences.has(index)
                         ? "border-purple-500 bg-purple-100"
-                        : "border-gray-200 hover:border-gray-300"
+                        : "border-gray-200"
                     }`}
-                    onClick={() => toggleSentenceSelection(index)}
                   >
-                    <div className="flex items-start gap-3">
-                      <input
-                        type="checkbox"
-                        checked={selectedSentences.has(index)}
-                        onChange={() => toggleSentenceSelection(index)}
-                        onClick={(e) => e.stopPropagation()}
-                        className="mt-1"
-                      />
-                      <div className="flex-1">
-                        <p className="text-sm text-gray-800">{sentence}</p>
-                        <p className="text-xs text-gray-500 mt-1">
-                          文章 #{index + 1}
-                        </p>
+                    {editingSentenceIndex === index ? (
+                      <div className="space-y-3">
+                        <div>
+                          <label className="text-xs text-gray-600 font-semibold mb-1 block">英語:</label>
+                          <textarea
+                            value={editingSentenceEn}
+                            onChange={(e) => setEditingSentenceEn(e.target.value)}
+                            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                            rows={2}
+                            autoFocus
+                          />
+                        </div>
+                        <div>
+                          <label className="text-xs text-gray-600 font-semibold mb-1 block">日本語:</label>
+                          <textarea
+                            value={editingSentenceJp}
+                            onChange={(e) => setEditingSentenceJp(e.target.value)}
+                            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                            rows={2}
+                            placeholder="日本語訳を入力（任意）..."
+                          />
+                        </div>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={handleSaveEditedSentence}
+                            className="flex-1 bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-lg text-sm"
+                          >
+                            ✓ 保存
+                          </button>
+                          <button
+                            onClick={handleCancelEdit}
+                            className="flex-1 bg-gray-500 hover:bg-gray-600 text-white font-semibold py-2 px-4 rounded-lg text-sm"
+                          >
+                            キャンセル
+                          </button>
+                        </div>
                       </div>
-                    </div>
+                    ) : (
+                      <div 
+                        className="cursor-pointer"
+                        onClick={() => toggleSentenceSelection(index)}
+                      >
+                        <div className="flex items-start gap-3">
+                          <input
+                            type="checkbox"
+                            checked={selectedSentences.has(index)}
+                            onChange={() => toggleSentenceSelection(index)}
+                            onClick={(e) => e.stopPropagation()}
+                            className="mt-1"
+                          />
+                          <div className="flex-1">
+                            <p className="text-sm text-gray-800 font-medium mb-2">{sentence}</p>
+                            {isTranslating && !translatedSentences.has(index) && (
+                              <p className="text-xs text-blue-600 italic">翻訳中...</p>
+                            )}
+                            {translatedSentences.has(index) && (
+                              <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded">
+                                <p className="text-xs text-green-700 font-semibold mb-1">日本語訳:</p>
+                                <p className="text-sm text-gray-800">{translatedSentences.get(index)}</p>
+                              </div>
+                            )}
+                            <div className="flex items-center justify-between mt-2">
+                              <p className="text-xs text-gray-500">
+                                文章 #{index + 1}
+                              </p>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleEditSentence(index);
+                                }}
+                                className="text-xs text-blue-600 hover:text-blue-800 font-semibold"
+                              >
+                                ✏️ 編集
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>

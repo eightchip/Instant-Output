@@ -10,6 +10,7 @@ import { tts, TTSSpeed } from "@/lib/tts";
 import { PracticeMode } from "@/types/modes";
 import { autoGrade, getGradingDetails, GradingDetails } from "@/lib/auto-grading";
 import { splitIntoWords, getImportantWords } from "@/lib/vocabulary";
+import ErrorDialog from "@/components/ErrorDialog";
 
 function PracticeContent() {
   const router = useRouter();
@@ -33,6 +34,11 @@ function PracticeContent() {
   const speedCheckIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const [autoGradingResult, setAutoGradingResult] = useState<GradingDetails | null>(null);
   const [manualResult, setManualResult] = useState<ReviewResult | null>(null);
+  const [errorDialog, setErrorDialog] = useState<{ isOpen: boolean; title: string; message: string }>({
+    isOpen: false,
+    title: "",
+    message: "",
+  });
 
   // タイピング練習モード用
   const [typingStartTime, setTypingStartTime] = useState<number | null>(null);
@@ -64,16 +70,30 @@ function PracticeContent() {
             }
           }
           if (loadedCards.length === 0) {
-            alert("選択したカードが見つかりませんでした。");
-            router.push("/practice/select");
+            setIsLoading(false);
+            setErrorDialog({
+              isOpen: true,
+              title: "カードが見つかりません",
+              message: "選択したカードが見つかりませんでした。",
+            });
+            setTimeout(() => {
+              router.push("/practice/select");
+            }, 2000);
             return;
           }
           setCards(loadedCards);
         } else {
           const loadedCards = await getCardsByMode(mode, cardCount);
           if (loadedCards.length === 0) {
-            alert("学習できるカードがありません。");
-            router.push("/");
+            setIsLoading(false);
+            setErrorDialog({
+              isOpen: true,
+              title: "カードがありません",
+              message: "学習できるカードがありません。",
+            });
+            setTimeout(() => {
+              router.push("/");
+            }, 2000);
             return;
           }
 
@@ -92,8 +112,15 @@ function PracticeContent() {
         }
       } catch (error) {
         console.error("Failed to load cards:", error);
-        alert("カードの読み込みに失敗しました。");
-        router.push("/");
+        setIsLoading(false);
+        setErrorDialog({
+          isOpen: true,
+          title: "読み込みエラー",
+          message: "カードの読み込みに失敗しました。",
+        });
+        setTimeout(() => {
+          router.push("/");
+        }, 2000);
       } finally {
         setIsLoading(false);
       }
@@ -394,7 +421,7 @@ function PracticeContent() {
     }
   };
 
-  if (isLoading) {
+  if (isLoading && !errorDialog.isOpen) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <div className="text-lg">読み込み中...</div>
@@ -764,6 +791,12 @@ function PracticeContent() {
           ホームに戻る
         </button>
       </main>
+      <ErrorDialog
+        isOpen={errorDialog.isOpen}
+        title={errorDialog.title}
+        message={errorDialog.message}
+        onClose={() => setErrorDialog({ isOpen: false, title: "", message: "" })}
+      />
     </div>
   );
 }
