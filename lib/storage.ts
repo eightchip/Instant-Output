@@ -158,6 +158,17 @@ class StorageService {
     });
   }
 
+  async deleteCourse(id: string): Promise<void> {
+    const db = this.ensureDb();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(STORES.courses, "readwrite");
+      const store = tx.objectStore(STORES.courses);
+      const request = store.delete(id);
+      request.onsuccess = () => resolve();
+      request.onerror = () => reject(request.error);
+    });
+  }
+
   // Lesson operations
   async saveLesson(lesson: Lesson): Promise<void> {
     const db = this.ensureDb();
