@@ -69,6 +69,61 @@ export default function ScreenshotCardPage() {
     // 改行がない場合は、ピリオドや？などの句読点で自動分割
     return processOcrText(text);
   }
+
+  async function handleMergeSentence(index: number) {
+    if (index === 0) return; // 最初の文章は結合できない
+    
+    const updatedSentences = [...splitSentences];
+    // 前の文章と結合
+    const mergedText = updatedSentences[index - 1] + " " + updatedSentences[index];
+    updatedSentences[index - 1] = mergedText;
+    updatedSentences.splice(index, 1);
+    setSplitSentences(updatedSentences);
+    
+    // 選択状態を更新
+    const updatedSelected = new Set<number>();
+    selectedSentences.forEach((idx) => {
+      if (idx < index - 1) {
+        updatedSelected.add(idx);
+      } else if (idx === index - 1) {
+        updatedSelected.add(index - 1);
+      } else if (idx > index) {
+        updatedSelected.add(idx - 1);
+      }
+      // idx === index の場合は削除（結合されたため）
+    });
+    setSelectedSentences(updatedSelected);
+    
+    // 翻訳を更新
+    const updatedTranslations = new Map<number, string>();
+    translatedSentences.forEach((value, key) => {
+      if (key < index - 1) {
+        updatedTranslations.set(key, value);
+      } else if (key > index) {
+        updatedTranslations.set(key - 1, value);
+      }
+      // key === index - 1 と key === index の場合は削除（結合されたため、再翻訳が必要）
+    });
+    setTranslatedSentences(updatedTranslations);
+    
+    // 結合された文章を再翻訳
+    await handleAutoTranslate([mergedText]);
+    // handleAutoTranslate内で翻訳が更新されるが、インデックスがずれているので手動で更新
+    const finalTranslations = new Map(updatedTranslations);
+    // 結合された文章（index - 1）の翻訳を取得
+    const response = await fetch("/api/translate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text: mergedText }),
+    });
+    if (response.ok) {
+      const data = await response.json();
+      if (data.translatedText) {
+        finalTranslations.set(index - 1, data.translatedText);
+        setTranslatedSentences(finalTranslations);
+      }
+    }
+  }
   const [messageDialog, setMessageDialog] = useState<{ isOpen: boolean; title: string; message: string }>({
     isOpen: false,
     title: "",
@@ -1401,7 +1456,19 @@ export default function ScreenshotCardPage() {
                                 <p className="text-sm text-gray-800">{translatedSentences.get(index)}</p>
                               </div>
                             )}
-                            <div className="flex items-center justify-end mt-2">
+                            <div className="flex items-center justify-end gap-2 mt-2">
+                              {index > 0 && (
+                                <button
+                                  onClick={async (e) => {
+                                    e.stopPropagation();
+                                    await handleMergeSentence(index);
+                                  }}
+                                  className="text-xs bg-orange-600 hover:bg-orange-700 text-white font-semibold py-1 px-2 rounded"
+                                  title="前の文章と結合"
+                                >
+                                  🔗 結合
+                                </button>
+                              )}
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation();

@@ -22,6 +22,7 @@ export default function EditCardPage() {
   const [isSpeakingEn, setIsSpeakingEn] = useState(false);
   const [isPausedEn, setIsPausedEn] = useState(false);
   const [ttsSpeed, setTtsSpeed] = useState<TTSSpeed>(1);
+  const [isTranslating, setIsTranslating] = useState(false);
   const recognitionJpRef = useRef<any>(null);
   const recognitionEnRef = useRef<any>(null);
   const textareaJpRef = useRef<HTMLTextAreaElement>(null);
@@ -241,6 +242,60 @@ export default function EditCardPage() {
     };
 
     recognition.start();
+  }
+
+  async function handleRetranslate() {
+    if (!targetEn.trim()) {
+      setMessageDialog({
+        isOpen: true,
+        title: "入力エラー",
+        message: "英語を入力してください。",
+      });
+      return;
+    }
+
+    setIsTranslating(true);
+    try {
+      const response = await fetch("/api/translate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: targetEn.trim() }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.translatedText) {
+          setPromptJp(data.translatedText);
+          setMessageDialog({
+            isOpen: true,
+            title: "翻訳完了",
+            message: "日本語訳を更新しました。",
+          });
+        } else {
+          setMessageDialog({
+            isOpen: true,
+            title: "翻訳失敗",
+            message: "翻訳結果が取得できませんでした。",
+          });
+        }
+      } else {
+        const error = await response.json();
+        setMessageDialog({
+          isOpen: true,
+          title: "翻訳エラー",
+          message: `翻訳に失敗しました: ${error.message}`,
+        });
+      }
+    } catch (error) {
+      console.error("Translation error:", error);
+      setMessageDialog({
+        isOpen: true,
+        title: "翻訳エラー",
+        message: `翻訳処理中にエラーが発生しました: ${error instanceof Error ? error.message : "不明なエラー"}`,
+      });
+    } finally {
+      setIsTranslating(false);
+    }
   }
 
   function stopVoiceInput(lang: "jp" | "en") {
@@ -465,9 +520,19 @@ export default function EditCardPage() {
           
           {/* 日本語入力 */}
           <div>
-            <label className="block text-sm font-semibold mb-2">
-              日本語
-            </label>
+            <div className="flex items-center justify-between mb-2">
+              <label className="block text-sm font-semibold">
+                日本語
+              </label>
+              <button
+                onClick={handleRetranslate}
+                disabled={isTranslating || !targetEn.trim()}
+                className="text-xs bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-semibold py-1 px-3 rounded-lg flex items-center gap-1"
+                title="英語から自動翻訳"
+              >
+                {isTranslating ? "翻訳中..." : "🌐 再翻訳"}
+              </button>
+            </div>
             <div className="flex gap-2">
               <textarea
                 ref={textareaJpRef}
