@@ -5,6 +5,7 @@ import { useRouter, useParams } from "next/navigation";
 import { storage } from "@/lib/storage";
 import { Card } from "@/types/models";
 import { tts, TTSSpeed } from "@/lib/tts";
+import MessageDialog from "@/components/MessageDialog";
 
 export default function EditCardPage() {
   const router = useRouter();
