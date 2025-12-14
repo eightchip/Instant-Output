@@ -970,6 +970,14 @@ export default function ScreenshotCardPage() {
                       >
                         {isExtracting ? "テキスト抽出中..." : "テキストを抽出（OCR）"}
                       </button>
+                      {isExtracting && (
+                        <button
+                          onClick={handleCancelExtraction}
+                          className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg"
+                        >
+                          キャンセル
+                        </button>
+                      )}
                       <button
                         onClick={handleStartCrop}
                         className="w-full bg-gray-500 hover:bg-gray-600 text-white font-semibold py-2 px-4 rounded-lg text-sm"
@@ -979,15 +987,6 @@ export default function ScreenshotCardPage() {
                       <p className="text-xs text-gray-500 text-center">
                         ※ トリミングは精度に影響する可能性があります。通常はトリミングなしで抽出することを推奨します。
                       </p>
-                    </div>
-                      {isExtracting && (
-                        <button
-                          onClick={handleCancelExtraction}
-                          className="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg"
-                        >
-                          キャンセル
-                        </button>
-                      )}
                     </div>
                   </>
                 ) : (
