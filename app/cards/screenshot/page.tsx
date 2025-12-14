@@ -32,6 +32,8 @@ export default function ScreenshotCardPage() {
   const [editingSentenceIndex, setEditingSentenceIndex] = useState<number | null>(null);
   const [editingSentenceEn, setEditingSentenceEn] = useState<string>("");
   const [editingSentenceJp, setEditingSentenceJp] = useState<string>("");
+  const [originalEditingSentenceEn, setOriginalEditingSentenceEn] = useState<string>("");
+  const [isTranslatingSingle, setIsTranslatingSingle] = useState(false);
   const [showNewLessonForm, setShowNewLessonForm] = useState(false);
   const [newLessonTitle, setNewLessonTitle] = useState("");
   const [messageDialog, setMessageDialog] = useState<{ isOpen: boolean; title: string; message: string }>({
@@ -98,9 +100,53 @@ export default function ScreenshotCardPage() {
 
   function handleEditSentence(index: number) {
     setEditingSentenceIndex(index);
-    setEditingSentenceEn(splitSentences[index]);
+    const sentence = splitSentences[index];
+    setEditingSentenceEn(sentence);
+    setOriginalEditingSentenceEn(sentence);
     setEditingSentenceJp(translatedSentences.get(index) || "");
   }
+
+  async function handleTranslateSingleSentence() {
+    if (!editingSentenceEn.trim() || editingSentenceIndex === null) return;
+
+    setIsTranslatingSingle(true);
+    try {
+      const response = await fetch("/api/translate", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ text: editingSentenceEn.trim() }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        setMessageDialog({
+          isOpen: true,
+          title: "翻訳エラー",
+          message: errorData.message || "翻訳に失敗しました。",
+        });
+        return;
+      }
+
+      const data = await response.json();
+      if (data.translatedText) {
+        setEditingSentenceJp(data.translatedText);
+      }
+    } catch (error) {
+      console.error("Translation error:", error);
+      setMessageDialog({
+        isOpen: true,
+        title: "翻訳エラー",
+        message: "翻訳処理中にエラーが発生しました。",
+      });
+    } finally {
+      setIsTranslatingSingle(false);
+    }
+  }
+
+  const hasEnglishChanged = editingSentenceEn.trim() !== originalEditingSentenceEn.trim();
+  const hasJapaneseTranslation = editingSentenceJp.trim().length > 0;
 
   function handleSaveEditedSentence() {
     if (editingSentenceIndex === null) return;
@@ -1248,7 +1294,18 @@ export default function ScreenshotCardPage() {
                               />
                             </div>
                             <div>
-                              <label className="text-sm text-gray-700 font-semibold mb-2 block">日本語:</label>
+                              <div className="flex items-center justify-between mb-2">
+                                <label className="text-sm text-gray-700 font-semibold block">日本語:</label>
+                                {(!hasJapaneseTranslation || hasEnglishChanged) && (
+                                  <button
+                                    onClick={handleTranslateSingleSentence}
+                                    disabled={isTranslatingSingle || !editingSentenceEn.trim()}
+                                    className="text-xs bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-semibold py-1 px-3 rounded-lg flex items-center gap-1"
+                                  >
+                                    {isTranslatingSingle ? "翻訳中..." : hasEnglishChanged ? "🔄 再翻訳" : "🌐 翻訳"}
+                                  </button>
+                                )}
+                              </div>
                               <textarea
                                 value={editingSentenceJp}
                                 onChange={(e) => setEditingSentenceJp(e.target.value)}
