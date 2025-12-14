@@ -257,6 +257,11 @@ function PracticeContent() {
         focus: "集中モードの学習が完了しました！",
         review_only: "復習が完了しました！",
         custom: "学習が完了しました！",
+        favorite: "お気に入りモードの学習が完了しました！",
+        weak: "苦手克服モードの学習が完了しました！",
+        random: "ランダムモードの学習が完了しました！",
+        speed: "スピードチャレンジが完了しました！",
+        flashcard: "フラッシュカード学習が完了しました！",
       };
       alert(modeMessages[mode] || "学習が完了しました！");
       router.push("/");
