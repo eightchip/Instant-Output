@@ -35,8 +35,39 @@ export default function ScreenshotCardPage() {
   const [originalEditingSentenceEn, setOriginalEditingSentenceEn] = useState<string>("");
   const [isTranslatingSingle, setIsTranslatingSingle] = useState(false);
   const editingTextareaRef = useRef<HTMLTextAreaElement>(null);
+  const extractedTextareaRef = useRef<HTMLTextAreaElement>(null);
   const [showNewLessonForm, setShowNewLessonForm] = useState(false);
   const [newLessonTitle, setNewLessonTitle] = useState("");
+
+  function handleInsertLineBreak() {
+    if (!extractedTextareaRef.current) return;
+    const textarea = extractedTextareaRef.current;
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const text = extractedText;
+    const newText = text.substring(0, start) + '\n' + text.substring(end);
+    setExtractedText(newText);
+    // カーソル位置を改行の後に設定
+    setTimeout(() => {
+      if (extractedTextareaRef.current) {
+        extractedTextareaRef.current.setSelectionRange(start + 1, start + 1);
+        extractedTextareaRef.current.focus();
+      }
+    }, 0);
+  }
+
+  function splitTextIntoSentences(text: string): string[] {
+    // 改行がある場合は改行で分割
+    if (text.includes('\n')) {
+      return text
+        .split('\n')
+        .map(s => s.trim())
+        .filter(s => s.length > 0);
+    }
+    
+    // 改行がない場合は、ピリオドや？などの句読点で自動分割
+    return processOcrText(text);
+  }
   const [messageDialog, setMessageDialog] = useState<{ isOpen: boolean; title: string; message: string }>({
     isOpen: false,
     title: "",
@@ -1020,13 +1051,31 @@ export default function ScreenshotCardPage() {
                         </p>
                       )}
                     </div>
-                    <textarea
-                      value={extractedText}
-                      onChange={(e) => setExtractedText(e.target.value)}
-                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-800 whitespace-pre-wrap break-words min-h-[100px]"
-                      rows={4}
-                      placeholder="OCRで抽出されたテキストを編集できます..."
-                    />
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <label className="text-xs text-gray-600 font-semibold">
+                          改行を入れるとその位置で分割されます
+                        </label>
+                        <button
+                          onClick={handleInsertLineBreak}
+                          className="text-xs bg-blue-600 hover:bg-blue-700 text-white font-semibold py-1 px-3 rounded-lg flex items-center gap-1"
+                          title="カーソル位置に改行を挿入（分割位置を明示）"
+                        >
+                          ⏎ 改行を挿入
+                        </button>
+                      </div>
+                      <textarea
+                        ref={extractedTextareaRef}
+                        value={extractedText}
+                        onChange={(e) => setExtractedText(e.target.value)}
+                        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-800 whitespace-pre-wrap break-words min-h-[100px]"
+                        rows={4}
+                        placeholder="OCRで抽出されたテキストを編集できます。改行を入れるとその位置で分割されます。改行がない場合は、ピリオドや？などの句読点で自動分割されます。"
+                      />
+                      <p className="text-xs text-gray-500">
+                        💡 ヒント: 「改行を挿入」ボタンで分割位置を明示できます。改行がない場合は、ピリオド（.）や疑問符（?）などで自動分割されます。
+                      </p>
+                    </div>
                     {ocrConfidence !== null && ocrConfidence < 50 && (
                       <p className="text-xs text-yellow-600 mt-2">
                         ⚠️ 信頼度が低いため、抽出結果を確認・編集してください
@@ -1035,7 +1084,7 @@ export default function ScreenshotCardPage() {
                     {extractedText && !showSplitView && (
                       <button
                         onClick={() => {
-                          const sentences = processOcrText(extractedText);
+                          const sentences = splitTextIntoSentences(extractedText);
                           if (sentences.length > 1) {
                             setSplitSentences(sentences);
                             setSelectedSentences(new Set(sentences.map((_, i) => i)));
@@ -1056,13 +1105,13 @@ export default function ScreenshotCardPage() {
                         }}
                         className="mt-3 w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2 px-4 rounded-lg text-sm"
                       >
-                        📝 文章を自動分割してカードを作成
+                        📝 文章を分割してカードを作成
                       </button>
                     )}
                     {extractedText && showSplitView && (
                       <button
                         onClick={() => {
-                          const sentences = processOcrText(extractedText);
+                          const sentences = splitTextIntoSentences(extractedText);
                           if (sentences.length > 1) {
                             setSplitSentences(sentences);
                             setSelectedSentences(new Set(sentences.map((_, i) => i)));
