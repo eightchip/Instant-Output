@@ -389,25 +389,6 @@ export default function SettingsPage() {
             </ul>
           </div>
         </div>
-
-        {/* 管理者に問い合わせ */}
-        <div className="mt-8 p-4 bg-white rounded-lg border border-gray-200">
-          <h3 className="text-lg font-semibold mb-2">管理者に問い合わせ</h3>
-          <p className="text-sm text-gray-600 mb-3">
-            ご質問やお問い合わせは公式サイトからお願いいたします。
-          </p>
-          <a
-            href="https://linknavigator.vercel.app/"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-800 font-semibold"
-          >
-            <span>公式サイトを開く</span>
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-            </svg>
-          </a>
-        </div>
       </main>
       <MessageDialog
         isOpen={messageDialog.isOpen}
