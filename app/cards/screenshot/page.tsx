@@ -34,6 +34,7 @@ export default function ScreenshotCardPage() {
   const [editingSentenceJp, setEditingSentenceJp] = useState<string>("");
   const [originalEditingSentenceEn, setOriginalEditingSentenceEn] = useState<string>("");
   const [isTranslatingSingle, setIsTranslatingSingle] = useState(false);
+  const [isEditingExtractedText, setIsEditingExtractedText] = useState(false);
   const editingTextareaRef = useRef<HTMLTextAreaElement>(null);
   const extractedTextareaRef = useRef<HTMLTextAreaElement>(null);
   const [showNewLessonForm, setShowNewLessonForm] = useState(false);
