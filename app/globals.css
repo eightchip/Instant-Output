@@ -71,6 +71,16 @@ h1.text-xl {
   letter-spacing: -0.02em; /* 文字間隔を調整 */
 }
 
+/* ロゴ用のスタイル（ラポール22風） */
+h1.font-black {
+  font-weight: 800 !important;
+  color: #000000 !important;
+  letter-spacing: -0.03em !important;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
 .font-bold {
   font-weight: 700 !important;
   color: #111827 !important; /* より濃い色 */

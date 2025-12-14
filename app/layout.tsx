@@ -5,7 +5,7 @@ import "./globals.css";
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
-  weight: ["400", "500", "600", "700", "800"], // 800を追加してより太いフォントを利用可能に
+  weight: ["400", "500", "600", "700", "800", "900"], // 900を追加してより太いフォントを利用可能に
   display: "swap", // フォント読み込み中のフォールバックを改善
 });
 

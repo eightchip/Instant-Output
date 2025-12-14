@@ -69,7 +69,7 @@ export default function Home() {
       {/* ヘッダー */}
       <header className="bg-white border-b border-gray-200 sticky top-0 z-40">
         <div className="max-w-2xl mx-auto px-4 py-3 flex items-center justify-between">
-          <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Instant Output</h1>
+          <h1 className="text-2xl md:text-3xl font-black text-gray-900 tracking-tight" style={{ fontFamily: 'var(--font-geist-sans), sans-serif', fontWeight: 800, letterSpacing: '-0.03em' }}>Instant Output</h1>
           <div className="flex items-center gap-3">
             {/* QRコードボタン */}
             <button

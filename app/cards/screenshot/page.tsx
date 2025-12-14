@@ -614,13 +614,30 @@ export default function ScreenshotCardPage() {
     setCropArea(null);
   }
 
+  function getCanvasCoordinates(e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) {
+    if (!canvasRef.current) return { x: 0, y: 0 };
+    const rect = canvasRef.current.getBoundingClientRect();
+    const clientX = 'touches' in e ? e.touches[0]?.clientX : e.clientX;
+    const clientY = 'touches' in e ? e.touches[0]?.clientY : e.clientY;
+    return {
+      x: (clientX || 0) - rect.left,
+      y: (clientY || 0) - rect.top,
+    };
+  }
+
   function handleCanvasMouseDown(e: React.MouseEvent<HTMLCanvasElement>) {
     if (!isCropMode || !canvasRef.current) return;
-    
-    const rect = canvasRef.current.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-    
+    e.preventDefault();
+    const { x, y } = getCanvasCoordinates(e);
+    setIsDragging(true);
+    setDragStart({ x, y });
+    setCropArea({ x, y, width: 0, height: 0 });
+  }
+
+  function handleCanvasTouchStart(e: React.TouchEvent<HTMLCanvasElement>) {
+    if (!isCropMode || !canvasRef.current) return;
+    e.preventDefault();
+    const { x, y } = getCanvasCoordinates(e);
     setIsDragging(true);
     setDragStart({ x, y });
     setCropArea({ x, y, width: 0, height: 0 });
@@ -628,11 +645,23 @@ export default function ScreenshotCardPage() {
 
   function handleCanvasMouseMove(e: React.MouseEvent<HTMLCanvasElement>) {
     if (!isCropMode || !isDragging || !dragStart || !canvasRef.current) return;
+    e.preventDefault();
+    const { x, y } = getCanvasCoordinates(e);
+    const width = x - dragStart.x;
+    const height = y - dragStart.y;
     
-    const rect = canvasRef.current.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-    
+    setCropArea({
+      x: Math.min(dragStart.x, x),
+      y: Math.min(dragStart.y, y),
+      width: Math.abs(width),
+      height: Math.abs(height),
+    });
+  }
+
+  function handleCanvasTouchMove(e: React.TouchEvent<HTMLCanvasElement>) {
+    if (!isCropMode || !isDragging || !dragStart || !canvasRef.current) return;
+    e.preventDefault();
+    const { x, y } = getCanvasCoordinates(e);
     const width = x - dragStart.x;
     const height = y - dragStart.y;
     
@@ -645,6 +674,10 @@ export default function ScreenshotCardPage() {
   }
 
   function handleCanvasMouseUp() {
+    setIsDragging(false);
+  }
+
+  function handleCanvasTouchEnd() {
     setIsDragging(false);
   }
 
@@ -911,8 +944,11 @@ export default function ScreenshotCardPage() {
                         onMouseMove={handleCanvasMouseMove}
                         onMouseUp={handleCanvasMouseUp}
                         onMouseLeave={handleCanvasMouseUp}
-                        className="cursor-crosshair w-full"
-                        style={{ maxHeight: "600px" }}
+                        onTouchStart={handleCanvasTouchStart}
+                        onTouchMove={handleCanvasTouchMove}
+                        onTouchEnd={handleCanvasTouchEnd}
+                        className="cursor-crosshair w-full touch-none"
+                        style={{ maxHeight: "600px", touchAction: "none" }}
                       />
                       {/* 選択領域外を暗くするオーバーレイ */}
                       {cropArea && canvasRef.current && (
@@ -980,7 +1016,7 @@ export default function ScreenshotCardPage() {
                     </div>
                     <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
                       <p className="text-sm text-blue-800 mb-2">
-                        📐 マウスでドラッグしてトリミング領域を選択してください
+                        📐 ドラッグ（またはタッチ）してトリミング領域を選択してください
                       </p>
                       {cropArea && (
                         <p className="text-xs text-blue-600">
