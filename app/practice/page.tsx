@@ -419,7 +419,7 @@ function PracticeContent() {
                 {mode === "shuffle" && "🔀 シャッフルモード"}
                 {mode === "focus" && "⏱️ 集中モード"}
                 {mode === "review_only" && "🔄 復習専用"}
-                {mode === "flashcard" && "🃏 フラッシュカード"}
+                {(mode as string) === "flashcard" && "🃏 フラッシュカード"}
                 {mode === "favorite" && "⭐ お気に入り"}
                 {mode === "weak" && "💪 苦手克服"}
                 {mode === "random" && "🎲 完全ランダム"}
@@ -462,7 +462,7 @@ function PracticeContent() {
 
         {/* 問題表示 */}
         <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
-          {mode === "flashcard" ? (
+          {(mode as string) === "flashcard" ? (
             // フラッシュカードモード: 重要単語を表示
             <>
               <div className="text-center mb-6">
@@ -656,7 +656,7 @@ function PracticeContent() {
               )}
 
               {/* 自動採点結果（フラッシュカードモード以外） */}
-              {mode !== "flashcard" && autoGradingResult && (
+              {(mode as string) !== "flashcard" && autoGradingResult && (
                 <div className={`border-2 rounded-lg p-4 ${
                   autoGradingResult.result === "OK"
                     ? "bg-green-50 border-green-300"
@@ -688,7 +688,7 @@ function PracticeContent() {
               )}
 
               {/* 採点ボタン（フラッシュカードモード以外） */}
-              {mode !== "flashcard" && (
+              {(mode as string) !== "flashcard" && (
                 <>
                   <div className="grid grid-cols-3 gap-3">
                     <button
@@ -736,7 +736,7 @@ function PracticeContent() {
               )}
 
               {/* フラッシュカードモードの確定ボタン */}
-              {mode === "flashcard" && showAnswer && (
+              {(mode as string) === "flashcard" && showAnswer && (
                 <button
                   onClick={handleResultConfirm}
                   className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg mt-2"
