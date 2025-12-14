@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { storage } from "@/lib/storage";
 import { ocrService, OCRProgress } from "@/lib/ocr";
 import { Lesson, Card } from "@/types/models";
+import { processOcrText } from "@/lib/text-processing";
 
 export default function ScreenshotCardPage() {
   const router = useRouter();
@@ -21,6 +22,9 @@ export default function ScreenshotCardPage() {
   const [isExtracting, setIsExtracting] = useState(false);
   const [ocrProgress, setOcrProgress] = useState<OCRProgress | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [splitSentences, setSplitSentences] = useState<string[]>([]);
+  const [selectedSentences, setSelectedSentences] = useState<Set<number>>(new Set());
+  const [showSplitView, setShowSplitView] = useState(false);
   const progressUpdateIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const ocrAbortControllerRef = useRef<AbortController | null>(null);
 
@@ -46,9 +50,17 @@ export default function ScreenshotCardPage() {
   }
 
   function handleImageSelect(event: React.ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0];
-    if (file) {
-      processImageFile(file);
+    const files = event.target.files;
+    if (!files || files.length === 0) return;
+
+    // 複数ファイル対応
+    if (files.length > 1) {
+      // 複数画像の場合は、最初の画像のみ処理（将来的に拡張可能）
+      // 現在は1枚ずつ処理することを推奨
+      alert(`複数の画像が選択されました。最初の画像のみ処理します。\n複数画像の一括処理は、今後実装予定です。`);
+      processImageFile(files[0]);
+    } else {
+      processImageFile(files[0]);
     }
   }
 
@@ -253,6 +265,14 @@ export default function ScreenshotCardPage() {
         !result.text.includes("利用できません")
       ) {
         setTargetEn(result.text);
+        
+        // 自動的に文章を分割
+        const sentences = processOcrText(result.text);
+        if (sentences.length > 1) {
+          setSplitSentences(sentences);
+          setSelectedSentences(new Set(sentences.map((_, i) => i))); // すべて選択
+          setShowSplitView(true);
+        }
       }
     } catch (error) {
       clearTimeout(timeoutId);
@@ -297,6 +317,7 @@ export default function ScreenshotCardPage() {
         prompt_jp: promptJp.trim() || "(後で追加)",
         target_en: targetEn.trim(),
         source_type: "screenshot",
+        imageData: imagePreview || undefined, // 画像データを保存
       };
       await storage.saveCard(card);
       alert("カードを保存しました！");
@@ -307,6 +328,63 @@ export default function ScreenshotCardPage() {
     } finally {
       setIsSaving(false);
     }
+  }
+
+  async function handleSaveSplitCards() {
+    if (!selectedLessonId) {
+      alert("レッスンを選択してください。");
+      return;
+    }
+
+    if (selectedSentences.size === 0) {
+      alert("カードを作成する文章を選択してください。");
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      await storage.init();
+      const cardsToSave: Card[] = Array.from(selectedSentences).map((index) => {
+        const sentence = splitSentences[index];
+        return {
+          id: `card_${Date.now()}_${index}_${Math.random().toString(36).substr(2, 9)}`,
+          lessonId: selectedLessonId,
+          prompt_jp: "(後で追加)",
+          target_en: sentence.trim(),
+          source_type: "screenshot",
+          imageData: imagePreview || undefined,
+        };
+      });
+
+      await Promise.all(cardsToSave.map(card => storage.saveCard(card)));
+      alert(`${cardsToSave.length}枚のカードを作成しました！`);
+      router.push(`/lessons/${selectedLessonId}`);
+    } catch (error) {
+      console.error("Failed to save cards:", error);
+      alert("カードの保存に失敗しました。");
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
+  function toggleSentenceSelection(index: number) {
+    setSelectedSentences((prev) => {
+      const newSelection = new Set(prev);
+      if (newSelection.has(index)) {
+        newSelection.delete(index);
+      } else {
+        newSelection.add(index);
+      }
+      return newSelection;
+    });
+  }
+
+  function selectAllSentences() {
+    setSelectedSentences(new Set(splitSentences.map((_, i) => i)));
+  }
+
+  function deselectAllSentences() {
+    setSelectedSentences(new Set());
   }
 
   function handleRemoveImage() {
@@ -394,6 +472,7 @@ export default function ScreenshotCardPage() {
                   type="file"
                   accept="image/png,image/jpeg,image/jpg,image/gif"
                   onChange={handleImageSelect}
+                  multiple
                   className="hidden"
                 />
               </div>
@@ -504,6 +583,25 @@ export default function ScreenshotCardPage() {
                         ⚠️ 信頼度が低いため、抽出結果を確認・編集してください
                       </p>
                     )}
+                    {extractedText && !showSplitView && (
+                      <button
+                        onClick={() => {
+                          const sentences = processOcrText(extractedText);
+                          if (sentences.length > 1) {
+                            setSplitSentences(sentences);
+                            setSelectedSentences(new Set(sentences.map((_, i) => i)));
+                            setShowSplitView(true);
+                          } else if (sentences.length === 1) {
+                            alert("文章が1つしか見つかりませんでした。");
+                          } else {
+                            alert("有効な文章が見つかりませんでした。");
+                          }
+                        }}
+                        className="mt-3 w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2 px-4 rounded-lg text-sm"
+                      >
+                        📝 文章を自動分割してカードを作成
+                      </button>
+                    )}
                   </div>
                 )}
               </div>
@@ -524,39 +622,116 @@ export default function ScreenshotCardPage() {
             />
           </div>
 
-          {/* 英語入力 */}
-          <div>
-            <label className="block text-sm font-semibold mb-2">
-              英語（編集可能）
-            </label>
-            <textarea
-              value={targetEn}
-              onChange={(e) => setTargetEn(e.target.value)}
-              placeholder="英語文を入力（OCR結果を編集できます）..."
-              className="w-full border border-gray-300 rounded-lg px-4 py-3 min-h-[100px]"
-              rows={3}
-            />
-            <p className="text-xs text-gray-500 mt-1">
-              OCRで抽出したテキストを編集できます
-            </p>
-          </div>
+          {/* 文章分割ビュー */}
+          {showSplitView && splitSentences.length > 0 && (
+            <div className="bg-purple-50 border-2 border-purple-300 rounded-lg p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold text-purple-800">
+                  📝 文章を自動分割しました（{splitSentences.length}個）
+                </h3>
+                <button
+                  onClick={() => setShowSplitView(false)}
+                  className="text-sm text-purple-600 hover:text-purple-800"
+                >
+                  閉じる
+                </button>
+              </div>
+              
+              <div className="mb-4 flex gap-2">
+                <button
+                  onClick={selectAllSentences}
+                  className="bg-purple-200 hover:bg-purple-300 text-purple-800 font-semibold py-2 px-4 rounded-lg text-sm"
+                >
+                  すべて選択
+                </button>
+                <button
+                  onClick={deselectAllSentences}
+                  className="bg-purple-200 hover:bg-purple-300 text-purple-800 font-semibold py-2 px-4 rounded-lg text-sm"
+                >
+                  選択解除
+                </button>
+                <span className="ml-auto text-sm text-purple-700 font-semibold">
+                  {selectedSentences.size} / {splitSentences.length} 個選択中
+                </span>
+              </div>
 
-          {/* 保存ボタン */}
-          <div className="flex gap-3">
-            <button
-              onClick={handleSave}
-              disabled={isSaving || !targetEn.trim()}
-              className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-bold py-3 px-4 rounded-lg"
-            >
-              {isSaving ? "保存中..." : "保存"}
-            </button>
-            <button
-              onClick={() => router.back()}
-              className="flex-1 bg-gray-500 hover:bg-gray-600 text-white font-bold py-3 px-4 rounded-lg"
-            >
-              キャンセル
-            </button>
-          </div>
+              <div className="max-h-96 overflow-y-auto space-y-2 mb-4">
+                {splitSentences.map((sentence, index) => (
+                  <div
+                    key={index}
+                    className={`bg-white rounded-lg p-3 border-2 cursor-pointer transition-colors ${
+                      selectedSentences.has(index)
+                        ? "border-purple-500 bg-purple-100"
+                        : "border-gray-200 hover:border-gray-300"
+                    }`}
+                    onClick={() => toggleSentenceSelection(index)}
+                  >
+                    <div className="flex items-start gap-3">
+                      <input
+                        type="checkbox"
+                        checked={selectedSentences.has(index)}
+                        onChange={() => toggleSentenceSelection(index)}
+                        onClick={(e) => e.stopPropagation()}
+                        className="mt-1"
+                      />
+                      <div className="flex-1">
+                        <p className="text-sm text-gray-800">{sentence}</p>
+                        <p className="text-xs text-gray-500 mt-1">
+                          文章 #{index + 1}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <button
+                onClick={handleSaveSplitCards}
+                disabled={isSaving || selectedSentences.size === 0}
+                className="w-full bg-purple-600 hover:bg-purple-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-bold py-3 px-4 rounded-lg"
+              >
+                {isSaving ? "保存中..." : `選択した${selectedSentences.size}枚のカードを作成`}
+              </button>
+            </div>
+          )}
+
+          {/* 英語入力（分割ビューが表示されていない場合のみ） */}
+          {!showSplitView && (
+            <div>
+              <label className="block text-sm font-semibold mb-2">
+                英語（編集可能）
+              </label>
+              <textarea
+                value={targetEn}
+                onChange={(e) => setTargetEn(e.target.value)}
+                placeholder="英語文を入力（OCR結果を編集できます）..."
+                className="w-full border border-gray-300 rounded-lg px-4 py-3 min-h-[100px]"
+                rows={3}
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                OCRで抽出したテキストを編集できます
+              </p>
+            </div>
+          )}
+
+          {/* 保存ボタン（分割ビューが表示されていない場合のみ） */}
+          {!showSplitView && (
+            <div className="flex gap-3">
+              <button
+                onClick={handleSave}
+                disabled={isSaving || !targetEn.trim()}
+                className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-bold py-3 px-4 rounded-lg"
+              >
+                {isSaving ? "保存中..." : "保存"}
+              </button>
+              <button
+                onClick={() => router.back()}
+                className="flex-1 bg-gray-500 hover:bg-gray-600 text-white font-bold py-3 px-4 rounded-lg"
+              >
+                キャンセル
+              </button>
+            </div>
+          )}
         </div>
       </main>
     </div>

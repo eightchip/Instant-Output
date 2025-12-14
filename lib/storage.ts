@@ -1,9 +1,10 @@
 // IndexedDB ストレージ層
 
 import { Course, Lesson, Card, Review, StudySession } from "@/types/models";
+import { Source, Draft } from "@/types/ai-card";
 
 const DB_NAME = "instant_output_db";
-const DB_VERSION = 2;
+const DB_VERSION = 3; // バージョンを3に更新
 
 const STORES = {
   courses: "courses",
@@ -11,6 +12,8 @@ const STORES = {
   cards: "cards",
   reviews: "reviews",
   studySessions: "studySessions",
+  sources: "sources",
+  drafts: "drafts",
 } as const;
 
 class StorageService {
@@ -67,6 +70,23 @@ class StorageService {
             keyPath: "id",
           });
           sessionStore.createIndex("date", "date", { unique: false });
+        }
+
+        // Sources store
+        if (!db.objectStoreNames.contains(STORES.sources)) {
+          const sourceStore = db.createObjectStore(STORES.sources, {
+            keyPath: "id",
+          });
+          sourceStore.createIndex("createdAt", "createdAt", { unique: false });
+        }
+
+        // Drafts store
+        if (!db.objectStoreNames.contains(STORES.drafts)) {
+          const draftStore = db.createObjectStore(STORES.drafts, {
+            keyPath: "id",
+          });
+          draftStore.createIndex("sourceId", "sourceId", { unique: false });
+          draftStore.createIndex("createdAt", "createdAt", { unique: false });
         }
       };
     });
@@ -184,6 +204,17 @@ class StorageService {
     });
   }
 
+  async deleteLesson(id: string): Promise<void> {
+    const db = this.ensureDb();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(STORES.lessons, "readwrite");
+      const store = tx.objectStore(STORES.lessons);
+      const request = store.delete(id);
+      request.onsuccess = () => resolve();
+      request.onerror = () => reject(request.error);
+    });
+  }
+
   // Card operations
   async saveCard(card: Card): Promise<void> {
     const db = this.ensureDb();
@@ -238,6 +269,97 @@ class StorageService {
       const request = store.delete(id);
       request.onsuccess = () => resolve();
       request.onerror = () => reject(request.error);
+    });
+  }
+
+  async updateCard(id: string, updates: Partial<Card>): Promise<void> {
+    const db = this.ensureDb();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(STORES.cards, "readwrite");
+      const store = tx.objectStore(STORES.cards);
+      const getRequest = store.get(id);
+      getRequest.onsuccess = () => {
+        const card = getRequest.result;
+        if (!card) {
+          reject(new Error(`Card with id ${id} not found`));
+          return;
+        }
+        const updatedCard = { ...card, ...updates };
+        const putRequest = store.put(updatedCard);
+        putRequest.onsuccess = () => resolve();
+        putRequest.onerror = () => reject(putRequest.error);
+      };
+      getRequest.onerror = () => reject(getRequest.error);
+    });
+  }
+
+  async deleteCards(ids: string[]): Promise<void> {
+    const db = this.ensureDb();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(STORES.cards, "readwrite");
+      const store = tx.objectStore(STORES.cards);
+      let completed = 0;
+      let hasError = false;
+
+      ids.forEach((id) => {
+        const request = store.delete(id);
+        request.onsuccess = () => {
+          completed++;
+          if (completed === ids.length && !hasError) {
+            resolve();
+          }
+        };
+        request.onerror = () => {
+          if (!hasError) {
+            hasError = true;
+            reject(request.error);
+          }
+        };
+      });
+    });
+  }
+
+  async moveCardsToLesson(cardIds: string[], targetLessonId: string): Promise<void> {
+    const db = this.ensureDb();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(STORES.cards, "readwrite");
+      const store = tx.objectStore(STORES.cards);
+      let completed = 0;
+      let hasError = false;
+
+      cardIds.forEach((id) => {
+        const getRequest = store.get(id);
+        getRequest.onsuccess = () => {
+          const card = getRequest.result;
+          if (!card) {
+            completed++;
+            if (completed === cardIds.length && !hasError) {
+              resolve();
+            }
+            return;
+          }
+          const updatedCard = { ...card, lessonId: targetLessonId };
+          const putRequest = store.put(updatedCard);
+          putRequest.onsuccess = () => {
+            completed++;
+            if (completed === cardIds.length && !hasError) {
+              resolve();
+            }
+          };
+          putRequest.onerror = () => {
+            if (!hasError) {
+              hasError = true;
+              reject(putRequest.error);
+            }
+          };
+        };
+        getRequest.onerror = () => {
+          if (!hasError) {
+            hasError = true;
+            reject(getRequest.error);
+          }
+        };
+      });
     });
   }
 
@@ -420,6 +542,132 @@ class StorageService {
           );
         resolve(filtered);
       };
+      request.onerror = () => reject(request.error);
+    });
+  }
+
+  // Source operations
+  async saveSource(source: Source): Promise<void> {
+    const db = this.ensureDb();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(STORES.sources, "readwrite");
+      const store = tx.objectStore(STORES.sources);
+      const sourceData = {
+        ...source,
+        createdAt: source.createdAt instanceof Date ? source.createdAt.toISOString() : source.createdAt,
+      };
+      const request = store.put(sourceData);
+      request.onsuccess = () => resolve();
+      request.onerror = () => reject(request.error);
+    });
+  }
+
+  async getSource(id: string): Promise<Source | null> {
+    const db = this.ensureDb();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(STORES.sources, "readonly");
+      const store = tx.objectStore(STORES.sources);
+      const request = store.get(id);
+      request.onsuccess = () => {
+        const result = request.result;
+        if (!result) {
+          resolve(null);
+          return;
+        }
+        resolve({
+          ...result,
+          createdAt: new Date(result.createdAt),
+        });
+      };
+      request.onerror = () => reject(request.error);
+    });
+  }
+
+  async getAllSources(): Promise<Source[]> {
+    const db = this.ensureDb();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(STORES.sources, "readonly");
+      const store = tx.objectStore(STORES.sources);
+      const request = store.getAll();
+      request.onsuccess = () => {
+        const results = request.result || [];
+        resolve(
+          results.map((source: any) => ({
+            ...source,
+            createdAt: new Date(source.createdAt),
+          }))
+        );
+      };
+      request.onerror = () => reject(request.error);
+    });
+  }
+
+  // Draft operations
+  async saveDraft(draft: Draft): Promise<void> {
+    const db = this.ensureDb();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(STORES.drafts, "readwrite");
+      const store = tx.objectStore(STORES.drafts);
+      const draftData = {
+        ...draft,
+        createdAt: draft.createdAt instanceof Date ? draft.createdAt.toISOString() : draft.createdAt,
+      };
+      const request = store.put(draftData);
+      request.onsuccess = () => resolve();
+      request.onerror = () => reject(request.error);
+    });
+  }
+
+  async getDraft(id: string): Promise<Draft | null> {
+    const db = this.ensureDb();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(STORES.drafts, "readonly");
+      const store = tx.objectStore(STORES.drafts);
+      const request = store.get(id);
+      request.onsuccess = () => {
+        const result = request.result;
+        if (!result) {
+          resolve(null);
+          return;
+        }
+        resolve({
+          ...result,
+          createdAt: new Date(result.createdAt),
+        });
+      };
+      request.onerror = () => reject(request.error);
+    });
+  }
+
+  async getDraftBySource(sourceId: string): Promise<Draft | null> {
+    const db = this.ensureDb();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(STORES.drafts, "readonly");
+      const store = tx.objectStore(STORES.drafts);
+      const index = store.index("sourceId");
+      const request = index.get(sourceId);
+      request.onsuccess = () => {
+        const result = request.result;
+        if (!result) {
+          resolve(null);
+          return;
+        }
+        resolve({
+          ...result,
+          createdAt: new Date(result.createdAt),
+        });
+      };
+      request.onerror = () => reject(request.error);
+    });
+  }
+
+  async deleteDraft(id: string): Promise<void> {
+    const db = this.ensureDb();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(STORES.drafts, "readwrite");
+      const store = tx.objectStore(STORES.drafts);
+      const request = store.delete(id);
+      request.onsuccess = () => resolve();
       request.onerror = () => reject(request.error);
     });
   }

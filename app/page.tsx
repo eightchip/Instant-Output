@@ -77,12 +77,32 @@ export default function Home() {
           <p className="text-center text-gray-600 mt-2">
             {todayCards.length}問のカードが準備できています
           </p>
-          <button
-            onClick={() => router.push("/practice/mode-select")}
-            className="w-full mt-2 bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-4 rounded-lg shadow transition-colors"
+          <div className="grid grid-cols-2 gap-2 mt-2">
+            <button
+              onClick={() => router.push("/practice/mode-select")}
+              className="bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-4 rounded-lg shadow transition-colors"
             >
-            学習モードを選択
-          </button>
+              学習モードを選択
+            </button>
+            <button
+              onClick={() => router.push("/practice/select")}
+              className="bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-lg shadow transition-colors"
+            >
+              カードを選択
+            </button>
+            <button
+              onClick={() => router.push("/practice?mode=favorite&count=10")}
+              className="bg-yellow-600 hover:bg-yellow-700 text-white font-bold py-3 px-4 rounded-lg shadow transition-colors"
+            >
+              ⭐ お気に入り
+            </button>
+            <button
+              onClick={() => router.push("/practice?mode=weak&count=10")}
+              className="bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-4 rounded-lg shadow transition-colors"
+            >
+              💪 苦手克服
+            </button>
+          </div>
         </div>
 
         {/* コース進捗 */}
@@ -224,12 +244,6 @@ export default function Home() {
                 サンプルデータを追加
               </button>
               <button
-                onClick={() => router.push("/cards/template")}
-                className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded"
-              >
-                テンプレートから追加
-              </button>
-              <button
                 onClick={() => router.push("/cards/screenshot")}
                 className="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded"
               >
@@ -294,6 +308,13 @@ export default function Home() {
               color="green"
               onClick={() => router.push("/cards/search")}
             />
+            <MenuButton
+              icon="📚"
+              title="語彙リスト"
+              description="すべてのカードから重要な単語を抽出してリスト化。出現回数順に表示され、音声読み上げも可能です。"
+              color="green"
+              onClick={() => router.push("/vocabulary")}
+            />
           </div>
 
           {/* 追加系 */}
@@ -309,25 +330,19 @@ export default function Home() {
               onClick={() => router.push("/cards/new")}
             />
             <MenuButton
-              icon="📝"
-              title="テンプレートから追加"
-              description="よく使う英語フレーズのテンプレートから選択してカードを作成。初心者におすすめです。"
-              color="orange"
-              onClick={() => router.push("/cards/template")}
-            />
-            <MenuButton
               icon="📷"
               title="スクリーンショットから追加"
-              description="画像からOCRで英語テキストを抽出してカードを作成。日本語は後から追加できます。"
+              description="画像からOCRで英語テキストを抽出してカードを作成。複数画像の一括処理にも対応。日本語は後から追加できます。"
               color="orange"
               onClick={() => router.push("/cards/screenshot")}
             />
             <MenuButton
-              icon="🖼️"
-              title="複数画像から一括追加"
-              description="複数の画像を一度にアップロードして、まとめてカードを作成。効率的に学習素材を登録できます。"
+              icon="🤖"
+              title="AIでカード化"
+              description="英文教材の画像からOCR→AI整形で自動的にカード候補を生成。自然な日本語訳付きで効率的に学習素材を作成できます。"
               color="orange"
-              onClick={() => router.push("/cards/batch-screenshot")}
+              badge="プレミアム"
+              onClick={() => router.push("/cards/ai-card")}
             />
           </div>
 

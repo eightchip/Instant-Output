@@ -36,9 +36,11 @@ export default function CardSearchPage() {
         storage.getAllCards(),
         storage.getAllLessons(),
       ]);
-      setCards(allCards);
+      // テンプレートカードを除外
+      const userCards = allCards.filter(card => card.source_type !== "template");
+      setCards(userCards);
       setLessons(allLessons);
-      setFilteredCards(allCards);
+      setFilteredCards(userCards);
     } catch (error) {
       console.error("Failed to load data:", error);
     } finally {
@@ -155,7 +157,6 @@ export default function CardSearchPage() {
                 <option value="manual_pair">手入力（日英ペア）</option>
                 <option value="manual_en">手入力（英語のみ）</option>
                 <option value="screenshot">スクリーンショット</option>
-                <option value="template">テンプレート</option>
               </select>
             </div>
 
@@ -189,6 +190,27 @@ export default function CardSearchPage() {
                 key={card.id}
                 className="bg-white rounded-lg shadow p-4 hover:shadow-md transition-shadow"
               >
+                {/* 画像サムネイル */}
+                {card.imageData && (
+                  <div className="mb-3">
+                    <img
+                      src={card.imageData}
+                      alt="元画像"
+                      className="w-24 h-24 object-cover rounded-lg border border-gray-300 cursor-pointer hover:opacity-80 transition-opacity"
+                      onClick={() => {
+                        const modal = document.createElement("div");
+                        modal.className = "fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50";
+                        modal.onclick = () => modal.remove();
+                        const img = document.createElement("img");
+                        img.src = card.imageData!;
+                        img.className = "max-w-full max-h-full object-contain";
+                        img.onclick = (e) => e.stopPropagation();
+                        modal.appendChild(img);
+                        document.body.appendChild(modal);
+                      }}
+                    />
+                  </div>
+                )}
                 <div className="mb-2">
                   <p className="text-gray-600 text-sm mb-1">日本語</p>
                   <p className="text-lg font-semibold">
@@ -202,8 +224,25 @@ export default function CardSearchPage() {
                   </p>
                 </div>
                 <div className="mt-2 flex items-center justify-between">
-                  <div className="text-xs text-gray-500">
-                    タイプ: {card.source_type}
+                  <div className="text-xs text-gray-500 flex items-center gap-2">
+                    <span>タイプ: {card.source_type}</span>
+                    <button
+                      onClick={async (e) => {
+                        e.stopPropagation();
+                        try {
+                          await storage.init();
+                          await storage.updateCard(card.id, { isFavorite: !card.isFavorite });
+                          await loadData();
+                        } catch (error) {
+                          console.error("Failed to toggle favorite:", error);
+                          alert("お気に入りの更新に失敗しました。");
+                        }
+                      }}
+                      className={`text-lg ${card.isFavorite ? "text-yellow-500" : "text-gray-300"} hover:text-yellow-500 transition-colors`}
+                      title={card.isFavorite ? "お気に入りを解除" : "お気に入りに追加"}
+                    >
+                      {card.isFavorite ? "✅" : "⬜"}
+                    </button>
                   </div>
                   <button
                     onClick={() => router.push(`/cards/${card.id}/edit`)}

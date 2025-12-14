@@ -206,12 +206,33 @@ export default function CoursesPage() {
                       </div>
                     </div>
                   </div>
-                  <button
-                    onClick={() => router.push(`/courses/${course.id}`)}
-                    className="w-full bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold py-2 px-4 rounded-lg"
-                  >
-                    詳細を見る
-                  </button>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => router.push(`/courses/${course.id}`)}
+                      className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold py-2 px-4 rounded-lg"
+                    >
+                      詳細を見る
+                    </button>
+                    <button
+                      onClick={async () => {
+                        if (!confirm(`コース「${course.title}」を削除しますか？\nレッスンやカードは削除されません。`)) {
+                          return;
+                        }
+                        try {
+                          await storage.init();
+                          await storage.deleteCourse(course.id);
+                          await loadData();
+                          alert("コースを削除しました。");
+                        } catch (error) {
+                          console.error("Failed to delete course:", error);
+                          alert("コースの削除に失敗しました。");
+                        }
+                      }}
+                      className="bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-4 rounded-lg"
+                    >
+                      削除
+                    </button>
+                  </div>
                 </div>
               );
             })}

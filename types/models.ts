@@ -26,6 +26,10 @@ export interface Card {
   prompt_jp: string;
   target_en: string;
   source_type: SourceType;
+  imageData?: string; // base64エンコードされた画像データ（スクリーンショット用）
+  isFavorite?: boolean; // お気に入りフラグ
+  notes?: string; // メモ・ノート（覚え方のコツなど）
+  importantWords?: string[]; // 重要な単語・表現のリスト
 }
 
 export interface Review {

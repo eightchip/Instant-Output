@@ -13,6 +13,9 @@ export default function CourseDetailPage() {
   const [allLessons, setAllLessons] = useState<Lesson[]>([]);
   const [courseLessons, setCourseLessons] = useState<Lesson[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editDailyTarget, setEditDailyTarget] = useState(5);
+  const [editDurationDays, setEditDurationDays] = useState(30);
 
   useEffect(() => {
     if (courseId) {
@@ -34,6 +37,8 @@ export default function CourseDetailPage() {
           courseData.lessonIds.includes(l.id)
         );
         setCourseLessons(lessons);
+        setEditDailyTarget(courseData.dailyTarget);
+        setEditDurationDays(courseData.durationDays);
       }
     } catch (error) {
       console.error("Failed to load data:", error);
@@ -79,6 +84,35 @@ export default function CourseDetailPage() {
     }
   }
 
+  async function handleSaveGoal() {
+    if (!course) return;
+
+    if (editDailyTarget < 1 || editDailyTarget > 100) {
+      alert("1日の目標は1〜100問の範囲で設定してください。");
+      return;
+    }
+
+    if (editDurationDays < 1 || editDurationDays > 365) {
+      alert("期間は1〜365日の範囲で設定してください。");
+      return;
+    }
+
+    try {
+      const updatedCourse: Course = {
+        ...course,
+        dailyTarget: editDailyTarget,
+        durationDays: editDurationDays,
+      };
+      await storage.saveCourse(updatedCourse);
+      await loadData();
+      setIsEditing(false);
+      alert("目標を更新しました。");
+    } catch (error) {
+      console.error("Failed to update course:", error);
+      alert("目標の更新に失敗しました。");
+    }
+  }
+
   if (isLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
@@ -109,27 +143,119 @@ export default function CourseDetailPage() {
       <main className="flex-1 px-4 py-8 max-w-2xl mx-auto w-full">
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-3xl font-bold">{course.title}</h1>
-          <button
-            onClick={() => router.push("/courses")}
-            className="text-gray-600 hover:text-gray-800"
-          >
-            ← 戻る
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={async () => {
+                if (!confirm(`コース「${course.title}」を削除しますか？\nレッスンやカードは削除されません。`)) {
+                  return;
+                }
+                try {
+                  await storage.init();
+                  await storage.deleteCourse(course.id);
+                  alert("コースを削除しました。");
+                  router.push("/courses");
+                } catch (error) {
+                  console.error("Failed to delete course:", error);
+                  alert("コースの削除に失敗しました。");
+                }
+              }}
+              className="bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-4 rounded-lg"
+            >
+              削除
+            </button>
+            <button
+              onClick={() => router.push("/courses")}
+              className="text-gray-600 hover:text-gray-800"
+            >
+              ← 戻る
+            </button>
+          </div>
         </div>
 
         {/* コース情報 */}
         <div className="bg-white rounded-lg shadow p-6 mb-6">
-          <div className="space-y-2 mb-4">
-            <p className="text-sm text-gray-600">
-              開始日: {new Date(course.startDate).toLocaleDateString()}
-            </p>
-            <p className="text-sm text-gray-600">
-              期間: {course.durationDays}日
-            </p>
-            <p className="text-sm text-gray-600">
-              1日の目標: {course.dailyTarget}問
-            </p>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-semibold">コース情報</h2>
+            {!isEditing && (
+              <button
+                onClick={() => setIsEditing(true)}
+                className="text-sm text-blue-600 hover:text-blue-800 font-semibold"
+              >
+                編集
+              </button>
+            )}
           </div>
+          {isEditing ? (
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-semibold mb-2">
+                  開始日
+                </label>
+                <p className="text-sm text-gray-600">
+                  {new Date(course.startDate).toLocaleDateString()}
+                </p>
+                <p className="text-xs text-gray-500 mt-1">
+                  （開始日は変更できません）
+                </p>
+              </div>
+              <div>
+                <label className="block text-sm font-semibold mb-2">
+                  期間（日数）
+                </label>
+                <input
+                  type="number"
+                  value={editDurationDays}
+                  onChange={(e) => setEditDurationDays(parseInt(e.target.value) || 30)}
+                  min="1"
+                  max="365"
+                  className="w-full border border-gray-300 rounded-lg px-4 py-2"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold mb-2">
+                  1日の目標（問数）
+                </label>
+                <input
+                  type="number"
+                  value={editDailyTarget}
+                  onChange={(e) => setEditDailyTarget(parseInt(e.target.value) || 5)}
+                  min="1"
+                  max="100"
+                  className="w-full border border-gray-300 rounded-lg px-4 py-2"
+                />
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={handleSaveGoal}
+                  className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg"
+                >
+                  保存
+                </button>
+                <button
+                  onClick={() => {
+                    setIsEditing(false);
+                    setEditDailyTarget(course.dailyTarget);
+                    setEditDurationDays(course.durationDays);
+                  }}
+                  className="flex-1 bg-gray-500 hover:bg-gray-600 text-white font-semibold py-2 px-4 rounded-lg"
+                >
+                  キャンセル
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-2 mb-4">
+              <p className="text-sm text-gray-600">
+                開始日: {new Date(course.startDate).toLocaleDateString()}
+              </p>
+              <p className="text-sm text-gray-600">
+                期間: {course.durationDays}日
+              </p>
+              <p className="text-sm text-gray-600">
+                1日の目標: {course.dailyTarget}問
+              </p>
+            </div>
+          )}
           <div>
             <div className="flex justify-between text-sm text-gray-600 mb-1">
               <span>進捗</span>

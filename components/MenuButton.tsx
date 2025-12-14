@@ -9,6 +9,7 @@ interface MenuButtonProps {
   description: string;
   color: "blue" | "purple" | "green" | "orange" | "red" | "gray";
   onClick: () => void;
+  badge?: string;
 }
 
 const colorClasses = {
@@ -35,6 +36,7 @@ export default function MenuButton({
   description,
   color,
   onClick,
+  badge,
 }: MenuButtonProps) {
   const [showTooltip, setShowTooltip] = useState(false);
 
@@ -52,6 +54,11 @@ export default function MenuButton({
           {icon}
         </div>
         <span className="flex-1 text-left">{title}</span>
+        {badge && (
+          <span className="bg-yellow-500 text-yellow-900 text-xs font-bold px-2 py-1 rounded-full">
+            {badge}
+          </span>
+        )}
         <svg
           className="w-5 h-5 opacity-50 group-hover:opacity-100 transition-opacity"
           fill="none"
@@ -69,10 +76,10 @@ export default function MenuButton({
 
       {/* ツールチップ */}
       {showTooltip && (
-        <div className="absolute left-full ml-2 top-0 w-64 p-3 bg-gray-900 text-white text-sm rounded-lg shadow-xl z-50 pointer-events-none">
-          <div className="font-semibold mb-1">{title}</div>
-          <div className="text-gray-300 leading-relaxed">{description}</div>
-          <div className="absolute -left-2 top-4 w-0 h-0 border-t-4 border-b-4 border-r-4 border-transparent border-r-gray-900"></div>
+        <div className="absolute left-0 top-full mt-2 w-64 p-3 bg-gray-900 rounded-lg shadow-xl z-50 pointer-events-none">
+          <div className="font-semibold mb-1 text-white text-base">{title}</div>
+          <div className="text-gray-300 leading-relaxed text-sm">{description}</div>
+          <div className="absolute -top-2 left-6 w-0 h-0 border-l-4 border-r-4 border-b-4 border-transparent border-b-gray-900"></div>
         </div>
       )}
     </div>

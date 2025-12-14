@@ -140,12 +140,44 @@ export default function LessonsPage() {
                       + カードを追加
                     </button>
                   </div>
-                  <button
-                    onClick={() => router.push(`/lessons/${lesson.id}`)}
-                    className="bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold py-2 px-4 rounded-lg"
-                  >
-                    詳細
-                  </button>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => router.push(`/lessons/${lesson.id}`)}
+                      className="bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold py-2 px-4 rounded-lg"
+                    >
+                      詳細
+                    </button>
+                    <button
+                      onClick={async () => {
+                        if (!confirm(`レッスン「${lesson.title}」とその中のすべてのカードを削除しますか？\nこの操作は取り消せません。`)) {
+                          return;
+                        }
+                        try {
+                          await storage.init();
+                          // レッスンに属するカードを取得
+                          const cards = await storage.getCardsByLesson(lesson.id);
+                          // カードとレビューを削除
+                          for (const card of cards) {
+                            const review = await storage.getReview(card.id);
+                            if (review) {
+                              await storage.deleteReview(card.id);
+                            }
+                            await storage.deleteCard(card.id);
+                          }
+                          // レッスンを削除
+                          await storage.deleteLesson(lesson.id);
+                          await loadLessons();
+                          alert("レッスンを削除しました。");
+                        } catch (error) {
+                          console.error("Failed to delete lesson:", error);
+                          alert("レッスンの削除に失敗しました。");
+                        }
+                      }}
+                      className="bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-4 rounded-lg"
+                    >
+                      削除
+                    </button>
+                  </div>
                 </div>
               </div>
             ))}

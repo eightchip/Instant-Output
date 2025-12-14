@@ -5,7 +5,13 @@ export type PracticeMode =
   | "typing" // タイピング練習モード
   | "shuffle" // シャッフルモード
   | "focus" // 集中モード（タイマー付き）
-  | "review_only"; // 復習専用モード
+  | "review_only" // 復習専用モード
+  | "custom" // カスタムモード（ユーザーが選択したカード）
+  | "favorite" // お気に入り専用モード
+  | "weak" // 苦手カード専用モード（NGが多いカード）
+  | "random" // 完全ランダムモード
+  | "speed" // スピードチャレンジモード
+  | "flashcard" // フラッシュカードモード（単語→意味）
 
 export interface PracticeModeConfig {
   mode: PracticeMode;

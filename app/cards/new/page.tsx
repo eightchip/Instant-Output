@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, Suspense } from "react";
+import { useEffect, useState, Suspense, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { storage } from "@/lib/storage";
 import { Lesson, Card, SourceType } from "@/types/models";
@@ -21,6 +21,12 @@ function NewCardContent() {
   const [targetEn, setTargetEn] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [isRecordingJp, setIsRecordingJp] = useState(false);
+  const [isRecordingEn, setIsRecordingEn] = useState(false);
+  const recognitionJpRef = useRef<any>(null);
+  const recognitionEnRef = useRef<any>(null);
+  const textareaJpRef = useRef<HTMLTextAreaElement>(null);
+  const textareaEnRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     loadLessons();
@@ -79,6 +85,76 @@ function NewCardContent() {
     } finally {
       setIsSaving(false);
     }
+  }
+
+  function handleVoiceInput(lang: "jp" | "en") {
+    const langCode = lang === "jp" ? "ja-JP" : "en-US";
+    const setIsRecording = lang === "jp" ? setIsRecordingJp : setIsRecordingEn;
+    const textareaRef = lang === "jp" ? textareaJpRef : textareaEnRef;
+    const recognitionRef = lang === "jp" ? recognitionJpRef : recognitionEnRef;
+    const setText = lang === "jp" ? setPromptJp : setTargetEn;
+
+    // 既に録音中の場合は停止
+    if (recognitionRef.current) {
+      recognitionRef.current.stop();
+      recognitionRef.current = null;
+      setIsRecording(false);
+      return;
+    }
+
+    if (!("webkitSpeechRecognition" in window) && !("SpeechRecognition" in window)) {
+      alert("お使いのブラウザは音声認識に対応していません。");
+      return;
+    }
+
+    const SpeechRecognition =
+      (window as any).SpeechRecognition ||
+      (window as any).webkitSpeechRecognition;
+    const recognition = new SpeechRecognition();
+    recognition.lang = langCode;
+    recognition.continuous = true;
+    recognition.interimResults = true;
+
+    recognition.onstart = () => {
+      setIsRecording(true);
+      recognitionRef.current = recognition;
+    };
+
+    recognition.onresult = (event: any) => {
+      let finalTranscript = "";
+      let interimTranscript = "";
+
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const transcript = event.results[i][0].transcript;
+        if (event.results[i].isFinal) {
+          finalTranscript += transcript + " ";
+        } else {
+          interimTranscript += transcript;
+        }
+      }
+
+      if (finalTranscript) {
+        setText((prev) => prev + finalTranscript);
+      }
+    };
+
+    recognition.onerror = (event: any) => {
+      console.error("Speech recognition error:", event.error);
+      setIsRecording(false);
+      recognitionRef.current = null;
+      if (event.error === "no-speech") {
+        alert("音声が検出されませんでした。もう一度お試しください。");
+      } else if (event.error === "not-allowed") {
+        alert("マイクの使用が許可されていません。ブラウザの設定を確認してください。");
+      }
+    };
+
+    recognition.onend = () => {
+      setIsRecording(false);
+      recognitionRef.current = null;
+    };
+
+    recognition.start();
   }
 
   if (isLoading) {
@@ -165,13 +241,28 @@ function NewCardContent() {
           {/* 日本語入力（ペアモードのみ） */}
           {inputMode === "pair" && (
             <div>
-              <label className="block text-sm font-semibold mb-2">
-                日本語
-              </label>
+              <div className="flex items-center justify-between mb-2">
+                <label className="block text-sm font-semibold">
+                  日本語
+                </label>
+                <button
+                  type="button"
+                  onClick={() => handleVoiceInput("jp")}
+                  className={`flex items-center gap-2 px-3 py-1 rounded-lg text-sm font-semibold ${
+                    isRecordingJp
+                      ? "bg-red-500 text-white hover:bg-red-600"
+                      : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                  }`}
+                >
+                  <span>{isRecordingJp ? "⏹️" : "🎤"}</span>
+                  <span>{isRecordingJp ? "停止" : "音声入力"}</span>
+                </button>
+              </div>
               <textarea
+                ref={textareaJpRef}
                 value={promptJp}
                 onChange={(e) => setPromptJp(e.target.value)}
-                placeholder="日本語文を入力..."
+                placeholder="日本語文を入力...（音声入力にも対応）"
                 className="w-full border border-gray-300 rounded-lg px-4 py-3 min-h-[100px]"
                 rows={3}
               />
@@ -180,13 +271,28 @@ function NewCardContent() {
 
           {/* 英語入力 */}
           <div>
-            <label className="block text-sm font-semibold mb-2">
-              英語 {inputMode === "english_only" && "(日本語は後で追加できます)"}
-            </label>
+            <div className="flex items-center justify-between mb-2">
+              <label className="block text-sm font-semibold">
+                英語 {inputMode === "english_only" && "(日本語は後で追加できます)"}
+              </label>
+              <button
+                type="button"
+                onClick={() => handleVoiceInput("en")}
+                className={`flex items-center gap-2 px-3 py-1 rounded-lg text-sm font-semibold ${
+                  isRecordingEn
+                    ? "bg-red-500 text-white hover:bg-red-600"
+                    : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                }`}
+              >
+                <span>{isRecordingEn ? "⏹️" : "🎤"}</span>
+                <span>{isRecordingEn ? "停止" : "音声入力"}</span>
+              </button>
+            </div>
             <textarea
+              ref={textareaEnRef}
               value={targetEn}
               onChange={(e) => setTargetEn(e.target.value)}
-              placeholder="英語文を入力..."
+              placeholder="英語文を入力...（音声入力にも対応）"
               className="w-full border border-gray-300 rounded-lg px-4 py-3 min-h-[100px]"
               rows={3}
             />

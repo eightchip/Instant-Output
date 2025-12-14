@@ -104,6 +104,8 @@ export default function EditCardPage() {
         ...card,
         prompt_jp: promptJp.trim() || "(後で追加)",
         target_en: targetEn.trim(),
+        notes: card.notes || undefined,
+        importantWords: card.importantWords && card.importantWords.length > 0 ? card.importantWords : undefined,
       };
       await storage.saveCard(updatedCard);
       alert("カードを更新しました！");
@@ -293,6 +295,119 @@ export default function EditCardPage() {
         </div>
 
         <div className="bg-white rounded-lg shadow-lg p-6 space-y-6">
+          {/* お気に入り */}
+          <div className="flex items-center justify-between">
+            <label className="block text-sm font-semibold">お気に入り</label>
+            <button
+              onClick={async () => {
+                if (!card) return;
+                try {
+                  await storage.init();
+                  await storage.updateCard(card.id, { isFavorite: !card.isFavorite });
+                  await loadCard();
+                } catch (error) {
+                  console.error("Failed to toggle favorite:", error);
+                  alert("お気に入りの更新に失敗しました。");
+                }
+              }}
+              className={`text-3xl ${card.isFavorite ? "text-yellow-500" : "text-gray-300"} hover:text-yellow-500 transition-colors`}
+              title={card.isFavorite ? "お気に入りを解除" : "お気に入りに追加"}
+            >
+              {card.isFavorite ? "✅" : "⬜"}
+            </button>
+          </div>
+
+          {/* メモ・ノート */}
+          <div>
+            <label className="block text-sm font-semibold mb-2">
+              📝 メモ・ノート（覚え方のコツなど）
+            </label>
+            <textarea
+              value={card.notes || ""}
+              onChange={(e) => {
+                if (card) {
+                  setCard({ ...card, notes: e.target.value });
+                }
+              }}
+              placeholder="このカードを覚えるためのコツ、関連情報、例文などを記録..."
+              className="w-full border border-gray-300 rounded-lg px-4 py-3 min-h-[100px] resize-none"
+              rows={4}
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              練習時に表示されます。覚え方のコツや関連情報を記録しておくと便利です。
+            </p>
+          </div>
+
+          {/* 重要単語・表現 */}
+          <div>
+            <label className="block text-sm font-semibold mb-2">
+              ⭐ 重要単語・表現（カンマ区切り）
+            </label>
+            <input
+              type="text"
+              value={card.importantWords ? card.importantWords.join(", ") : ""}
+              onChange={(e) => {
+                if (card) {
+                  const words = e.target.value
+                    .split(",")
+                    .map(w => w.trim())
+                    .filter(w => w.length > 0);
+                  setCard({ ...card, importantWords: words });
+                }
+              }}
+              placeholder="例: important, remember, useful"
+              className="w-full border border-gray-300 rounded-lg px-4 py-3"
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              このカードで覚えたい重要な単語や表現を入力してください。練習時にハイライト表示されます。
+            </p>
+            {card.importantWords && card.importantWords.length > 0 && (
+              <div className="mt-2 flex flex-wrap gap-2">
+                {card.importantWords.map((word, index) => (
+                  <span
+                    key={index}
+                    className="bg-purple-100 text-purple-800 px-2 py-1 rounded text-sm"
+                  >
+                    {word}
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* 元画像表示 */}
+          {card.imageData && (
+            <div>
+              <label className="block text-sm font-semibold mb-2">
+                元画像
+              </label>
+              <div className="relative">
+                <img
+                  src={card.imageData}
+                  alt="元画像"
+                  className="w-full max-w-md h-auto rounded-lg border border-gray-300 cursor-pointer hover:opacity-90 transition-opacity"
+                  onClick={() => {
+                    const modal = document.createElement("div");
+                    modal.className = "fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-50";
+                    modal.onclick = () => modal.remove();
+                    const img = document.createElement("img");
+                    img.src = card.imageData!;
+                    img.className = "max-w-full max-h-full object-contain";
+                    img.onclick = (e) => e.stopPropagation();
+                    const closeBtn = document.createElement("button");
+                    closeBtn.className = "absolute top-4 right-4 bg-white text-black px-4 py-2 rounded-lg font-bold hover:bg-gray-200";
+                    closeBtn.textContent = "× 閉じる";
+                    closeBtn.onclick = () => modal.remove();
+                    modal.appendChild(closeBtn);
+                    modal.appendChild(img);
+                    document.body.appendChild(modal);
+                  }}
+                />
+                <p className="text-xs text-gray-500 mt-1">クリックで拡大表示</p>
+              </div>
+            </div>
+          )}
+          
           {/* 日本語入力 */}
           <div>
             <label className="block text-sm font-semibold mb-2">

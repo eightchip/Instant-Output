@@ -108,6 +108,70 @@ export default function ModeSelectPage() {
               <span className="text-4xl">🔄</span>
             </div>
           </button>
+
+          {/* お気に入り専用モード */}
+          <button
+            onClick={() => handleModeSelect("favorite", 10)}
+            className="w-full bg-yellow-600 hover:bg-yellow-700 text-white font-bold py-6 px-6 rounded-lg text-xl shadow-lg transition-colors text-left"
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-2xl font-bold mb-2">お気に入りモード</h2>
+                <p className="text-yellow-100 text-sm">
+                  お気に入りに登録したカードのみを学習します。
+                </p>
+              </div>
+              <span className="text-4xl">⭐</span>
+            </div>
+          </button>
+
+          {/* 苦手克服モード */}
+          <button
+            onClick={() => handleModeSelect("weak", 10)}
+            className="w-full bg-red-700 hover:bg-red-800 text-white font-bold py-6 px-6 rounded-lg text-xl shadow-lg transition-colors text-left"
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-2xl font-bold mb-2">苦手克服モード</h2>
+                <p className="text-red-100 text-sm">
+                  NGが多いカードを優先的に出題します。
+                </p>
+              </div>
+              <span className="text-4xl">💪</span>
+            </div>
+          </button>
+
+          {/* 完全ランダムモード */}
+          <button
+            onClick={() => handleModeSelect("random", 15)}
+            className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-6 px-6 rounded-lg text-xl shadow-lg transition-colors text-left"
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-2xl font-bold mb-2">完全ランダム</h2>
+                <p className="text-indigo-100 text-sm">
+                  すべてのカードから完全にランダムに15問を出題します。
+                </p>
+              </div>
+              <span className="text-4xl">🎲</span>
+            </div>
+          </button>
+
+          {/* スピードチャレンジモード */}
+          <button
+            onClick={() => handleModeSelect("speed", 20)}
+            className="w-full bg-pink-600 hover:bg-pink-700 text-white font-bold py-6 px-6 rounded-lg text-xl shadow-lg transition-colors text-left"
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-2xl font-bold mb-2">スピードチャレンジ</h2>
+                <p className="text-pink-100 text-sm">
+                  お気に入りを優先して20問を高速で学習します。
+                </p>
+              </div>
+              <span className="text-4xl">⚡</span>
+            </div>
+          </button>
         </div>
       </main>
     </div>

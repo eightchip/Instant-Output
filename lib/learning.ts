@@ -65,6 +65,7 @@ export function updateReviewInterval(
 
 /**
  * 今日の学習カードを取得（新規 + 復習）
+ * お気に入りカードを優先的に含める
  */
 export async function getTodayCards(
   dailyTarget: number = 5
@@ -73,26 +74,42 @@ export async function getTodayCards(
   const dueReviews = await storage.getDueReviews(dailyTarget);
   const reviewCardIds = new Set(dueReviews.map((r) => r.cardId));
 
-  // 2. 復習カードを取得
+  // 2. 復習カードを取得（お気に入りを優先）
   const reviewCards: Card[] = [];
+  const favoriteReviewCards: Card[] = [];
   for (const review of dueReviews) {
     const card = await storage.getCard(review.cardId);
     if (card) {
-      reviewCards.push(card);
+      if (card.isFavorite) {
+        favoriteReviewCards.push(card);
+      } else {
+        reviewCards.push(card);
+      }
     }
   }
+  // お気に入りを先に配置
+  const allReviewCards = [...favoriteReviewCards, ...reviewCards];
 
-  // 3. まだ足りない場合は、復習がないカードから新規を取得
-  const remaining = dailyTarget - reviewCards.length;
+  // 3. まだ足りない場合は、復習がないカードから新規を取得（お気に入り優先）
+  // テンプレートカードは除外
+  const remaining = dailyTarget - allReviewCards.length;
   if (remaining > 0) {
     const allCards = await storage.getAllCards();
-    const newCards = allCards
-      .filter((card) => !reviewCardIds.has(card.id))
-      .slice(0, remaining);
-    return [...reviewCards, ...newCards];
+    const availableCards = allCards.filter(
+      (card) => !reviewCardIds.has(card.id) && card.source_type !== "template"
+    );
+    const favoriteCards = availableCards.filter((card) => card.isFavorite);
+    const normalCards = availableCards.filter((card) => !card.isFavorite);
+    
+    // お気に入りを優先的に追加
+    const favoriteToAdd = favoriteCards.slice(0, remaining);
+    const remainingAfterFavorite = remaining - favoriteToAdd.length;
+    const normalToAdd = normalCards.slice(0, remainingAfterFavorite);
+    
+    return [...allReviewCards, ...favoriteToAdd, ...normalToAdd];
   }
 
-  return reviewCards;
+  return allReviewCards;
 }
 
 /**
