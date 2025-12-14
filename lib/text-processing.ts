@@ -11,43 +11,57 @@ export function splitIntoSentences(text: string): string[] {
   // 基本的な文分割ルール
   // 1. ピリオド、感嘆符、疑問符で分割
   // 2. ただし、Mr. Mrs. Dr. などの略語は除外
-  // 3. 数字の小数点は除外
-  // 4. 引用符内の文は考慮
+  // 3. 引用符内の文は考慮
+
+  // テキストを正規化（改行を空白に、連続する空白を1つに）
+  const normalized = text.replace(/\s+/g, " ").trim();
+  
+  if (!normalized) return [];
+
+  // 略語のリスト
+  const abbreviations = [
+    "Mr.", "Mrs.", "Dr.", "Ms.", "Prof.", "etc.", "vs.", "e.g.", "i.e.",
+    "U.S.", "U.K.", "Ph.D.", "Jr.", "Sr.", "Inc.", "Ltd.", "Co.",
+    "A.M.", "P.M.", "a.m.", "p.m.", "No.", "no.", "Vol.", "vol."
+  ];
 
   const sentences: string[] = [];
   let currentSentence = "";
   let inQuotes = false;
-
-  const abbreviations = ["Mr.", "Mrs.", "Dr.", "Ms.", "Prof.", "etc.", "vs.", "e.g.", "i.e."];
-  const isAbbreviation = (word: string) => {
-    return abbreviations.some((abbr) => word.toLowerCase().endsWith(abbr.toLowerCase()));
-  };
-
-  // テキストを正規化（改行を空白に、連続する空白を1つに）
-  const normalized = text.replace(/\s+/g, " ").trim();
-
+  
   for (let i = 0; i < normalized.length; i++) {
     const char = normalized[i];
-    const prevChar = i > 0 ? normalized[i - 1] : "";
     const nextChar = i < normalized.length - 1 ? normalized[i + 1] : "";
-
+    const nextNextChar = i < normalized.length - 2 ? normalized[i + 2] : "";
+    
     currentSentence += char;
-
+    
     // 引用符の処理
     if (char === '"' || char === "'") {
       inQuotes = !inQuotes;
       continue;
     }
-
+    
     // 文の終わりを検出（引用符内でない場合）
     if (!inQuotes && (char === "." || char === "!" || char === "?")) {
-      // 次の文字が空白または終端、かつ前の単語が略語でない場合
-      if (nextChar === " " || nextChar === "" || nextChar === "\n") {
+      // 次の文字が空白で、その次が大文字、または終端の場合
+      const isEndOfSentence = 
+        (nextChar === " " && nextNextChar && nextNextChar === nextNextChar.toUpperCase() && nextNextChar !== nextNextChar.toLowerCase()) ||
+        nextChar === "";
+      
+      if (isEndOfSentence) {
         const words = currentSentence.trim().split(/\s+/);
-        const lastWord = words[words.length - 1];
-
-        // 略語チェック（最後の単語が略語でない場合）
-        if (!isAbbreviation(lastWord)) {
+        const lastWord = words.length > 0 ? words[words.length - 1].replace(/[.,!?]+$/, "") : "";
+        
+        // 略語チェック（より厳密に）
+        const isAbbreviation = abbreviations.some(abbr => 
+          lastWord === abbr || lastWord.toLowerCase() === abbr.toLowerCase()
+        );
+        
+        // 短い単語（2文字以下）でピリオドで終わる場合は略語の可能性が高い
+        const isLikelyAbbreviation = lastWord.length <= 2 && char === ".";
+        
+        if (!isAbbreviation && !isLikelyAbbreviation) {
           const sentence = currentSentence.trim();
           if (sentence.length > 0) {
             sentences.push(sentence);
@@ -61,12 +75,12 @@ export function splitIntoSentences(text: string): string[] {
       }
     }
   }
-
+  
   // 残りのテキストを追加
   if (currentSentence.trim().length > 0) {
     sentences.push(currentSentence.trim());
   }
-
+  
   // 空の文をフィルタ
   return sentences.filter((s) => s.length > 0);
 }
