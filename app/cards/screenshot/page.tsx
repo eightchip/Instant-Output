@@ -1250,7 +1250,7 @@ export default function ScreenshotCardPage() {
                   <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
                     <div className="flex items-center justify-between mb-2">
                       <p className="text-xs text-gray-600 font-semibold">
-                        抽出されたテキスト:
+                        抽出されたテキスト（編集可能）:
                       </p>
                       {ocrConfidence !== null && (
                         <p className="text-xs text-gray-500">
@@ -1258,9 +1258,13 @@ export default function ScreenshotCardPage() {
                         </p>
                       )}
                     </div>
-                    <p className="text-sm text-gray-800 whitespace-pre-wrap break-words">
-                      {extractedText}
-                    </p>
+                    <textarea
+                      value={extractedText}
+                      onChange={(e) => setExtractedText(e.target.value)}
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-800 whitespace-pre-wrap break-words min-h-[100px]"
+                      rows={4}
+                      placeholder="OCRで抽出されたテキストを編集できます..."
+                    />
                     {ocrConfidence !== null && ocrConfidence < 50 && (
                       <p className="text-xs text-yellow-600 mt-2">
                         ⚠️ 信頼度が低いため、抽出結果を確認・編集してください
@@ -1291,6 +1295,34 @@ export default function ScreenshotCardPage() {
                         className="mt-3 w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2 px-4 rounded-lg text-sm"
                       >
                         📝 文章を自動分割してカードを作成
+                      </button>
+                    )}
+                    {extractedText && showSplitView && (
+                      <button
+                        onClick={() => {
+                          const sentences = processOcrText(extractedText);
+                          if (sentences.length > 1) {
+                            setSplitSentences(sentences);
+                            setSelectedSentences(new Set(sentences.map((_, i) => i)));
+                            setTranslatedSentences(new Map()); // 翻訳をリセット
+                            setShowSplitView(true);
+                          } else if (sentences.length === 1) {
+                            setMessageDialog({
+                              isOpen: true,
+                              title: "文章分割",
+                              message: "文章が1つしか見つかりませんでした。",
+                            });
+                          } else {
+                            setMessageDialog({
+                              isOpen: true,
+                              title: "文章分割",
+                              message: "有効な文章が見つかりませんでした。",
+                            });
+                          }
+                        }}
+                        className="mt-3 w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg text-sm"
+                      >
+                        🔄 編集したテキストで再度分割
                       </button>
                     )}
                   </div>
