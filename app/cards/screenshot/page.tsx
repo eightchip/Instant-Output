@@ -7,6 +7,15 @@ import { ocrService, OCRProgress } from "@/lib/ocr";
 import { Lesson, Card } from "@/types/models";
 import { processOcrText } from "@/lib/text-processing";
 import MessageDialog from "@/components/MessageDialog";
+import VoiceInputModal from "@/components/VoiceInputModal";
+import VoiceClipboard from "@/components/VoiceClipboard";
+import {
+  getVoiceClipboardItems,
+  saveVoiceClipboardItem,
+  deleteVoiceClipboardItem,
+  clearVoiceClipboard,
+  VoiceClipboardItem,
+} from "@/lib/voice-clipboard";
 
 export default function ScreenshotCardPage() {
   const router = useRouter();
@@ -38,6 +47,11 @@ export default function ScreenshotCardPage() {
     title: "",
     message: "",
   });
+  const [showVoiceInputModal, setShowVoiceInputModal] = useState(false);
+  const [voiceInputLanguage, setVoiceInputLanguage] = useState<"jp" | "en">("jp");
+  const [voiceInputTarget, setVoiceInputTarget] = useState<"promptJp" | "targetEn" | null>(null);
+  const [showVoiceClipboard, setShowVoiceClipboard] = useState(false);
+  const [voiceClipboardItems, setVoiceClipboardItems] = useState<VoiceClipboardItem[]>([]);
   const [isCropMode, setIsCropMode] = useState(false);
   const [cropArea, setCropArea] = useState<{ x: number; y: number; width: number; height: number } | null>(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -50,7 +64,44 @@ export default function ScreenshotCardPage() {
 
   useEffect(() => {
     loadLessons();
+    loadVoiceClipboard();
   }, []);
+
+  function loadVoiceClipboard() {
+    setVoiceClipboardItems(getVoiceClipboardItems());
+  }
+
+  function handleVoiceInputInsert(text: string) {
+    if (voiceInputTarget === "promptJp") {
+      setPromptJp((prev) => prev + (prev ? " " : "") + text);
+    } else if (voiceInputTarget === "targetEn") {
+      setTargetEn((prev) => prev + (prev ? " " : "") + text);
+    }
+    setVoiceInputTarget(null);
+  }
+
+  function handleVoiceInputSave(text: string, language: "jp" | "en") {
+    saveVoiceClipboardItem(text, language);
+    loadVoiceClipboard();
+  }
+
+  function handleVoiceClipboardInsert(text: string) {
+    if (voiceInputTarget === "promptJp") {
+      setPromptJp((prev) => prev + (prev ? " " : "") + text);
+    } else if (voiceInputTarget === "targetEn") {
+      setTargetEn((prev) => prev + (prev ? " " : "") + text);
+    }
+  }
+
+  function handleVoiceClipboardDelete(id: string) {
+    deleteVoiceClipboardItem(id);
+    loadVoiceClipboard();
+  }
+
+  function handleVoiceClipboardClear() {
+    clearVoiceClipboard();
+    loadVoiceClipboard();
+  }
 
   async function loadLessons() {
     try {
@@ -911,20 +962,24 @@ export default function ScreenshotCardPage() {
                         ×
                       </button>
                     </div>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={handleStartCrop}
-                        className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg"
-                      >
-                        ✂️ 画像をトリミング
-                      </button>
+                    <div className="space-y-2">
                       <button
                         onClick={handleExtractText}
                         disabled={isExtracting}
-                        className="flex-1 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-bold py-2 px-4 rounded-lg"
+                        className="w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-bold py-3 px-4 rounded-lg"
                       >
                         {isExtracting ? "テキスト抽出中..." : "テキストを抽出（OCR）"}
                       </button>
+                      <button
+                        onClick={handleStartCrop}
+                        className="w-full bg-gray-500 hover:bg-gray-600 text-white font-semibold py-2 px-4 rounded-lg text-sm"
+                      >
+                        ✂️ 画像をトリミング（オプション）
+                      </button>
+                      <p className="text-xs text-gray-500 text-center">
+                        ※ トリミングは精度に影響する可能性があります。通常はトリミングなしで抽出することを推奨します。
+                      </p>
+                    </div>
                       {isExtracting && (
                         <button
                           onClick={handleCancelExtraction}
@@ -1151,9 +1206,34 @@ export default function ScreenshotCardPage() {
 
           {/* 日本語入力 */}
           <div>
-            <label className="block text-sm font-semibold mb-2">
-              日本語（任意）
-            </label>
+            <div className="flex items-center justify-between mb-2">
+              <label className="block text-sm font-semibold">
+                日本語（任意）
+              </label>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => {
+                    setVoiceInputLanguage("jp");
+                    setVoiceInputTarget("promptJp");
+                    setShowVoiceInputModal(true);
+                  }}
+                  className="text-xs bg-blue-100 hover:bg-blue-200 text-blue-700 font-semibold py-1 px-3 rounded-lg flex items-center gap-1"
+                  title="音声入力"
+                >
+                  🎤 音声
+                </button>
+                <button
+                  onClick={() => {
+                    setVoiceInputTarget("promptJp");
+                    setShowVoiceClipboard(true);
+                  }}
+                  className="text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold py-1 px-3 rounded-lg"
+                  title="クリップボード"
+                >
+                  📋
+                </button>
+              </div>
+            </div>
             <textarea
               value={promptJp}
               onChange={(e) => setPromptJp(e.target.value)}
@@ -1215,40 +1295,53 @@ export default function ScreenshotCardPage() {
                     }`}
                   >
                     {editingSentenceIndex === index ? (
-                      <div className="space-y-3">
-                        <div>
-                          <label className="text-xs text-gray-600 font-semibold mb-1 block">英語:</label>
-                          <textarea
-                            value={editingSentenceEn}
-                            onChange={(e) => setEditingSentenceEn(e.target.value)}
-                            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
-                            rows={2}
-                            autoFocus
-                          />
-                        </div>
-                        <div>
-                          <label className="text-xs text-gray-600 font-semibold mb-1 block">日本語:</label>
-                          <textarea
-                            value={editingSentenceJp}
-                            onChange={(e) => setEditingSentenceJp(e.target.value)}
-                            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
-                            rows={2}
-                            placeholder="日本語訳を入力（任意）..."
-                          />
-                        </div>
-                        <div className="flex gap-2">
-                          <button
-                            onClick={handleSaveEditedSentence}
-                            className="flex-1 bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-lg text-sm"
-                          >
-                            ✓ 保存
-                          </button>
-                          <button
-                            onClick={handleCancelEdit}
-                            className="flex-1 bg-gray-500 hover:bg-gray-600 text-white font-semibold py-2 px-4 rounded-lg text-sm"
-                          >
-                            キャンセル
-                          </button>
+                      <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4 md:p-8">
+                        <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6">
+                          <div className="flex items-center justify-between mb-4">
+                            <h3 className="text-lg font-semibold text-gray-900">文章 {index + 1} を編集</h3>
+                            <button
+                              onClick={handleCancelEdit}
+                              className="text-gray-500 hover:text-gray-700 text-2xl"
+                            >
+                              ×
+                            </button>
+                          </div>
+                          <div className="space-y-4">
+                            <div>
+                              <label className="text-sm text-gray-700 font-semibold mb-2 block">英語:</label>
+                              <textarea
+                                value={editingSentenceEn}
+                                onChange={(e) => setEditingSentenceEn(e.target.value)}
+                                className="w-full border border-gray-300 rounded-lg px-4 py-3 text-base"
+                                rows={4}
+                                autoFocus
+                              />
+                            </div>
+                            <div>
+                              <label className="text-sm text-gray-700 font-semibold mb-2 block">日本語:</label>
+                              <textarea
+                                value={editingSentenceJp}
+                                onChange={(e) => setEditingSentenceJp(e.target.value)}
+                                className="w-full border border-gray-300 rounded-lg px-4 py-3 text-base"
+                                rows={4}
+                                placeholder="日本語訳を入力（任意）..."
+                              />
+                            </div>
+                            <div className="flex gap-3 pt-2">
+                              <button
+                                onClick={handleSaveEditedSentence}
+                                className="flex-1 bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-6 rounded-lg text-base"
+                              >
+                                ✓ 保存
+                              </button>
+                              <button
+                                onClick={handleCancelEdit}
+                                className="flex-1 bg-gray-500 hover:bg-gray-600 text-white font-semibold py-3 px-6 rounded-lg text-base"
+                              >
+                                キャンセル
+                              </button>
+                            </div>
+                          </div>
                         </div>
                       </div>
                     ) : (
@@ -1257,13 +1350,18 @@ export default function ScreenshotCardPage() {
                         onClick={() => toggleSentenceSelection(index)}
                       >
                         <div className="flex items-start gap-3">
-                          <input
-                            type="checkbox"
-                            checked={selectedSentences.has(index)}
-                            onChange={() => toggleSentenceSelection(index)}
-                            onClick={(e) => e.stopPropagation()}
-                            className="mt-1"
-                          />
+                          <div className="flex flex-col items-center gap-2">
+                            <span className="text-xs font-bold text-blue-600 bg-blue-100 px-2 py-1 rounded-full min-w-[2rem] text-center">
+                              {index + 1}
+                            </span>
+                            <input
+                              type="checkbox"
+                              checked={selectedSentences.has(index)}
+                              onChange={() => toggleSentenceSelection(index)}
+                              onClick={(e) => e.stopPropagation()}
+                              className="mt-1"
+                            />
+                          </div>
                           <div className="flex-1">
                             <p className="text-sm text-gray-800 font-medium mb-2">{sentence}</p>
                             {isTranslating && !translatedSentences.has(index) && (
@@ -1275,10 +1373,7 @@ export default function ScreenshotCardPage() {
                                 <p className="text-sm text-gray-800">{translatedSentences.get(index)}</p>
                               </div>
                             )}
-                            <div className="flex items-center justify-between mt-2">
-                              <p className="text-xs text-gray-500">
-                                文章 #{index + 1}
-                              </p>
+                            <div className="flex items-center justify-end mt-2">
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation();
@@ -1310,9 +1405,34 @@ export default function ScreenshotCardPage() {
           {/* 英語入力（分割ビューが表示されていない場合のみ） */}
           {!showSplitView && (
             <div>
-              <label className="block text-sm font-semibold mb-2">
-                英語（編集可能）
-              </label>
+              <div className="flex items-center justify-between mb-2">
+                <label className="block text-sm font-semibold">
+                  英語（編集可能）
+                </label>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => {
+                      setVoiceInputLanguage("en");
+                      setVoiceInputTarget("targetEn");
+                      setShowVoiceInputModal(true);
+                    }}
+                    className="text-xs bg-blue-100 hover:bg-blue-200 text-blue-700 font-semibold py-1 px-3 rounded-lg flex items-center gap-1"
+                    title="音声入力"
+                  >
+                    🎤 音声
+                  </button>
+                  <button
+                    onClick={() => {
+                      setVoiceInputTarget("targetEn");
+                      setShowVoiceClipboard(true);
+                    }}
+                    className="text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold py-1 px-3 rounded-lg"
+                    title="クリップボード"
+                  >
+                    📋
+                  </button>
+                </div>
+              </div>
               <textarea
                 value={targetEn}
                 onChange={(e) => setTargetEn(e.target.value)}
@@ -1351,6 +1471,27 @@ export default function ScreenshotCardPage() {
         title={messageDialog.title}
         message={messageDialog.message}
         onClose={() => setMessageDialog({ isOpen: false, title: "", message: "" })}
+      />
+      <VoiceInputModal
+        isOpen={showVoiceInputModal}
+        language={voiceInputLanguage}
+        onClose={() => {
+          setShowVoiceInputModal(false);
+          setVoiceInputTarget(null);
+        }}
+        onInsert={handleVoiceInputInsert}
+        onSaveToClipboard={handleVoiceInputSave}
+      />
+      <VoiceClipboard
+        isOpen={showVoiceClipboard}
+        onClose={() => {
+          setShowVoiceClipboard(false);
+          setVoiceInputTarget(null);
+        }}
+        onInsert={handleVoiceClipboardInsert}
+        items={voiceClipboardItems}
+        onDelete={handleVoiceClipboardDelete}
+        onClear={handleVoiceClipboardClear}
       />
     </div>
   );
