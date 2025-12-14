@@ -92,7 +92,6 @@ function AICardContent() {
 
       // Draftを保存
       await storage.init();
-      const { saveDraft } = await import("@/lib/storage");
       const draft = {
         id: `draft_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         sourceId,
