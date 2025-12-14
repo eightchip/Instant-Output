@@ -72,6 +72,16 @@ export function splitIntoSentences(text: string): string[] {
 }
 
 /**
+ * OCRテキストを処理して文に分割
+ * @param text OCRテキスト
+ * @returns 分割された文の配列
+ */
+export function processOcrText(text: string): string[] {
+  const cleaned = cleanOcrText(text);
+  return splitIntoSentences(cleaned);
+}
+
+/**
  * 基本的なOCRノイズ除去
  * @param text OCRテキスト
  * @returns ノイズ除去済みテキスト

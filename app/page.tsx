@@ -329,7 +329,7 @@ export default function Home() {
               icon="✨"
               title="自動分割・翻訳でカード化"
               description="英文教材の画像からOCRと自動分割・翻訳を使ってカード候補を生成します。無料の翻訳APIを使用します。"
-              color="pink"
+              color="purple"
               onClick={() => router.push("/cards/ai-card")}
             />
           </div>
