@@ -8,6 +8,7 @@ import { Card, Course, Review } from "@/types/models";
 import { getReviewCardsWithPriority, ReviewCardInfo } from "@/lib/reviews";
 import MenuButton from "@/components/MenuButton";
 import { QRCodeSVG } from "qrcode.react";
+import GlobalVoiceInputButton from "@/components/GlobalVoiceInputButton";
 
 export default function Home() {
   const router = useRouter();
@@ -416,6 +417,7 @@ export default function Home() {
           </a>
         </div>
       </main>
+      <GlobalVoiceInputButton variant="floating" size="md" />
     </div>
   );
 }

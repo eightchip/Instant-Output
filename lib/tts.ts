@@ -1,5 +1,7 @@
 // 音声読み上げ（TTS）機能のラッパー
 
+import { detectLanguage } from "./language-detection";
+
 export type TTSLanguage = "ja" | "en";
 export type TTSSpeed = 0.5 | 0.75 | 1 | 1.25 | 1.5 | 2;
 
@@ -18,8 +20,9 @@ class TTSService {
 
   /**
    * テキストを音声で読み上げる
+   * langが指定されていない場合は自動検出
    */
-  speak(text: string, lang: TTSLanguage = "en", speed: TTSSpeed = 1): void {
+  speak(text: string, lang?: TTSLanguage, speed: TTSSpeed = 1): void {
     if (!this.isAvailable()) {
       console.warn("音声読み上げは利用できません");
       return;
@@ -28,8 +31,11 @@ class TTSService {
     // 既存の読み上げを停止
     this.stop();
 
+    // 言語が指定されていない場合は自動検出
+    const detectedLang = lang || detectLanguage(text);
+
     this.utterance = new SpeechSynthesisUtterance(text);
-    this.utterance.lang = lang === "ja" ? "ja-JP" : "en-US";
+    this.utterance.lang = detectedLang === "ja" ? "ja-JP" : "en-US";
     this.utterance.rate = speed;
     this.utterance.pitch = 1;
     this.utterance.volume = 1;

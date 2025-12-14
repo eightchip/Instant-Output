@@ -424,7 +424,7 @@ function PracticeContent() {
     } else if (isSpeaking) {
       tts.stop();
     } else {
-      tts.speak(currentCard.target_en, "en", ttsSpeed);
+      tts.speak(currentCard.target_en, undefined, ttsSpeed);
     }
   };
 
@@ -435,7 +435,7 @@ function PracticeContent() {
       tts.stop();
       setTimeout(() => {
         if (currentCard) {
-          tts.speak(currentCard.target_en, "en", speed);
+                          tts.speak(currentCard.target_en, undefined, speed);
         }
       }, 100);
     }
@@ -652,7 +652,7 @@ function PracticeContent() {
                         }`}
                         onClick={() => {
                           if (tts.isAvailable()) {
-                            tts.speak(item.word, "en", ttsSpeed);
+                            tts.speak(item.word, undefined, ttsSpeed);
                           }
                         }}
                         title={isImportant ? "⭐ 重要単語 - クリックで音声読み上げ" : "クリックで音声読み上げ"}
@@ -683,7 +683,7 @@ function PracticeContent() {
                         className="bg-purple-200 text-purple-900 px-3 py-1 rounded-full text-sm font-semibold hover:bg-purple-300 cursor-pointer transition-colors"
                         onClick={() => {
                           if (tts.isAvailable()) {
-                            tts.speak(word, "en", ttsSpeed);
+                            tts.speak(word, undefined, ttsSpeed);
                           }
                         }}
                         title="クリックで音声読み上げ"
