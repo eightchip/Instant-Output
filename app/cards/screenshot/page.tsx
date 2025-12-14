@@ -34,6 +34,7 @@ export default function ScreenshotCardPage() {
   const [editingSentenceJp, setEditingSentenceJp] = useState<string>("");
   const [originalEditingSentenceEn, setOriginalEditingSentenceEn] = useState<string>("");
   const [isTranslatingSingle, setIsTranslatingSingle] = useState(false);
+  const editingTextareaRef = useRef<HTMLTextAreaElement>(null);
   const [showNewLessonForm, setShowNewLessonForm] = useState(false);
   const [newLessonTitle, setNewLessonTitle] = useState("");
   const [messageDialog, setMessageDialog] = useState<{ isOpen: boolean; title: string; message: string }>({
@@ -147,6 +148,105 @@ export default function ScreenshotCardPage() {
 
   const hasEnglishChanged = editingSentenceEn.trim() !== originalEditingSentenceEn.trim();
   const hasJapaneseTranslation = editingSentenceJp.trim().length > 0;
+
+  function handleSplitSentence() {
+    if (editingSentenceIndex === null || !editingTextareaRef.current) return;
+
+    const textarea = editingTextareaRef.current;
+    const cursorPos = textarea.selectionStart;
+    const text = editingSentenceEn;
+    
+    if (cursorPos <= 0 || cursorPos >= text.length) {
+      setMessageDialog({
+        isOpen: true,
+        title: "分割エラー",
+        message: "分割する位置を選択してください。",
+      });
+      return;
+    }
+
+    // カーソル位置で文章を分割
+    const firstPart = text.substring(0, cursorPos).trim();
+    const secondPart = text.substring(cursorPos).trim();
+
+    if (!firstPart || !secondPart) {
+      setMessageDialog({
+        isOpen: true,
+        title: "分割エラー",
+        message: "分割する位置が無効です。",
+      });
+      return;
+    }
+
+    // 現在の文章を上段に更新
+    const updatedSentences = [...splitSentences];
+    updatedSentences[editingSentenceIndex] = firstPart;
+    
+    // 下段を挿入
+    const newIndex = editingSentenceIndex + 1;
+    updatedSentences.splice(newIndex, 0, secondPart);
+    setSplitSentences(updatedSentences);
+
+    // 翻訳も分割（既存の翻訳がある場合）
+    const currentTranslation = translatedSentences.get(editingSentenceIndex) || "";
+    if (currentTranslation) {
+      // 翻訳も同様の位置で分割（簡易的な方法：文字数比率で分割）
+      const ratio = firstPart.length / text.length;
+      const translationLength = currentTranslation.length;
+      const firstTranslation = currentTranslation.substring(0, Math.floor(translationLength * ratio)).trim();
+      const secondTranslation = currentTranslation.substring(Math.floor(translationLength * ratio)).trim();
+      
+      const updatedTranslations = new Map(translatedSentences);
+      updatedTranslations.set(editingSentenceIndex, firstTranslation);
+      if (secondTranslation) {
+        // 新しいインデックス以降の翻訳をシフト
+        const shiftedTranslations = new Map<number, string>();
+        updatedTranslations.forEach((value, key) => {
+          if (key > editingSentenceIndex) {
+            shiftedTranslations.set(key + 1, value);
+          } else if (key < editingSentenceIndex) {
+            shiftedTranslations.set(key, value);
+          }
+        });
+        shiftedTranslations.set(editingSentenceIndex, firstTranslation);
+        shiftedTranslations.set(newIndex, secondTranslation);
+        setTranslatedSentences(shiftedTranslations);
+      } else {
+        setTranslatedSentences(updatedTranslations);
+      }
+    } else {
+      // 翻訳がない場合、インデックスをシフト
+      const shiftedTranslations = new Map<number, string>();
+      translatedSentences.forEach((value, key) => {
+        if (key > editingSentenceIndex) {
+          shiftedTranslations.set(key + 1, value);
+        } else if (key < editingSentenceIndex) {
+          shiftedTranslations.set(key, value);
+        }
+      });
+      setTranslatedSentences(shiftedTranslations);
+    }
+
+    // 選択状態も更新
+    const updatedSelected = new Set<number>();
+    selectedSentences.forEach((idx) => {
+      if (idx < editingSentenceIndex) {
+        updatedSelected.add(idx);
+      } else if (idx === editingSentenceIndex) {
+        updatedSelected.add(editingSentenceIndex);
+        updatedSelected.add(newIndex);
+      } else {
+        updatedSelected.add(idx + 1);
+      }
+    });
+    setSelectedSentences(updatedSelected);
+
+    // 編集モーダルを閉じる
+    setEditingSentenceIndex(null);
+    setEditingSentenceEn("");
+    setEditingSentenceJp("");
+    setOriginalEditingSentenceEn("");
+  }
 
   function handleSaveEditedSentence() {
     if (editingSentenceIndex === null) return;
@@ -1284,14 +1384,28 @@ export default function ScreenshotCardPage() {
                           </div>
                           <div className="space-y-4">
                             <div>
-                              <label className="text-sm text-gray-700 font-semibold mb-2 block">英語:</label>
+                              <div className="flex items-center justify-between mb-2">
+                                <label className="text-sm text-gray-700 font-semibold block">英語:</label>
+                                <button
+                                  onClick={handleSplitSentence}
+                                  className="text-xs bg-purple-600 hover:bg-purple-700 text-white font-semibold py-1 px-3 rounded-lg flex items-center gap-1"
+                                  title="カーソル位置で文章を分割"
+                                >
+                                  ✂️ ここで分割
+                                </button>
+                              </div>
                               <textarea
+                                ref={editingTextareaRef}
                                 value={editingSentenceEn}
                                 onChange={(e) => setEditingSentenceEn(e.target.value)}
                                 className="w-full border border-gray-300 rounded-lg px-4 py-3 text-base"
                                 rows={4}
                                 autoFocus
+                                placeholder="カーソル位置で「ここで分割」ボタンをクリックすると文章を分割できます"
                               />
+                              <p className="text-xs text-gray-500 mt-1">
+                                カーソル位置で「ここで分割」ボタンをクリックすると、文章を2つに分割できます
+                              </p>
                             </div>
                             <div>
                               <div className="flex items-center justify-between mb-2">
