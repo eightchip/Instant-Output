@@ -474,6 +474,9 @@ export default function ScreenshotCardPage() {
   function handleCropImage() {
     if (!imageFile || !imagePreview || !cropArea || !displaySizeRef.current) return;
 
+    const displaySize = displaySizeRef.current;
+    if (!displaySize) return;
+
     const img = new Image();
     img.onload = () => {
       const canvas = document.createElement("canvas");
@@ -481,8 +484,8 @@ export default function ScreenshotCardPage() {
       if (!ctx) return;
 
       // 表示サイズと実際の画像サイズの比率を計算
-      const scaleX = img.width / displaySizeRef.current.width;
-      const scaleY = img.height / displaySizeRef.current.height;
+      const scaleX = img.width / displaySize.width;
+      const scaleY = img.height / displaySize.height;
 
       // トリミング領域を実際の画像サイズに変換
       const cropX = Math.max(0, Math.round(cropArea.x * scaleX));
