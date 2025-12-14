@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { storage } from "@/lib/storage";
 import { Card, Lesson, SourceType } from "@/types/models";
 import { highlightText } from "@/lib/highlight";
+import MessageDialog from "@/components/MessageDialog";
 
 type FilterType = {
   lessonId?: string;
