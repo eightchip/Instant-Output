@@ -1046,35 +1046,28 @@ export default function ScreenshotCardPage() {
                       <p className="text-xs text-gray-600 font-semibold">
                         抽出されたテキスト（編集可能）:
                       </p>
-                      {ocrConfidence !== null && (
-                        <p className="text-xs text-gray-500">
-                          信頼度: {ocrConfidence.toFixed(1)}%
-                        </p>
-                      )}
-                    </div>
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <label className="text-xs text-gray-600 font-semibold">
-                          改行を入れるとその位置で分割されます
-                        </label>
+                      <div className="flex items-center gap-2">
+                        {ocrConfidence !== null && (
+                          <p className="text-xs text-gray-500">
+                            信頼度: {ocrConfidence.toFixed(1)}%
+                          </p>
+                        )}
                         <button
-                          onClick={handleInsertLineBreak}
-                          className="text-xs bg-blue-600 hover:bg-blue-700 text-white font-semibold py-1 px-3 rounded-lg flex items-center gap-1"
-                          title="カーソル位置に改行を挿入（分割位置を明示）"
+                          onClick={() => setIsEditingExtractedText(true)}
+                          className="text-xs bg-blue-600 hover:bg-blue-700 text-white font-semibold py-1 px-3 rounded-lg"
                         >
-                          ⏎ 改行を挿入
+                          ✏️ 全画面で編集
                         </button>
                       </div>
-                      <textarea
-                        ref={extractedTextareaRef}
-                        value={extractedText}
-                        onChange={(e) => setExtractedText(e.target.value)}
-                        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-800 whitespace-pre-wrap break-words min-h-[100px]"
-                        rows={4}
-                        placeholder="OCRで抽出されたテキストを編集できます。改行を入れるとその位置で分割されます。改行がない場合は、ピリオドや？などの句読点で自動分割されます。"
-                      />
+                    </div>
+                    <div className="space-y-2">
+                      <div className="bg-white border border-gray-300 rounded-lg p-2 max-h-32 overflow-y-auto">
+                        <p className="text-sm text-gray-800 whitespace-pre-wrap break-words">
+                          {extractedText.length > 100 ? extractedText.substring(0, 100) + '...' : extractedText}
+                        </p>
+                      </div>
                       <p className="text-xs text-gray-500">
-                        💡 ヒント: 「改行を挿入」ボタンで分割位置を明示できます。改行がない場合は、ピリオド（.）や疑問符（?）などで自動分割されます。
+                        💡 ヒント: 「全画面で編集」ボタンで編集できます。改行を入れるとその位置で分割されます。改行がない場合は、ピリオド（.）や疑問符（?）などで自動分割されます。
                       </p>
                     </div>
                     {ocrConfidence !== null && ocrConfidence < 50 && (
@@ -1089,6 +1082,7 @@ export default function ScreenshotCardPage() {
                           if (sentences.length > 1) {
                             setSplitSentences(sentences);
                             setSelectedSentences(new Set(sentences.map((_, i) => i)));
+                            setTranslatedSentences(new Map()); // 翻訳をリセット
                             setShowSplitView(true);
                           } else if (sentences.length === 1) {
                             setMessageDialog({
@@ -1137,6 +1131,91 @@ export default function ScreenshotCardPage() {
                         🔄 編集したテキストで再度分割
                       </button>
                     )}
+                  </div>
+                )}
+
+                {/* 全画面編集モーダル */}
+                {isEditingExtractedText && (
+                  <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+                    <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] flex flex-col">
+                      <div className="flex items-center justify-between p-4 border-b">
+                        <h3 className="text-lg font-semibold text-gray-900">
+                          抽出されたテキストを編集
+                        </h3>
+                        <button
+                          onClick={() => setIsEditingExtractedText(false)}
+                          className="text-gray-500 hover:text-gray-700 text-2xl"
+                        >
+                          ×
+                        </button>
+                      </div>
+                      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                        <div className="flex items-center justify-between">
+                          <label className="text-sm text-gray-700 font-semibold">
+                            改行を入れるとその位置で分割されます
+                          </label>
+                          <button
+                            onClick={handleInsertLineBreak}
+                            className="text-xs bg-blue-600 hover:bg-blue-700 text-white font-semibold py-1 px-3 rounded-lg flex items-center gap-1"
+                            title="カーソル位置に改行を挿入（分割位置を明示）"
+                          >
+                            ⏎ 改行を挿入
+                          </button>
+                        </div>
+                        <textarea
+                          ref={extractedTextareaRef}
+                          value={extractedText}
+                          onChange={(e) => setExtractedText(e.target.value)}
+                          className="w-full border border-gray-300 rounded-lg px-4 py-3 text-base text-gray-800 whitespace-pre-wrap break-words min-h-[400px]"
+                          rows={20}
+                          placeholder="OCRで抽出されたテキストを編集できます。改行を入れるとその位置で分割されます。改行がない場合は、ピリオドや？などの句読点で自動分割されます。"
+                          autoFocus
+                        />
+                        <p className="text-xs text-gray-500">
+                          💡 ヒント: 「改行を挿入」ボタンで分割位置を明示できます。改行がない場合は、ピリオド（.）や疑問符（?）などで自動分割されます。
+                        </p>
+                        {ocrConfidence !== null && ocrConfidence < 50 && (
+                          <p className="text-xs text-yellow-600">
+                            ⚠️ 信頼度が低いため、抽出結果を確認・編集してください
+                          </p>
+                        )}
+                      </div>
+                      <div className="flex gap-3 p-4 border-t">
+                        <button
+                          onClick={() => setIsEditingExtractedText(false)}
+                          className="flex-1 bg-gray-500 hover:bg-gray-600 text-white font-semibold py-3 px-6 rounded-lg text-base"
+                        >
+                          閉じる
+                        </button>
+                        <button
+                          onClick={() => {
+                            setIsEditingExtractedText(false);
+                            const sentences = splitTextIntoSentences(extractedText);
+                            if (sentences.length > 1) {
+                              setSplitSentences(sentences);
+                              setSelectedSentences(new Set(sentences.map((_, i) => i)));
+                              setTranslatedSentences(new Map()); // 翻訳をリセット
+                              setShowSplitView(true);
+                            } else if (sentences.length === 1) {
+                              setMessageDialog({
+                                isOpen: true,
+                                title: "文章分割",
+                                message: "文章が1つしか見つかりませんでした。",
+                              });
+                            } else {
+                              setMessageDialog({
+                                isOpen: true,
+                                title: "文章分割",
+                                message: "有効な文章が見つかりませんでした。",
+                              });
+                            }
+                          }}
+                          className="flex-1 bg-purple-600 hover:bg-purple-700 text-white font-semibold py-3 px-6 rounded-lg text-base"
+                        >
+                          📝 編集して分割
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 )}
               </div>
