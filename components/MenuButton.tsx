@@ -107,7 +107,6 @@ export default function MenuButton({
           onMouseLeave={handleMouseLeave}
           className="absolute left-0 top-full mt-2 w-64 p-3 bg-gray-900 rounded-lg shadow-xl z-50"
         >
-          <div className="font-semibold mb-1 text-white text-base">{title}</div>
           <div className="text-gray-300 leading-relaxed text-sm">{description}</div>
           <div className="absolute -top-2 left-6 w-0 h-0 border-l-4 border-r-4 border-b-4 border-transparent border-b-gray-900"></div>
         </div>

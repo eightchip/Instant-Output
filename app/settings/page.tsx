@@ -15,6 +15,7 @@ import {
   resetSRSConfig,
   SRSConfig,
 } from "@/lib/srs-config";
+import MessageDialog from "@/components/MessageDialog";
 
 export default function SettingsPage() {
   const router = useRouter();
@@ -23,16 +24,29 @@ export default function SettingsPage() {
   const [importMessage, setImportMessage] = useState("");
   const [srsConfig, setSrsConfig] = useState<SRSConfig>(getSRSConfig());
   const [showSRSConfig, setShowSRSConfig] = useState(false);
+  const [messageDialog, setMessageDialog] = useState<{ isOpen: boolean; title: string; message: string }>({
+    isOpen: false,
+    title: "",
+    message: "",
+  });
 
   async function handleExport() {
     setIsExporting(true);
     try {
       const data = await exportAllData();
       downloadExportData(data);
-      alert("データをエクスポートしました！");
+      setMessageDialog({
+        isOpen: true,
+        title: "エクスポート完了",
+        message: "データをエクスポートしました！",
+      });
     } catch (error) {
       console.error("Export failed:", error);
-      alert("エクスポートに失敗しました。");
+      setMessageDialog({
+        isOpen: true,
+        title: "エクスポートエラー",
+        message: "エクスポートに失敗しました。",
+      });
     } finally {
       setIsExporting(false);
     }
@@ -51,9 +65,11 @@ export default function SettingsPage() {
         // データの検証
         const validation = validateImportData(data);
         if (!validation.valid) {
-          alert(
-            `データの検証に失敗しました:\n${validation.errors.join("\n")}`
-          );
+          setMessageDialog({
+            isOpen: true,
+            title: "データ検証エラー",
+            message: `データの検証に失敗しました:\n${validation.errors.join("\n")}`,
+          });
           return;
         }
 
@@ -70,17 +86,29 @@ export default function SettingsPage() {
         setImportMessage(result.message);
 
         if (result.success) {
-          alert(result.message);
+          setMessageDialog({
+            isOpen: true,
+            title: "インポート完了",
+            message: result.message,
+          });
           // ホームに戻る
           setTimeout(() => {
             router.push("/");
           }, 1500);
         } else {
-          alert(result.message);
+          setMessageDialog({
+            isOpen: true,
+            title: "インポートエラー",
+            message: result.message,
+          });
         }
       } catch (error) {
         console.error("Import failed:", error);
-        alert("インポートに失敗しました。JSONファイルが正しい形式か確認してください。");
+        setMessageDialog({
+          isOpen: true,
+          title: "インポートエラー",
+          message: "インポートに失敗しました。JSONファイルが正しい形式か確認してください。",
+        });
       } finally {
         setIsImporting(false);
         // ファイル入力のリセット
@@ -99,10 +127,18 @@ export default function SettingsPage() {
   function handleSRSSave() {
     try {
       saveSRSConfig(srsConfig);
-      alert("SRS設定を保存しました！");
+      setMessageDialog({
+        isOpen: true,
+        title: "保存完了",
+        message: "SRS設定を保存しました！",
+      });
     } catch (error) {
       console.error("Failed to save SRS config:", error);
-      alert("設定の保存に失敗しました。");
+      setMessageDialog({
+        isOpen: true,
+        title: "保存エラー",
+        message: "設定の保存に失敗しました。",
+      });
     }
   }
 
@@ -110,7 +146,11 @@ export default function SettingsPage() {
     if (confirm("SRS設定をデフォルト値にリセットしますか？")) {
       resetSRSConfig();
       setSrsConfig(getSRSConfig());
-      alert("SRS設定をリセットしました。");
+      setMessageDialog({
+        isOpen: true,
+        title: "リセット完了",
+        message: "SRS設定をリセットしました。",
+      });
     }
   }
 
@@ -349,7 +389,32 @@ export default function SettingsPage() {
             </ul>
           </div>
         </div>
+
+        {/* 管理者に問い合わせ */}
+        <div className="mt-8 p-4 bg-white rounded-lg border border-gray-200">
+          <h3 className="text-lg font-semibold mb-2">管理者に問い合わせ</h3>
+          <p className="text-sm text-gray-600 mb-3">
+            ご質問やお問い合わせは公式サイトからお願いいたします。
+          </p>
+          <a
+            href="https://linknavigator.vercel.app/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-800 font-semibold"
+          >
+            <span>公式サイトを開く</span>
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+            </svg>
+          </a>
+        </div>
       </main>
+      <MessageDialog
+        isOpen={messageDialog.isOpen}
+        title={messageDialog.title}
+        message={messageDialog.message}
+        onClose={() => setMessageDialog({ isOpen: false, title: "", message: "" })}
+      />
     </div>
   );
 }

@@ -6,6 +6,7 @@ import { storage } from "@/lib/storage";
 import { ocrService, OCRProgress } from "@/lib/ocr";
 import { Lesson, Card } from "@/types/models";
 import { processOcrText } from "@/lib/text-processing";
+import MessageDialog from "@/components/MessageDialog";
 
 export default function ScreenshotCardPage() {
   const router = useRouter();
@@ -32,6 +33,11 @@ export default function ScreenshotCardPage() {
   const [editingSentenceJp, setEditingSentenceJp] = useState<string>("");
   const [showNewLessonForm, setShowNewLessonForm] = useState(false);
   const [newLessonTitle, setNewLessonTitle] = useState("");
+  const [messageDialog, setMessageDialog] = useState<{ isOpen: boolean; title: string; message: string }>({
+    isOpen: false,
+    title: "",
+    message: "",
+  });
   const [isCropMode, setIsCropMode] = useState(false);
   const [cropArea, setCropArea] = useState<{ x: number; y: number; width: number; height: number } | null>(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -60,7 +66,11 @@ export default function ScreenshotCardPage() {
 
   async function handleCreateLesson() {
     if (!newLessonTitle.trim()) {
-      alert("レッスン名を入力してください。");
+      setMessageDialog({
+        isOpen: true,
+        title: "入力エラー",
+        message: "レッスン名を入力してください。",
+      });
       return;
     }
 
@@ -77,7 +87,11 @@ export default function ScreenshotCardPage() {
       setSelectedLessonId(newLesson.id);
     } catch (error) {
       console.error("Failed to create lesson:", error);
-      alert("レッスンの作成に失敗しました。");
+      setMessageDialog({
+        isOpen: true,
+        title: "エラー",
+        message: "レッスンの作成に失敗しました。",
+      });
     }
   }
 
@@ -123,7 +137,11 @@ export default function ScreenshotCardPage() {
     if (files.length > 1) {
       // 複数画像の場合は、最初の画像のみ処理（将来的に拡張可能）
       // 現在は1枚ずつ処理することを推奨
-      alert(`複数の画像が選択されました。最初の画像のみ処理します。\n複数画像の一括処理は、今後実装予定です。`);
+      setMessageDialog({
+        isOpen: true,
+        title: "複数画像の選択",
+        message: "複数の画像が選択されました。最初の画像のみ処理します。\n複数画像の一括処理は、今後実装予定です。",
+      });
       processImageFile(files[0]);
     } else {
       processImageFile(files[0]);
@@ -215,13 +233,21 @@ export default function ScreenshotCardPage() {
 
   async function processImageFile(file: File) {
     if (!file.type.startsWith("image/")) {
-      alert("画像ファイルを選択してください。");
+      setMessageDialog({
+        isOpen: true,
+        title: "ファイル形式エラー",
+        message: "画像ファイルを選択してください。",
+      });
       return;
     }
 
     // ファイルサイズチェック（10MB制限）
     if (file.size > 10 * 1024 * 1024) {
-      alert("画像ファイルは10MB以下にしてください。");
+      setMessageDialog({
+        isOpen: true,
+        title: "ファイルサイズエラー",
+        message: "画像ファイルは10MB以下にしてください。",
+      });
       return;
     }
 
@@ -266,7 +292,11 @@ export default function ScreenshotCardPage() {
 
   async function handleExtractText() {
     if (!imageFile) {
-      alert("画像を選択してください。");
+      setMessageDialog({
+        isOpen: true,
+        title: "画像が選択されていません",
+        message: "画像を選択してください。",
+      });
       return;
     }
 
@@ -303,9 +333,11 @@ export default function ScreenshotCardPage() {
         }
         setIsExtracting(false);
         setOcrProgress(null);
-        alert(
-          "処理がタイムアウトしました（2分）。\n\n画像が大きすぎる可能性があります。\n画像をリサイズしてから再度お試しください。"
-        );
+        setMessageDialog({
+          isOpen: true,
+          title: "タイムアウト",
+          message: "処理がタイムアウトしました（2分）。\n\n画像が大きすぎる可能性があります。\n画像をリサイズしてから再度お試しください。",
+        });
       }
     }, 2 * 60 * 1000); // 2分に短縮
 
@@ -356,9 +388,11 @@ export default function ScreenshotCardPage() {
         error instanceof Error
           ? error.message
           : "テキスト抽出に失敗しました。";
-      alert(
-        `${errorMessage}\n\nネットワーク接続を確認するか、手動でテキストを入力してください。`
-      );
+      setMessageDialog({
+        isOpen: true,
+        title: "テキスト抽出エラー",
+        message: `${errorMessage}\n\nネットワーク接続を確認するか、手動でテキストを入力してください。`,
+      });
       setExtractedText("");
     } finally {
       setIsExtracting(false);
@@ -372,12 +406,20 @@ export default function ScreenshotCardPage() {
 
   async function handleSave() {
     if (!selectedLessonId) {
-      alert("レッスンを選択してください。");
+      setMessageDialog({
+        isOpen: true,
+        title: "レッスンが選択されていません",
+        message: "レッスンを選択してください。",
+      });
       return;
     }
 
     if (!targetEn.trim()) {
-      alert("英語を入力してください。");
+      setMessageDialog({
+        isOpen: true,
+        title: "入力エラー",
+        message: "英語を入力してください。",
+      });
       return;
     }
 
@@ -392,11 +434,21 @@ export default function ScreenshotCardPage() {
         imageData: imagePreview || undefined, // 画像データを保存
       };
       await storage.saveCard(card);
-      alert("カードを保存しました！");
-      router.push(`/lessons/${selectedLessonId}`);
+      setMessageDialog({
+        isOpen: true,
+        title: "保存完了",
+        message: "カードを保存しました！",
+      });
+      setTimeout(() => {
+        router.push(`/lessons/${selectedLessonId}`);
+      }, 1000);
     } catch (error) {
       console.error("Failed to save card:", error);
-      alert("カードの保存に失敗しました。");
+      setMessageDialog({
+        isOpen: true,
+        title: "保存エラー",
+        message: "カードの保存に失敗しました。",
+      });
     } finally {
       setIsSaving(false);
     }
@@ -404,12 +456,20 @@ export default function ScreenshotCardPage() {
 
   async function handleSaveSplitCards() {
     if (!selectedLessonId) {
-      alert("レッスンを選択してください。");
+      setMessageDialog({
+        isOpen: true,
+        title: "レッスンが選択されていません",
+        message: "レッスンを選択してください。",
+      });
       return;
     }
 
     if (selectedSentences.size === 0) {
-      alert("カードを作成する文章を選択してください。");
+      setMessageDialog({
+        isOpen: true,
+        title: "文章が選択されていません",
+        message: "カードを作成する文章を選択してください。",
+      });
       return;
     }
 
@@ -430,11 +490,21 @@ export default function ScreenshotCardPage() {
       });
 
       await Promise.all(cardsToSave.map(card => storage.saveCard(card)));
-      alert(`${cardsToSave.length}枚のカードを作成しました！`);
-      router.push(`/lessons/${selectedLessonId}`);
+      setMessageDialog({
+        isOpen: true,
+        title: "保存完了",
+        message: `${cardsToSave.length}枚のカードを作成しました！`,
+      });
+      setTimeout(() => {
+        router.push(`/lessons/${selectedLessonId}`);
+      }, 1000);
     } catch (error) {
       console.error("Failed to save cards:", error);
-      alert("カードの保存に失敗しました。");
+      setMessageDialog({
+        isOpen: true,
+        title: "保存エラー",
+        message: "カードの保存に失敗しました。",
+      });
     } finally {
       setIsSaving(false);
     }
@@ -494,7 +564,11 @@ export default function ScreenshotCardPage() {
       const cropHeight = Math.min(img.height - cropY, Math.round(cropArea.height * scaleY));
 
       if (cropWidth <= 0 || cropHeight <= 0) {
-        alert("有効なトリミング領域を選択してください。");
+        setMessageDialog({
+          isOpen: true,
+          title: "トリミングエラー",
+          message: "有効なトリミング領域を選択してください。",
+        });
         return;
       }
 
@@ -1015,9 +1089,17 @@ export default function ScreenshotCardPage() {
                             setSelectedSentences(new Set(sentences.map((_, i) => i)));
                             setShowSplitView(true);
                           } else if (sentences.length === 1) {
-                            alert("文章が1つしか見つかりませんでした。");
+                            setMessageDialog({
+                              isOpen: true,
+                              title: "文章分割",
+                              message: "文章が1つしか見つかりませんでした。",
+                            });
                           } else {
-                            alert("有効な文章が見つかりませんでした。");
+                            setMessageDialog({
+                              isOpen: true,
+                              title: "文章分割",
+                              message: "有効な文章が見つかりませんでした。",
+                            });
                           }
                         }}
                         className="mt-3 w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2 px-4 rounded-lg text-sm"
@@ -1228,6 +1310,12 @@ export default function ScreenshotCardPage() {
           )}
         </div>
       </main>
+      <MessageDialog
+        isOpen={messageDialog.isOpen}
+        title={messageDialog.title}
+        message={messageDialog.message}
+        onClose={() => setMessageDialog({ isOpen: false, title: "", message: "" })}
+      />
     </div>
   );
 }

@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { storage } from "@/lib/storage";
 import { Draft, DraftCard } from "@/types/ai-card";
 import { Card } from "@/types/models";
+import MessageDialog from "@/components/MessageDialog";
 
 function ReviewContent() {
   const router = useRouter();
@@ -21,6 +22,11 @@ function ReviewContent() {
   const [isSaving, setIsSaving] = useState(false);
   const [lessons, setLessons] = useState<any[]>([]);
   const [selectedLessonId, setSelectedLessonId] = useState("");
+  const [messageDialog, setMessageDialog] = useState<{ isOpen: boolean; title: string; message: string }>({
+    isOpen: false,
+    title: "",
+    message: "",
+  });
 
   useEffect(() => {
     if (draftId) {
@@ -34,8 +40,14 @@ function ReviewContent() {
       await storage.init();
       const draftData = await storage.getDraft(draftId!);
       if (!draftData) {
-        alert("ドラフトが見つかりません。");
-        router.push("/cards/ai-card");
+        setMessageDialog({
+          isOpen: true,
+          title: "ドラフトが見つかりません",
+          message: "ドラフトが見つかりません。",
+        });
+        setTimeout(() => {
+          router.push("/cards/ai-card");
+        }, 1500);
         return;
       }
       setDraft(draftData);
@@ -44,7 +56,11 @@ function ReviewContent() {
       setSelectedCards(new Set(draftData.cards.map((_, i) => i)));
     } catch (error) {
       console.error("Failed to load draft:", error);
-      alert("ドラフトの読み込みに失敗しました。");
+      setMessageDialog({
+        isOpen: true,
+        title: "読み込みエラー",
+        message: "ドラフトの読み込みに失敗しました。",
+      });
     } finally {
       setIsLoading(false);
     }
@@ -102,12 +118,20 @@ function ReviewContent() {
 
   const handleSaveCards = async () => {
     if (!selectedLessonId) {
-      alert("レッスンを選択してください。");
+      setMessageDialog({
+        isOpen: true,
+        title: "レッスンが選択されていません",
+        message: "レッスンを選択してください。",
+      });
       return;
     }
 
     if (selectedCards.size === 0) {
-      alert("少なくとも1つのカードを選択してください。");
+      setMessageDialog({
+        isOpen: true,
+        title: "カードが選択されていません",
+        message: "少なくとも1つのカードを選択してください。",
+      });
       return;
     }
 
@@ -142,11 +166,21 @@ function ReviewContent() {
         await storage.saveCard(card);
       }
 
-      alert(`${cardsToSave.length}枚のカードを保存しました！`);
-      router.push(`/lessons/${selectedLessonId}`);
+      setMessageDialog({
+        isOpen: true,
+        title: "保存完了",
+        message: `${cardsToSave.length}枚のカードを保存しました！`,
+      });
+      setTimeout(() => {
+        router.push(`/lessons/${selectedLessonId}`);
+      }, 1000);
     } catch (error) {
       console.error("Failed to save cards:", error);
-      alert("カードの保存に失敗しました。");
+      setMessageDialog({
+        isOpen: true,
+        title: "保存エラー",
+        message: "カードの保存に失敗しました。",
+      });
     } finally {
       setIsSaving(false);
     }
@@ -363,6 +397,12 @@ function ReviewContent() {
           })}
         </div>
       </main>
+      <MessageDialog
+        isOpen={messageDialog.isOpen}
+        title={messageDialog.title}
+        message={messageDialog.message}
+        onClose={() => setMessageDialog({ isOpen: false, title: "", message: "" })}
+      />
     </div>
   );
 }

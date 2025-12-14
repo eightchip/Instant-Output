@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { storage } from "@/lib/storage";
 import { Course, Lesson } from "@/types/models";
+import MessageDialog from "@/components/MessageDialog";
 
 export default function CourseDetailPage() {
   const router = useRouter();
@@ -16,6 +17,11 @@ export default function CourseDetailPage() {
   const [isEditing, setIsEditing] = useState(false);
   const [editDailyTarget, setEditDailyTarget] = useState(5);
   const [editDurationDays, setEditDurationDays] = useState(30);
+  const [messageDialog, setMessageDialog] = useState<{ isOpen: boolean; title: string; message: string }>({
+    isOpen: false,
+    title: "",
+    message: "",
+  });
 
   useEffect(() => {
     if (courseId) {
@@ -51,7 +57,11 @@ export default function CourseDetailPage() {
     if (!course) return;
 
     if (course.lessonIds.includes(lessonId)) {
-      alert("このレッスンは既に追加されています。");
+      setMessageDialog({
+        isOpen: true,
+        title: "追加エラー",
+        message: "このレッスンは既に追加されています。",
+      });
       return;
     }
 
@@ -64,7 +74,11 @@ export default function CourseDetailPage() {
       await loadData();
     } catch (error) {
       console.error("Failed to add lesson:", error);
-      alert("レッスンの追加に失敗しました。");
+      setMessageDialog({
+        isOpen: true,
+        title: "追加エラー",
+        message: "レッスンの追加に失敗しました。",
+      });
     }
   }
 
@@ -80,7 +94,11 @@ export default function CourseDetailPage() {
       await loadData();
     } catch (error) {
       console.error("Failed to remove lesson:", error);
-      alert("レッスンの削除に失敗しました。");
+      setMessageDialog({
+        isOpen: true,
+        title: "削除エラー",
+        message: "レッスンの削除に失敗しました。",
+      });
     }
   }
 
@@ -88,12 +106,20 @@ export default function CourseDetailPage() {
     if (!course) return;
 
     if (editDailyTarget < 1 || editDailyTarget > 100) {
-      alert("1日の目標は1〜100問の範囲で設定してください。");
+      setMessageDialog({
+        isOpen: true,
+        title: "入力エラー",
+        message: "1日の目標は1〜100問の範囲で設定してください。",
+      });
       return;
     }
 
     if (editDurationDays < 1 || editDurationDays > 365) {
-      alert("期間は1〜365日の範囲で設定してください。");
+      setMessageDialog({
+        isOpen: true,
+        title: "入力エラー",
+        message: "期間は1〜365日の範囲で設定してください。",
+      });
       return;
     }
 
@@ -106,10 +132,18 @@ export default function CourseDetailPage() {
       await storage.saveCourse(updatedCourse);
       await loadData();
       setIsEditing(false);
-      alert("目標を更新しました。");
+      setMessageDialog({
+        isOpen: true,
+        title: "更新完了",
+        message: "目標を更新しました。",
+      });
     } catch (error) {
       console.error("Failed to update course:", error);
-      alert("目標の更新に失敗しました。");
+      setMessageDialog({
+        isOpen: true,
+        title: "更新エラー",
+        message: "目標の更新に失敗しました。",
+      });
     }
   }
 
@@ -152,11 +186,21 @@ export default function CourseDetailPage() {
                 try {
                   await storage.init();
                   await storage.deleteCourse(course.id);
-                  alert("コースを削除しました。");
-                  router.push("/courses");
+                  setMessageDialog({
+                    isOpen: true,
+                    title: "削除完了",
+                    message: "コースを削除しました。",
+                  });
+                  setTimeout(() => {
+                    router.push("/courses");
+                  }, 1000);
                 } catch (error) {
                   console.error("Failed to delete course:", error);
-                  alert("コースの削除に失敗しました。");
+                  setMessageDialog({
+                    isOpen: true,
+                    title: "削除エラー",
+                    message: "コースの削除に失敗しました。",
+                  });
                 }
               }}
               className="bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-4 rounded-lg"
@@ -350,6 +394,12 @@ export default function CourseDetailPage() {
           </div>
         )}
       </main>
+      <MessageDialog
+        isOpen={messageDialog.isOpen}
+        title={messageDialog.title}
+        message={messageDialog.message}
+        onClose={() => setMessageDialog({ isOpen: false, title: "", message: "" })}
+      />
     </div>
   );
 }

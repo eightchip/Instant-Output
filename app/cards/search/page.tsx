@@ -20,6 +20,11 @@ export default function CardSearchPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [filters, setFilters] = useState<FilterType>({});
   const [isLoading, setIsLoading] = useState(true);
+  const [messageDialog, setMessageDialog] = useState<{ isOpen: boolean; title: string; message: string }>({
+    isOpen: false,
+    title: "",
+    message: "",
+  });
 
   useEffect(() => {
     loadData();
@@ -235,7 +240,11 @@ export default function CardSearchPage() {
                           await loadData();
                         } catch (error) {
                           console.error("Failed to toggle favorite:", error);
-                          alert("お気に入りの更新に失敗しました。");
+                          setMessageDialog({
+                            isOpen: true,
+                            title: "更新エラー",
+                            message: "お気に入りの更新に失敗しました。",
+                          });
                         }
                       }}
                       className={`text-lg ${card.isFavorite ? "text-yellow-500" : "text-gray-300"} hover:text-yellow-500 transition-colors`}
@@ -256,6 +265,12 @@ export default function CardSearchPage() {
           </div>
         )}
       </main>
+      <MessageDialog
+        isOpen={messageDialog.isOpen}
+        title={messageDialog.title}
+        message={messageDialog.message}
+        onClose={() => setMessageDialog({ isOpen: false, title: "", message: "" })}
+      />
     </div>
   );
 }

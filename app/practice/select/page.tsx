@@ -13,6 +13,11 @@ export default function CardSelectPage() {
   const [selectedCards, setSelectedCards] = useState<Set<string>>(new Set());
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
+  const [messageDialog, setMessageDialog] = useState<{ isOpen: boolean; title: string; message: string }>({
+    isOpen: false,
+    title: "",
+    message: "",
+  });
 
   useEffect(() => {
     loadLessons();
@@ -97,7 +102,11 @@ export default function CardSelectPage() {
 
   function handleStartPractice() {
     if (selectedCards.size === 0) {
-      alert("学習するカードを選択してください。");
+      setMessageDialog({
+        isOpen: true,
+        title: "カードが選択されていません",
+        message: "学習するカードを選択してください。",
+      });
       return;
     }
 
@@ -264,6 +273,12 @@ export default function CardSelectPage() {
           )}
         </div>
       </main>
+      <MessageDialog
+        isOpen={messageDialog.isOpen}
+        title={messageDialog.title}
+        message={messageDialog.message}
+        onClose={() => setMessageDialog({ isOpen: false, title: "", message: "" })}
+      />
     </div>
   );
 }

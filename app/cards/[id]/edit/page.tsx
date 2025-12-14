@@ -25,6 +25,11 @@ export default function EditCardPage() {
   const textareaJpRef = useRef<HTMLTextAreaElement>(null);
   const textareaEnRef = useRef<HTMLTextAreaElement>(null);
   const ttsCheckIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const [messageDialog, setMessageDialog] = useState<{ isOpen: boolean; title: string; message: string }>({
+    isOpen: false,
+    title: "",
+    message: "",
+  });
 
   useEffect(() => {
     loadCard();
@@ -74,8 +79,14 @@ export default function EditCardPage() {
       await storage.init();
       const cardData = await storage.getCard(cardId);
       if (!cardData) {
-        alert("カードが見つかりません。");
-        router.back();
+        setMessageDialog({
+          isOpen: true,
+          title: "カードが見つかりません",
+          message: "カードが見つかりません。",
+        });
+        setTimeout(() => {
+          router.back();
+        }, 1500);
         return;
       }
       setCard(cardData);
@@ -83,8 +94,14 @@ export default function EditCardPage() {
       setTargetEn(cardData.target_en);
     } catch (error) {
       console.error("Failed to load card:", error);
-      alert("カードの読み込みに失敗しました。");
-      router.back();
+      setMessageDialog({
+        isOpen: true,
+        title: "読み込みエラー",
+        message: "カードの読み込みに失敗しました。",
+      });
+      setTimeout(() => {
+        router.back();
+      }, 1500);
     } finally {
       setIsLoading(false);
     }
@@ -94,7 +111,11 @@ export default function EditCardPage() {
     if (!card) return;
 
     if (!targetEn.trim()) {
-      alert("英語を入力してください。");
+      setMessageDialog({
+        isOpen: true,
+        title: "入力エラー",
+        message: "英語を入力してください。",
+      });
       return;
     }
 
@@ -108,11 +129,21 @@ export default function EditCardPage() {
         importantWords: card.importantWords && card.importantWords.length > 0 ? card.importantWords : undefined,
       };
       await storage.saveCard(updatedCard);
-      alert("カードを更新しました！");
-      router.back();
+      setMessageDialog({
+        isOpen: true,
+        title: "更新完了",
+        message: "カードを更新しました！",
+      });
+      setTimeout(() => {
+        router.back();
+      }, 1000);
     } catch (error) {
       console.error("Failed to save card:", error);
-      alert("カードの更新に失敗しました。");
+      setMessageDialog({
+        isOpen: true,
+        title: "更新エラー",
+        message: "カードの更新に失敗しました。",
+      });
     } finally {
       setIsSaving(false);
     }
@@ -133,7 +164,11 @@ export default function EditCardPage() {
     }
 
     if (!("webkitSpeechRecognition" in window) && !("SpeechRecognition" in window)) {
-      alert("お使いのブラウザは音声認識に対応していません。");
+      setMessageDialog({
+        isOpen: true,
+        title: "音声認識エラー",
+        message: "お使いのブラウザは音声認識に対応していません。",
+      });
       return;
     }
 
@@ -233,17 +268,31 @@ export default function EditCardPage() {
       }
       // カードを削除
       await storage.deleteCard(card.id);
-      alert("カードを削除しました。");
-      router.back();
+      setMessageDialog({
+        isOpen: true,
+        title: "削除完了",
+        message: "カードを削除しました。",
+      });
+      setTimeout(() => {
+        router.back();
+      }, 1000);
     } catch (error) {
       console.error("Failed to delete card:", error);
-      alert("カードの削除に失敗しました。");
+      setMessageDialog({
+        isOpen: true,
+        title: "削除エラー",
+        message: "カードの削除に失敗しました。",
+      });
     }
   }
 
   const handleTTSPlay = () => {
     if (!targetEn.trim()) {
-      alert("英語を入力してください。");
+      setMessageDialog({
+        isOpen: true,
+        title: "入力エラー",
+        message: "英語を入力してください。",
+      });
       return;
     }
 
@@ -307,7 +356,11 @@ export default function EditCardPage() {
                   await loadCard();
                 } catch (error) {
                   console.error("Failed to toggle favorite:", error);
-                  alert("お気に入りの更新に失敗しました。");
+                  setMessageDialog({
+                    isOpen: true,
+                    title: "更新エラー",
+                    message: "お気に入りの更新に失敗しました。",
+                  });
                 }
               }}
               className={`text-3xl ${card.isFavorite ? "text-yellow-500" : "text-gray-300"} hover:text-yellow-500 transition-colors`}
@@ -573,6 +626,12 @@ export default function EditCardPage() {
           </div>
         </div>
       </main>
+      <MessageDialog
+        isOpen={messageDialog.isOpen}
+        title={messageDialog.title}
+        message={messageDialog.message}
+        onClose={() => setMessageDialog({ isOpen: false, title: "", message: "" })}
+      />
     </div>
   );
 }

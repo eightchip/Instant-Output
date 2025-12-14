@@ -7,6 +7,7 @@ import { getTodayCards } from "@/lib/learning";
 import { Card, Course, Review } from "@/types/models";
 import { getReviewCardsWithPriority, ReviewCardInfo } from "@/lib/reviews";
 import MenuButton from "@/components/MenuButton";
+import { QRCodeSVG } from "qrcode.react";
 
 export default function Home() {
   const router = useRouter();
@@ -16,6 +17,8 @@ export default function Home() {
   const [activeCourse, setActiveCourse] = useState<Course | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [showReviewDetails, setShowReviewDetails] = useState(false);
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
+  const [showQRCode, setShowQRCode] = useState(false);
 
   useEffect(() => {
     async function loadData() {
@@ -63,8 +66,50 @@ export default function Home() {
 
   return (
     <div className="flex min-h-screen flex-col bg-gray-50">
+      {/* ヘッダー */}
+      <header className="bg-white border-b border-gray-200 sticky top-0 z-40">
+        <div className="max-w-2xl mx-auto px-4 py-3 flex items-center justify-between">
+          <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Instant Output</h1>
+          <div className="flex items-center gap-3">
+            {/* QRコードボタン */}
+            <button
+              onClick={() => setShowQRCode(!showQRCode)}
+              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              title="QRコードを表示"
+            >
+              <svg className="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
+              </svg>
+            </button>
+            {/* ハンバーガーメニュー（モバイル） */}
+            <button
+              onClick={() => setShowMobileMenu(!showMobileMenu)}
+              className="md:hidden p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              aria-label="メニュー"
+            >
+              <svg className="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                {showMobileMenu ? (
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                ) : (
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                )}
+              </svg>
+            </button>
+          </div>
+        </div>
+        {/* QRコード表示 */}
+        {showQRCode && (
+          <div className="max-w-2xl mx-auto px-4 pb-4 flex justify-center">
+            <div className="bg-white p-4 rounded-lg shadow-lg border border-gray-200">
+              <p className="text-sm text-gray-600 mb-2 text-center">このサイトのURL</p>
+              <QRCodeSVG value="https://instant-output.vercel.app/" size={120} />
+              <p className="text-xs text-gray-500 mt-2 text-center">instant-output.vercel.app</p>
+            </div>
+          </div>
+        )}
+      </header>
+
       <main className="flex-1 px-4 py-8 max-w-2xl mx-auto w-full">
-        <h1 className="text-3xl font-bold mb-8 text-center">Instant Output</h1>
 
         {/* Instant Menu */}
         <div className="mb-8 space-y-2">
@@ -74,7 +119,7 @@ export default function Home() {
           <div className="bg-white rounded-lg border border-gray-200 p-4 shadow-sm">
             <button
               onClick={handleStartPractice}
-              className="w-full bg-slate-700 hover:bg-slate-800 text-white font-semibold py-4 px-6 rounded-lg text-lg shadow-sm transition-colors mb-3"
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-5 px-6 rounded-lg text-xl shadow-lg transition-colors mb-3 border-2 border-blue-500"
             >
               今日の5問を開始
             </button>
@@ -259,7 +304,7 @@ export default function Home() {
         )}
 
         {/* 管理メニュー */}
-        <div className="mt-8 space-y-3">
+        <div className={`mt-8 space-y-3 ${showMobileMenu ? 'block' : 'hidden md:block'}`}>
           {/* 追加系 */}
           <div className="space-y-2">
             <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2">
@@ -278,14 +323,6 @@ export default function Home() {
               description="画像からOCRで英語テキストを抽出してカードを作成。複数画像の一括処理にも対応。日本語は後から追加できます。"
               color="orange"
               onClick={() => router.push("/cards/screenshot")}
-            />
-            <MenuButton
-              icon="🤖"
-              title="AIでカード化"
-              description="英文教材の画像からOCR→AI整形で自動的にカード候補を生成。自然な日本語訳付きで効率的に学習素材を作成できます。"
-              color="orange"
-              badge="プレミアム"
-              onClick={() => router.push("/cards/ai-card")}
             />
           </div>
 

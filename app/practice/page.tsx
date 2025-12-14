@@ -11,6 +11,7 @@ import { PracticeMode } from "@/types/modes";
 import { autoGrade, getGradingDetails, GradingDetails } from "@/lib/auto-grading";
 import { splitIntoWords, getImportantWords } from "@/lib/vocabulary";
 import ErrorDialog from "@/components/ErrorDialog";
+import MessageDialog from "@/components/MessageDialog";
 
 function PracticeContent() {
   const router = useRouter();
@@ -35,6 +36,11 @@ function PracticeContent() {
   const [autoGradingResult, setAutoGradingResult] = useState<GradingDetails | null>(null);
   const [manualResult, setManualResult] = useState<ReviewResult | null>(null);
   const [errorDialog, setErrorDialog] = useState<{ isOpen: boolean; title: string; message: string }>({
+    isOpen: false,
+    title: "",
+    message: "",
+  });
+  const [messageDialog, setMessageDialog] = useState<{ isOpen: boolean; title: string; message: string }>({
     isOpen: false,
     title: "",
     message: "",
@@ -167,7 +173,11 @@ function PracticeContent() {
             if (focusTimerRef.current) {
               clearInterval(focusTimerRef.current);
             }
-            alert("集中モードの時間が終了しました！");
+            setMessageDialog({
+              isOpen: true,
+              title: "集中モード終了",
+              message: "集中モードの時間が終了しました！",
+            });
             return 0;
           }
           return prev - 1;
@@ -291,8 +301,14 @@ function PracticeContent() {
         speed: "スピードチャレンジが完了しました！",
         flashcard: "フラッシュカード学習が完了しました！",
       };
-      alert(modeMessages[mode] || "学習が完了しました！");
-      router.push("/");
+      setMessageDialog({
+        isOpen: true,
+        title: "学習完了",
+        message: modeMessages[mode] || "学習が完了しました！",
+      });
+      setTimeout(() => {
+        router.push("/");
+      }, 1500);
     }
   };
 
@@ -363,7 +379,11 @@ function PracticeContent() {
 
   const handleVoiceInput = () => {
     if (!("webkitSpeechRecognition" in window) && !("SpeechRecognition" in window)) {
-      alert("お使いのブラウザは音声認識に対応していません。");
+      setMessageDialog({
+        isOpen: true,
+        title: "音声認識エラー",
+        message: "お使いのブラウザは音声認識に対応していません。",
+      });
       return;
     }
 
@@ -618,7 +638,7 @@ function PracticeContent() {
                     </div>
                   )}
                 </div>
-                <p className="text-xl font-semibold text-blue-900">
+                <p className="text-xl font-semibold text-blue-900 break-words overflow-wrap-anywhere whitespace-normal word-break-break-word max-w-full">
                   {splitIntoWords(currentCard.target_en).map((item, index) => {
                     if (item.isPunctuation) {
                       return <span key={index}>{item.word}</span>;
@@ -796,6 +816,12 @@ function PracticeContent() {
         title={errorDialog.title}
         message={errorDialog.message}
         onClose={() => setErrorDialog({ isOpen: false, title: "", message: "" })}
+      />
+      <MessageDialog
+        isOpen={messageDialog.isOpen}
+        title={messageDialog.title}
+        message={messageDialog.message}
+        onClose={() => setMessageDialog({ isOpen: false, title: "", message: "" })}
       />
     </div>
   );

@@ -4,6 +4,7 @@ import { useEffect, useState, Suspense, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { storage } from "@/lib/storage";
 import { Lesson, Card, SourceType } from "@/types/models";
+import MessageDialog from "@/components/MessageDialog";
 
 type InputMode = "pair" | "english_only";
 
@@ -27,6 +28,11 @@ function NewCardContent() {
   const recognitionEnRef = useRef<any>(null);
   const textareaJpRef = useRef<HTMLTextAreaElement>(null);
   const textareaEnRef = useRef<HTMLTextAreaElement>(null);
+  const [messageDialog, setMessageDialog] = useState<{ isOpen: boolean; title: string; message: string }>({
+    isOpen: false,
+    title: "",
+    message: "",
+  });
 
   useEffect(() => {
     loadLessons();
@@ -38,8 +44,14 @@ function NewCardContent() {
       const allLessons = await storage.getAllLessons();
       setLessons(allLessons);
       if (allLessons.length === 0) {
-        alert("まずレッスンを作成してください。");
-        router.push("/lessons");
+        setMessageDialog({
+          isOpen: true,
+          title: "レッスンが必要です",
+          message: "まずレッスンを作成してください。",
+        });
+        setTimeout(() => {
+          router.push("/lessons");
+        }, 1500);
         return;
       }
     } catch (error) {
@@ -51,18 +63,30 @@ function NewCardContent() {
 
   async function handleSave() {
     if (!selectedLessonId) {
-      alert("レッスンを選択してください。");
+      setMessageDialog({
+        isOpen: true,
+        title: "レッスンが選択されていません",
+        message: "レッスンを選択してください。",
+      });
       return;
     }
 
     if (inputMode === "pair") {
       if (!promptJp.trim() || !targetEn.trim()) {
-        alert("日本語と英語の両方を入力してください。");
+        setMessageDialog({
+          isOpen: true,
+          title: "入力エラー",
+          message: "日本語と英語の両方を入力してください。",
+        });
         return;
       }
     } else {
       if (!targetEn.trim()) {
-        alert("英語を入力してください。");
+        setMessageDialog({
+          isOpen: true,
+          title: "入力エラー",
+          message: "英語を入力してください。",
+        });
         return;
       }
     }
@@ -77,11 +101,21 @@ function NewCardContent() {
         source_type: inputMode === "pair" ? "manual_pair" : "manual_en",
       };
       await storage.saveCard(card);
-      alert("カードを保存しました！");
-      router.push(`/lessons/${selectedLessonId}`);
+      setMessageDialog({
+        isOpen: true,
+        title: "保存完了",
+        message: "カードを保存しました！",
+      });
+      setTimeout(() => {
+        router.push(`/lessons/${selectedLessonId}`);
+      }, 1000);
     } catch (error) {
       console.error("Failed to save card:", error);
-      alert("カードの保存に失敗しました。");
+      setMessageDialog({
+        isOpen: true,
+        title: "保存エラー",
+        message: "カードの保存に失敗しました。",
+      });
     } finally {
       setIsSaving(false);
     }
@@ -103,7 +137,11 @@ function NewCardContent() {
     }
 
     if (!("webkitSpeechRecognition" in window) && !("SpeechRecognition" in window)) {
-      alert("お使いのブラウザは音声認識に対応していません。");
+      setMessageDialog({
+        isOpen: true,
+        title: "音声認識エラー",
+        message: "お使いのブラウザは音声認識に対応していません。",
+      });
       return;
     }
 
@@ -143,9 +181,17 @@ function NewCardContent() {
       setIsRecording(false);
       recognitionRef.current = null;
       if (event.error === "no-speech") {
-        alert("音声が検出されませんでした。もう一度お試しください。");
+        setMessageDialog({
+          isOpen: true,
+          title: "音声認識エラー",
+          message: "音声が検出されませんでした。もう一度お試しください。",
+        });
       } else if (event.error === "not-allowed") {
-        alert("マイクの使用が許可されていません。ブラウザの設定を確認してください。");
+        setMessageDialog({
+          isOpen: true,
+          title: "マイクの許可が必要です",
+          message: "マイクの使用が許可されていません。ブラウザの設定を確認してください。",
+        });
       }
     };
 

@@ -6,6 +6,7 @@ import { storage } from "@/lib/storage";
 import { ocrService } from "@/lib/ocr";
 import { Source } from "@/types/ai-card";
 import { isPremiumEnabled, PREMIUM_FEATURES } from "@/lib/premium";
+import MessageDialog from "@/components/MessageDialog";
 
 function AICardContent() {
   const router = useRouter();
@@ -17,6 +18,11 @@ function AICardContent() {
   const [rawOcrText, setRawOcrText] = useState("");
   const [sourceId, setSourceId] = useState<string | null>(null);
   const [isPremium, setIsPremium] = useState(false);
+  const [messageDialog, setMessageDialog] = useState<{ isOpen: boolean; title: string; message: string }>({
+    isOpen: false,
+    title: "",
+    message: "",
+  });
 
   useEffect(() => {
     setIsPremium(isPremiumEnabled(PREMIUM_FEATURES.AI_OCR));
@@ -63,7 +69,11 @@ function AICardContent() {
       setSourceId(source.id);
     } catch (error) {
       console.error("OCR error:", error);
-      alert("OCR処理に失敗しました。");
+      setMessageDialog({
+        isOpen: true,
+        title: "OCRエラー",
+        message: "OCR処理に失敗しました。",
+      });
       setStatus("エラー");
     } finally {
       setIsProcessing(false);
@@ -106,7 +116,11 @@ function AICardContent() {
       router.push(`/cards/ai-card/review?draftId=${draft.id}`);
     } catch (error) {
       console.error("AI card error:", error);
-      alert(error instanceof Error ? error.message : "AI整形に失敗しました。");
+      setMessageDialog({
+        isOpen: true,
+        title: "AI整形エラー",
+        message: error instanceof Error ? error.message : "AI整形に失敗しました。",
+      });
       setStatus("エラー");
     } finally {
       setIsProcessing(false);
@@ -289,6 +303,12 @@ function AICardContent() {
           </div>
         )}
       </main>
+      <MessageDialog
+        isOpen={messageDialog.isOpen}
+        title={messageDialog.title}
+        message={messageDialog.message}
+        onClose={() => setMessageDialog({ isOpen: false, title: "", message: "" })}
+      />
     </div>
   );
 }

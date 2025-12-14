@@ -12,6 +12,11 @@ export default function ReviewsPage() {
   const [stats, setStats] = useState<ReviewStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [messageDialog, setMessageDialog] = useState<{ isOpen: boolean; title: string; message: string }>({
+    isOpen: false,
+    title: "",
+    message: "",
+  });
 
   useEffect(() => {
     async function loadData() {
@@ -25,7 +30,11 @@ export default function ReviewsPage() {
         setStats(statsData);
       } catch (error) {
         console.error("Failed to load review data:", error);
-        alert("復習データの読み込みに失敗しました。");
+        setMessageDialog({
+          isOpen: true,
+          title: "読み込みエラー",
+          message: "復習データの読み込みに失敗しました。",
+        });
       } finally {
         setIsLoading(false);
       }
@@ -228,6 +237,12 @@ export default function ReviewsPage() {
           </div>
         </div>
       </main>
+      <MessageDialog
+        isOpen={messageDialog.isOpen}
+        title={messageDialog.title}
+        message={messageDialog.message}
+        onClose={() => setMessageDialog({ isOpen: false, title: "", message: "" })}
+      />
     </div>
   );
 }

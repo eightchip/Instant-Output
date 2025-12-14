@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { storage } from "@/lib/storage";
 import { Lesson } from "@/types/models";
+import MessageDialog from "@/components/MessageDialog";
 
 export default function LessonsPage() {
   const router = useRouter();
@@ -11,6 +12,11 @@ export default function LessonsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [showNewForm, setShowNewForm] = useState(false);
   const [newLessonTitle, setNewLessonTitle] = useState("");
+  const [messageDialog, setMessageDialog] = useState<{ isOpen: boolean; title: string; message: string }>({
+    isOpen: false,
+    title: "",
+    message: "",
+  });
 
   useEffect(() => {
     loadLessons();
@@ -30,7 +36,11 @@ export default function LessonsPage() {
 
   async function handleCreateLesson() {
     if (!newLessonTitle.trim()) {
-      alert("レッスン名を入力してください。");
+      setMessageDialog({
+        isOpen: true,
+        title: "入力エラー",
+        message: "レッスン名を入力してください。",
+      });
       return;
     }
 
@@ -45,7 +55,11 @@ export default function LessonsPage() {
       await loadLessons();
     } catch (error) {
       console.error("Failed to create lesson:", error);
-      alert("レッスンの作成に失敗しました。");
+      setMessageDialog({
+        isOpen: true,
+        title: "エラー",
+        message: "レッスンの作成に失敗しました。",
+      });
     }
   }
 
@@ -167,10 +181,18 @@ export default function LessonsPage() {
                           // レッスンを削除
                           await storage.deleteLesson(lesson.id);
                           await loadLessons();
-                          alert("レッスンを削除しました。");
+                          setMessageDialog({
+                            isOpen: true,
+                            title: "削除完了",
+                            message: "レッスンを削除しました。",
+                          });
                         } catch (error) {
                           console.error("Failed to delete lesson:", error);
-                          alert("レッスンの削除に失敗しました。");
+                          setMessageDialog({
+                            isOpen: true,
+                            title: "削除エラー",
+                            message: "レッスンの削除に失敗しました。",
+                          });
                         }
                       }}
                       className="bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-4 rounded-lg"
@@ -184,6 +206,12 @@ export default function LessonsPage() {
           </div>
         )}
       </main>
+      <MessageDialog
+        isOpen={messageDialog.isOpen}
+        title={messageDialog.title}
+        message={messageDialog.message}
+        onClose={() => setMessageDialog({ isOpen: false, title: "", message: "" })}
+      />
     </div>
   );
 }

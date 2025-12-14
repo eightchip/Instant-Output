@@ -14,6 +14,11 @@ export default function CoursesPage() {
   const [newCourseTitle, setNewCourseTitle] = useState("");
   const [newCourseDuration, setNewCourseDuration] = useState(30);
   const [newCourseDailyTarget, setNewCourseDailyTarget] = useState(5);
+  const [messageDialog, setMessageDialog] = useState<{ isOpen: boolean; title: string; message: string }>({
+    isOpen: false,
+    title: "",
+    message: "",
+  });
 
   useEffect(() => {
     loadData();
@@ -37,7 +42,11 @@ export default function CoursesPage() {
 
   async function handleCreateCourse() {
     if (!newCourseTitle.trim()) {
-      alert("コース名を入力してください。");
+      setMessageDialog({
+        isOpen: true,
+        title: "入力エラー",
+        message: "コース名を入力してください。",
+      });
       return;
     }
 
@@ -58,7 +67,11 @@ export default function CoursesPage() {
       await loadData();
     } catch (error) {
       console.error("Failed to create course:", error);
-      alert("コースの作成に失敗しました。");
+      setMessageDialog({
+        isOpen: true,
+        title: "エラー",
+        message: "コースの作成に失敗しました。",
+      });
     }
   }
 
@@ -222,10 +235,18 @@ export default function CoursesPage() {
                           await storage.init();
                           await storage.deleteCourse(course.id);
                           await loadData();
-                          alert("コースを削除しました。");
+                          setMessageDialog({
+                            isOpen: true,
+                            title: "削除完了",
+                            message: "コースを削除しました。",
+                          });
                         } catch (error) {
                           console.error("Failed to delete course:", error);
-                          alert("コースの削除に失敗しました。");
+                          setMessageDialog({
+                            isOpen: true,
+                            title: "削除エラー",
+                            message: "コースの削除に失敗しました。",
+                          });
                         }
                       }}
                       className="bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-4 rounded-lg"
@@ -239,6 +260,12 @@ export default function CoursesPage() {
           </div>
         )}
       </main>
+      <MessageDialog
+        isOpen={messageDialog.isOpen}
+        title={messageDialog.title}
+        message={messageDialog.message}
+        onClose={() => setMessageDialog({ isOpen: false, title: "", message: "" })}
+      />
     </div>
   );
 }

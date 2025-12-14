@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { storage } from "@/lib/storage";
 import { Lesson, Card } from "@/types/models";
+import MessageDialog from "@/components/MessageDialog";
 
 export default function LessonDetailPage() {
   const router = useRouter();
@@ -16,6 +17,11 @@ export default function LessonDetailPage() {
   const [isBatchMode, setIsBatchMode] = useState(false);
   const [allLessons, setAllLessons] = useState<Lesson[]>([]);
   const [showMoveDialog, setShowMoveDialog] = useState(false);
+  const [messageDialog, setMessageDialog] = useState<{ isOpen: boolean; title: string; message: string }>({
+    isOpen: false,
+    title: "",
+    message: "",
+  });
 
   useEffect(() => {
     if (lessonId) {
@@ -65,7 +71,11 @@ export default function LessonDetailPage() {
 
   async function handleBatchDelete() {
     if (selectedCards.size === 0) {
-      alert("削除するカードを選択してください。");
+      setMessageDialog({
+        isOpen: true,
+        title: "カードが選択されていません",
+        message: "削除するカードを選択してください。",
+      });
       return;
     }
 
@@ -89,21 +99,37 @@ export default function LessonDetailPage() {
       setSelectedCards(new Set());
       setIsBatchMode(false);
       await loadData();
-      alert(`${cardIds.length}枚のカードを削除しました。`);
+      setMessageDialog({
+        isOpen: true,
+        title: "削除完了",
+        message: `${cardIds.length}枚のカードを削除しました。`,
+      });
     } catch (error) {
       console.error("Failed to delete cards:", error);
-      alert("カードの削除に失敗しました。");
+      setMessageDialog({
+        isOpen: true,
+        title: "削除エラー",
+        message: "カードの削除に失敗しました。",
+      });
     }
   }
 
   async function handleBatchMove(targetLessonId: string) {
     if (selectedCards.size === 0) {
-      alert("移動するカードを選択してください。");
+      setMessageDialog({
+        isOpen: true,
+        title: "カードが選択されていません",
+        message: "移動するカードを選択してください。",
+      });
       return;
     }
 
     if (targetLessonId === lessonId) {
-      alert("同じレッスンに移動することはできません。");
+      setMessageDialog({
+        isOpen: true,
+        title: "移動エラー",
+        message: "同じレッスンに移動することはできません。",
+      });
       return;
     }
 
@@ -115,10 +141,18 @@ export default function LessonDetailPage() {
       setIsBatchMode(false);
       setShowMoveDialog(false);
       await loadData();
-      alert(`${cardIds.length}枚のカードを移動しました。`);
+      setMessageDialog({
+        isOpen: true,
+        title: "移動完了",
+        message: `${cardIds.length}枚のカードを移動しました。`,
+      });
     } catch (error) {
       console.error("Failed to move cards:", error);
-      alert("カードの移動に失敗しました。");
+      setMessageDialog({
+        isOpen: true,
+        title: "移動エラー",
+        message: "カードの移動に失敗しました。",
+      });
     }
   }
 
@@ -163,11 +197,21 @@ export default function LessonDetailPage() {
                   }
                   // レッスンを削除
                   await storage.deleteLesson(lessonId);
-                  alert("レッスンを削除しました。");
-                  router.push("/lessons");
+                  setMessageDialog({
+                    isOpen: true,
+                    title: "削除完了",
+                    message: "レッスンを削除しました。",
+                  });
+                  setTimeout(() => {
+                    router.push("/lessons");
+                  }, 1000);
                 } catch (error) {
                   console.error("Failed to delete lesson:", error);
-                  alert("レッスンの削除に失敗しました。");
+                  setMessageDialog({
+                    isOpen: true,
+                    title: "削除エラー",
+                    message: "レッスンの削除に失敗しました。",
+                  });
                 }
               }}
               className="bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-4 rounded-lg"
@@ -360,7 +404,11 @@ export default function LessonDetailPage() {
                           await loadData();
                         } catch (error) {
                           console.error("Failed to toggle favorite:", error);
-                          alert("お気に入りの更新に失敗しました。");
+                          setMessageDialog({
+                            isOpen: true,
+                            title: "更新エラー",
+                            message: "お気に入りの更新に失敗しました。",
+                          });
                         }
                       }}
                       className={`text-2xl ${card.isFavorite ? "text-yellow-500" : "text-gray-300"} hover:text-yellow-500 transition-colors`}
@@ -391,7 +439,11 @@ export default function LessonDetailPage() {
                             await loadData();
                           } catch (error) {
                             console.error("Failed to delete card:", error);
-                            alert("カードの削除に失敗しました。");
+                            setMessageDialog({
+                              isOpen: true,
+                              title: "削除エラー",
+                              message: "カードの削除に失敗しました。",
+                            });
                           }
                         }
                       }}
@@ -406,6 +458,12 @@ export default function LessonDetailPage() {
           </div>
         )}
       </main>
+      <MessageDialog
+        isOpen={messageDialog.isOpen}
+        title={messageDialog.title}
+        message={messageDialog.message}
+        onClose={() => setMessageDialog({ isOpen: false, title: "", message: "" })}
+      />
     </div>
   );
 }
