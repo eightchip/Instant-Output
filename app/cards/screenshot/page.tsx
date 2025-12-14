@@ -42,14 +42,7 @@ export default function ScreenshotCardPage() {
     title: "",
     message: "",
   });
-  const [isCropMode, setIsCropMode] = useState(false);
-  const [cropArea, setCropArea] = useState<{ x: number; y: number; width: number; height: number } | null>(null);
-  const [isDragging, setIsDragging] = useState(false);
-  const [dragStart, setDragStart] = useState<{ x: number; y: number } | null>(null);
   const [rotation, setRotation] = useState<number>(0); // 回転角度（0, 90, 180, 270）
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const imageRef = useRef<HTMLImageElement | null>(null);
-  const displaySizeRef = useRef<{ width: number; height: number } | null>(null);
   const progressUpdateIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const ocrAbortControllerRef = useRef<AbortController | null>(null);
 
@@ -682,101 +675,12 @@ export default function ScreenshotCardPage() {
     setImageFile(null);
     setImagePreview(null);
     setExtractedText("");
-    setIsCropMode(false);
-    setCropArea(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
   }
 
-  function handleCropImage() {
-    if (!imageFile || !imagePreview || !cropArea || !displaySizeRef.current || !canvasRef.current) return;
-
-    const displaySize = displaySizeRef.current;
-    if (!displaySize) return;
-
-    const img = new Image();
-    img.onload = () => {
-      const canvas = document.createElement("canvas");
-      const ctx = canvas.getContext("2d");
-      if (!ctx) return;
-
-      // 表示サイズと実際の画像サイズの比率を計算
-      const scaleX = img.width / displaySize.width;
-      const scaleY = img.height / displaySize.height;
-
-      // キャンバスの表示幅と実際の画像幅の差を計算（右端が切れている場合）
-      const canvasDisplayWidth = canvasRef.current?.width || displaySize.width;
-      const actualImageDisplayWidth = (img.width * displaySize.height) / img.height;
-      const rightCutoff = Math.max(0, actualImageDisplayWidth - canvasDisplayWidth);
-      
-      // トリミング領域を実際の画像サイズに変換
-      // 右端が切れている場合、選択範囲を左にシフト
-      const adjustedCropX = cropArea.x + (rightCutoff / 2); // 中央寄せを考慮
-      const cropX = Math.max(0, Math.round(adjustedCropX * scaleX));
-      const cropY = Math.max(0, Math.round(cropArea.y * scaleY));
-      
-      // トリミング幅を計算（右端が切れている場合を考慮）
-      const maxCropWidth = Math.min(
-        img.width - cropX,
-        Math.round((cropArea.width + rightCutoff) * scaleX)
-      );
-      const cropWidth = Math.min(maxCropWidth, Math.round(cropArea.width * scaleX));
-      const cropHeight = Math.min(img.height - cropY, Math.round(cropArea.height * scaleY));
-
-      if (cropWidth <= 0 || cropHeight <= 0) {
-        setMessageDialog({
-          isOpen: true,
-          title: "トリミングエラー",
-          message: "有効なトリミング領域を選択してください。",
-        });
-        return;
-      }
-
-      canvas.width = cropWidth;
-      canvas.height = cropHeight;
-
-      ctx.drawImage(
-        img,
-        cropX, cropY, cropWidth, cropHeight,
-        0, 0, cropWidth, cropHeight
-      );
-
-      canvas.toBlob((blob) => {
-        if (blob) {
-          const croppedFile = new File([blob], imageFile.name, {
-            type: imageFile.type,
-            lastModified: Date.now(),
-          });
-          setImageFile(croppedFile);
-          
-          const reader = new FileReader();
-          reader.onload = (e) => {
-            setImagePreview(e.target?.result as string);
-            setRotation(0); // トリミング後は回転をリセット
-          };
-          reader.readAsDataURL(croppedFile);
-          
-          setIsCropMode(false);
-          setCropArea(null);
-          displaySizeRef.current = null;
-        }
-      }, imageFile.type, 0.95);
-    };
-    img.src = imagePreview;
-  }
-
-  function handleStartCrop() {
-    setIsCropMode(true);
-    setCropArea(null);
-  }
-
-  function handleCancelCrop() {
-    setIsCropMode(false);
-    setCropArea(null);
-  }
-
-  function handleRotateImage() {
+  function handleRotateImage(direction: 'left' | 'right') {
     if (!imagePreview || !imageFile) return;
     
     const img = new Image();
@@ -785,8 +689,9 @@ export default function ScreenshotCardPage() {
       const ctx = canvas.getContext("2d");
       if (!ctx) return;
 
-      // 回転後のサイズを計算
-      const newRotation = (rotation + 90) % 360;
+      // 回転角度を計算（右90度または左90度）
+      const rotationDelta = direction === 'right' ? 90 : -90;
+      const newRotation = (rotation + rotationDelta + 360) % 360;
       let newWidth = img.width;
       let newHeight = img.height;
       
@@ -816,10 +721,6 @@ export default function ScreenshotCardPage() {
           reader.onload = (e) => {
             setImagePreview(e.target?.result as string);
             setRotation(newRotation);
-            // トリミングモードの場合は再描画
-            if (isCropMode) {
-              setCropArea(null);
-            }
           };
           reader.readAsDataURL(rotatedFile);
         }
@@ -827,125 +728,6 @@ export default function ScreenshotCardPage() {
     };
     img.src = imagePreview;
   }
-
-  function getCanvasCoordinates(e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) {
-    if (!canvasRef.current) return { x: 0, y: 0 };
-    const rect = canvasRef.current.getBoundingClientRect();
-    const clientX = 'touches' in e ? e.touches[0]?.clientX : e.clientX;
-    const clientY = 'touches' in e ? e.touches[0]?.clientY : e.clientY;
-    return {
-      x: (clientX || 0) - rect.left,
-      y: (clientY || 0) - rect.top,
-    };
-  }
-
-  function handleCanvasMouseDown(e: React.MouseEvent<HTMLCanvasElement>) {
-    if (!isCropMode || !canvasRef.current) return;
-    e.preventDefault();
-    const { x, y } = getCanvasCoordinates(e);
-    setIsDragging(true);
-    setDragStart({ x, y });
-    setCropArea({ x, y, width: 0, height: 0 });
-  }
-
-  function handleCanvasTouchStart(e: React.TouchEvent<HTMLCanvasElement>) {
-    if (!isCropMode || !canvasRef.current) return;
-    e.preventDefault();
-    const { x, y } = getCanvasCoordinates(e);
-    setIsDragging(true);
-    setDragStart({ x, y });
-    setCropArea({ x, y, width: 0, height: 0 });
-  }
-
-  function handleCanvasMouseMove(e: React.MouseEvent<HTMLCanvasElement>) {
-    if (!isCropMode || !isDragging || !dragStart || !canvasRef.current) return;
-    e.preventDefault();
-    const { x, y } = getCanvasCoordinates(e);
-    const width = x - dragStart.x;
-    const height = y - dragStart.y;
-    
-    setCropArea({
-      x: Math.min(dragStart.x, x),
-      y: Math.min(dragStart.y, y),
-      width: Math.abs(width),
-      height: Math.abs(height),
-    });
-  }
-
-  function handleCanvasTouchMove(e: React.TouchEvent<HTMLCanvasElement>) {
-    if (!isCropMode || !isDragging || !dragStart || !canvasRef.current) return;
-    e.preventDefault();
-    const { x, y } = getCanvasCoordinates(e);
-    const width = x - dragStart.x;
-    const height = y - dragStart.y;
-    
-    setCropArea({
-      x: Math.min(dragStart.x, x),
-      y: Math.min(dragStart.y, y),
-      width: Math.abs(width),
-      height: Math.abs(height),
-    });
-  }
-
-  function handleCanvasMouseUp() {
-    setIsDragging(false);
-  }
-
-  function handleCanvasTouchEnd() {
-    setIsDragging(false);
-  }
-
-  useEffect(() => {
-    if (imagePreview && isCropMode && canvasRef.current) {
-      const img = new Image();
-      img.onload = () => {
-        const canvas = canvasRef.current;
-        if (!canvas) return;
-        
-        const ctx = canvas.getContext("2d");
-        if (!ctx) return;
-        
-        imageRef.current = img;
-        
-        // 回転を考慮した画像サイズを計算
-        let imgWidth = img.width;
-        let imgHeight = img.height;
-        if (rotation === 90 || rotation === 270) {
-          imgWidth = img.height;
-          imgHeight = img.width;
-        }
-        
-        // キャンバスのサイズを画像の表示サイズに合わせる
-        const maxWidth = 800;
-        const maxHeight = 600;
-        let displayWidth = imgWidth;
-        let displayHeight = imgHeight;
-        
-        if (displayWidth > maxWidth) {
-          displayHeight = (displayHeight * maxWidth) / displayWidth;
-          displayWidth = maxWidth;
-        }
-        if (displayHeight > maxHeight) {
-          displayWidth = (displayWidth * maxHeight) / displayHeight;
-          displayHeight = maxHeight;
-        }
-        
-        canvas.width = displayWidth;
-        canvas.height = displayHeight;
-        
-        // 表示サイズを保存（トリミング時に使用）
-        displaySizeRef.current = { width: imgWidth, height: imgHeight };
-        
-        // 回転を適用して描画
-        ctx.save();
-        ctx.translate(displayWidth / 2, displayHeight / 2);
-        ctx.rotate((rotation * Math.PI) / 180);
-        ctx.drawImage(img, -displayWidth / 2, -displayHeight / 2, displayWidth, displayHeight);
-        ctx.restore();
-      };
-      img.src = imagePreview;
-    }
-  }, [imagePreview, isCropMode, rotation]);
 
   function handleCancelExtraction() {
     if (progressUpdateIntervalRef.current) {
@@ -1123,164 +905,54 @@ export default function ScreenshotCardPage() {
               </div>
             ) : (
               <div className="space-y-3">
-                {!isCropMode ? (
-                  <>
-                    <div className="relative">
-                      <img
-                        src={imagePreview}
-                        alt="Preview"
-                        className="w-full rounded-lg border border-gray-300"
-                        style={{
-                          transform: `rotate(${rotation}deg)`,
-                          transition: 'transform 0.3s ease',
-                        }}
-                      />
-                      <button
-                        onClick={handleRemoveImage}
-                        className="absolute top-2 right-2 bg-red-600 hover:bg-red-700 text-white rounded-full w-8 h-8 flex items-center justify-center"
-                      >
-                        ×
-                      </button>
-                    </div>
-                    <div className="space-y-2">
-                      <button
-                        onClick={handleRotateImage}
-                        className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg text-sm"
-                      >
-                        🔄 画像を回転（{rotation}°）
-                      </button>
-                      <button
-                        onClick={handleExtractText}
-                        disabled={isExtracting}
-                        className="w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-bold py-3 px-4 rounded-lg"
-                      >
-                        {isExtracting ? "テキスト抽出中..." : "テキストを抽出（OCR）"}
-                      </button>
-                      {isExtracting && (
-                        <button
-                          onClick={handleCancelExtraction}
-                          className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg"
-                        >
-                          キャンセル
-                        </button>
-                      )}
-                      <button
-                        onClick={handleStartCrop}
-                        className="w-full bg-gray-500 hover:bg-gray-600 text-white font-semibold py-2 px-4 rounded-lg text-sm"
-                      >
-                        ✂️ 画像をトリミング（オプション）
-                      </button>
-                      <p className="text-xs text-gray-500 text-center">
-                        ※ トリミングは精度に影響する可能性があります。通常はトリミングなしで抽出することを推奨します。
-                      </p>
-                    </div>
-                  </>
-                ) : (
-                  <div className="space-y-3">
-                    <div className="relative border-2 border-blue-400 rounded-lg overflow-hidden bg-gray-100">
-                      <canvas
-                        ref={canvasRef}
-                        onMouseDown={handleCanvasMouseDown}
-                        onMouseMove={handleCanvasMouseMove}
-                        onMouseUp={handleCanvasMouseUp}
-                        onMouseLeave={handleCanvasMouseUp}
-                        onTouchStart={handleCanvasTouchStart}
-                        onTouchMove={handleCanvasTouchMove}
-                        onTouchEnd={handleCanvasTouchEnd}
-                        className="cursor-crosshair w-full touch-none"
-                        style={{ maxHeight: "600px", touchAction: "none" }}
-                      />
-                      {/* 選択領域外を暗くするオーバーレイ */}
-                      {cropArea && canvasRef.current && (
-                        <>
-                          {/* 上部 */}
-                          {cropArea.y > 0 && (
-                            <div
-                              className="absolute bg-black bg-opacity-50 pointer-events-none"
-                              style={{
-                                left: 0,
-                                top: 0,
-                                width: `${canvasRef.current.width}px`,
-                                height: `${cropArea.y}px`,
-                              }}
-                            />
-                          )}
-                          {/* 左側 */}
-                          {cropArea.x > 0 && (
-                            <div
-                              className="absolute bg-black bg-opacity-50 pointer-events-none"
-                              style={{
-                                left: 0,
-                                top: `${cropArea.y}px`,
-                                width: `${cropArea.x}px`,
-                                height: `${cropArea.height}px`,
-                              }}
-                            />
-                          )}
-                          {/* 右側 */}
-                          {cropArea.x + cropArea.width < canvasRef.current.width && (
-                            <div
-                              className="absolute bg-black bg-opacity-50 pointer-events-none"
-                              style={{
-                                left: `${cropArea.x + cropArea.width}px`,
-                                top: `${cropArea.y}px`,
-                                width: `${canvasRef.current.width - (cropArea.x + cropArea.width)}px`,
-                                height: `${cropArea.height}px`,
-                              }}
-                            />
-                          )}
-                          {/* 下部 */}
-                          {cropArea.y + cropArea.height < canvasRef.current.height && (
-                            <div
-                              className="absolute bg-black bg-opacity-50 pointer-events-none"
-                              style={{
-                                left: 0,
-                                top: `${cropArea.y + cropArea.height}px`,
-                                width: `${canvasRef.current.width}px`,
-                                height: `${canvasRef.current.height - (cropArea.y + cropArea.height)}px`,
-                              }}
-                            />
-                          )}
-                          {/* 選択領域の枠 */}
-                          <div
-                            className="absolute border-2 border-blue-500 pointer-events-none"
-                            style={{
-                              left: `${cropArea.x}px`,
-                              top: `${cropArea.y}px`,
-                              width: `${cropArea.width}px`,
-                              height: `${cropArea.height}px`,
-                            }}
-                          />
-                        </>
-                      )}
-                    </div>
-                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                      <p className="text-sm text-blue-800 mb-2">
-                        📐 ドラッグ（またはタッチ）してトリミング領域を選択してください
-                      </p>
-                      {cropArea && (
-                        <p className="text-xs text-blue-600">
-                          選択範囲: {Math.round(cropArea.width)} × {Math.round(cropArea.height)} px
-                        </p>
-                      )}
-                    </div>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={handleCropImage}
-                        disabled={!cropArea || cropArea.width < 10 || cropArea.height < 10}
-                        className="flex-1 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-bold py-2 px-4 rounded-lg"
-                      >
-                        ✓ トリミングを適用
-                      </button>
-                      <button
-                        onClick={handleCancelCrop}
-                        className="bg-gray-500 hover:bg-gray-600 text-white font-semibold py-2 px-4 rounded-lg"
-                      >
-                        キャンセル
-                      </button>
-                    </div>
+                <div className="relative">
+                  <img
+                    src={imagePreview}
+                    alt="Preview"
+                    className="w-full rounded-lg border border-gray-300"
+                    style={{
+                      transform: `rotate(${rotation}deg)`,
+                      transition: 'transform 0.3s ease',
+                    }}
+                  />
+                  <button
+                    onClick={handleRemoveImage}
+                    className="absolute top-2 right-2 bg-red-600 hover:bg-red-700 text-white rounded-full w-8 h-8 flex items-center justify-center"
+                  >
+                    ×
+                  </button>
+                </div>
+                <div className="space-y-2">
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => handleRotateImage('left')}
+                      className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg text-sm"
+                    >
+                      ↺ 左に90°回転
+                    </button>
+                    <button
+                      onClick={() => handleRotateImage('right')}
+                      className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg text-sm"
+                    >
+                      ↻ 右に90°回転
+                    </button>
                   </div>
-                )}
+                  <button
+                    onClick={handleExtractText}
+                    disabled={isExtracting}
+                    className="w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-bold py-3 px-4 rounded-lg"
+                  >
+                    {isExtracting ? "テキスト抽出中..." : "テキストを抽出（OCR）"}
+                  </button>
+                  {isExtracting && (
+                    <button
+                      onClick={handleCancelExtraction}
+                      className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg"
+                    >
+                      キャンセル
+                    </button>
+                  )}
+                </div>
 
                 {/* OCR進捗表示 */}
                 {isExtracting && ocrProgress && (
