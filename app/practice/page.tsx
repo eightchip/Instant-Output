@@ -9,7 +9,7 @@ import { Card, ReviewResult, StudySession } from "@/types/models";
 import { tts, TTSSpeed } from "@/lib/tts";
 import { PracticeMode } from "@/types/modes";
 import { autoGrade, getGradingDetails, GradingDetails } from "@/lib/auto-grading";
-import { splitIntoWords } from "@/lib/vocabulary";
+import { splitIntoWords, getImportantWords } from "@/lib/vocabulary";
 
 function PracticeContent() {
   const router = useRouter();
