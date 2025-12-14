@@ -155,9 +155,9 @@ export default function VoiceInputModal({
             </button>
           </div>
 
-          <div className="bg-gray-50 rounded-lg p-4 min-h-[120px]">
+          <div className="bg-gray-50 rounded-lg p-4 min-h-[120px] max-h-[300px] overflow-y-auto">
             {displayText ? (
-              <p className="text-base text-gray-800 whitespace-pre-wrap">
+              <p className="text-base text-gray-800 whitespace-pre-wrap break-words overflow-wrap-anywhere word-break-break-word">
                 {displayText}
                 {recognizedText && !finalText && (
                   <span className="text-gray-400">|</span>

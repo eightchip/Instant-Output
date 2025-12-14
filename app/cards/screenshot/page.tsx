@@ -7,15 +7,7 @@ import { ocrService, OCRProgress } from "@/lib/ocr";
 import { Lesson, Card } from "@/types/models";
 import { processOcrText } from "@/lib/text-processing";
 import MessageDialog from "@/components/MessageDialog";
-import VoiceInputModal from "@/components/VoiceInputModal";
-import VoiceClipboard from "@/components/VoiceClipboard";
-import {
-  getVoiceClipboardItems,
-  saveVoiceClipboardItem,
-  deleteVoiceClipboardItem,
-  clearVoiceClipboard,
-  VoiceClipboardItem,
-} from "@/lib/voice-clipboard";
+import VoiceInputButton from "@/components/VoiceInputButton";
 
 export default function ScreenshotCardPage() {
   const router = useRouter();
@@ -47,11 +39,6 @@ export default function ScreenshotCardPage() {
     title: "",
     message: "",
   });
-  const [showVoiceInputModal, setShowVoiceInputModal] = useState(false);
-  const [voiceInputLanguage, setVoiceInputLanguage] = useState<"jp" | "en">("jp");
-  const [voiceInputTarget, setVoiceInputTarget] = useState<"promptJp" | "targetEn" | null>(null);
-  const [showVoiceClipboard, setShowVoiceClipboard] = useState(false);
-  const [voiceClipboardItems, setVoiceClipboardItems] = useState<VoiceClipboardItem[]>([]);
   const [isCropMode, setIsCropMode] = useState(false);
   const [cropArea, setCropArea] = useState<{ x: number; y: number; width: number; height: number } | null>(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -64,44 +51,7 @@ export default function ScreenshotCardPage() {
 
   useEffect(() => {
     loadLessons();
-    loadVoiceClipboard();
   }, []);
-
-  function loadVoiceClipboard() {
-    setVoiceClipboardItems(getVoiceClipboardItems());
-  }
-
-  function handleVoiceInputInsert(text: string) {
-    if (voiceInputTarget === "promptJp") {
-      setPromptJp((prev) => prev + (prev ? " " : "") + text);
-    } else if (voiceInputTarget === "targetEn") {
-      setTargetEn((prev) => prev + (prev ? " " : "") + text);
-    }
-    setVoiceInputTarget(null);
-  }
-
-  function handleVoiceInputSave(text: string, language: "jp" | "en") {
-    saveVoiceClipboardItem(text, language);
-    loadVoiceClipboard();
-  }
-
-  function handleVoiceClipboardInsert(text: string) {
-    if (voiceInputTarget === "promptJp") {
-      setPromptJp((prev) => prev + (prev ? " " : "") + text);
-    } else if (voiceInputTarget === "targetEn") {
-      setTargetEn((prev) => prev + (prev ? " " : "") + text);
-    }
-  }
-
-  function handleVoiceClipboardDelete(id: string) {
-    deleteVoiceClipboardItem(id);
-    loadVoiceClipboard();
-  }
-
-  function handleVoiceClipboardClear() {
-    clearVoiceClipboard();
-    loadVoiceClipboard();
-  }
 
   async function loadLessons() {
     try {
@@ -1209,29 +1159,10 @@ export default function ScreenshotCardPage() {
               <label className="block text-sm font-semibold">
                 日本語（任意）
               </label>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => {
-                    setVoiceInputLanguage("jp");
-                    setVoiceInputTarget("promptJp");
-                    setShowVoiceInputModal(true);
-                  }}
-                  className="text-xs bg-blue-100 hover:bg-blue-200 text-blue-700 font-semibold py-1 px-3 rounded-lg flex items-center gap-1"
-                  title="音声入力"
-                >
-                  🎤 音声
-                </button>
-                <button
-                  onClick={() => {
-                    setVoiceInputTarget("promptJp");
-                    setShowVoiceClipboard(true);
-                  }}
-                  className="text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold py-1 px-3 rounded-lg"
-                  title="クリップボード"
-                >
-                  📋
-                </button>
-              </div>
+              <VoiceInputButton
+                language="jp"
+                onInsert={(text) => setPromptJp((prev) => prev + (prev ? " " : "") + text)}
+              />
             </div>
             <textarea
               value={promptJp}
@@ -1408,29 +1339,10 @@ export default function ScreenshotCardPage() {
                 <label className="block text-sm font-semibold">
                   英語（編集可能）
                 </label>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => {
-                      setVoiceInputLanguage("en");
-                      setVoiceInputTarget("targetEn");
-                      setShowVoiceInputModal(true);
-                    }}
-                    className="text-xs bg-blue-100 hover:bg-blue-200 text-blue-700 font-semibold py-1 px-3 rounded-lg flex items-center gap-1"
-                    title="音声入力"
-                  >
-                    🎤 音声
-                  </button>
-                  <button
-                    onClick={() => {
-                      setVoiceInputTarget("targetEn");
-                      setShowVoiceClipboard(true);
-                    }}
-                    className="text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold py-1 px-3 rounded-lg"
-                    title="クリップボード"
-                  >
-                    📋
-                  </button>
-                </div>
+                <VoiceInputButton
+                  language="en"
+                  onInsert={(text) => setTargetEn((prev) => prev + (prev ? " " : "") + text)}
+                />
               </div>
               <textarea
                 value={targetEn}
@@ -1470,27 +1382,6 @@ export default function ScreenshotCardPage() {
         title={messageDialog.title}
         message={messageDialog.message}
         onClose={() => setMessageDialog({ isOpen: false, title: "", message: "" })}
-      />
-      <VoiceInputModal
-        isOpen={showVoiceInputModal}
-        language={voiceInputLanguage}
-        onClose={() => {
-          setShowVoiceInputModal(false);
-          setVoiceInputTarget(null);
-        }}
-        onInsert={handleVoiceInputInsert}
-        onSaveToClipboard={handleVoiceInputSave}
-      />
-      <VoiceClipboard
-        isOpen={showVoiceClipboard}
-        onClose={() => {
-          setShowVoiceClipboard(false);
-          setVoiceInputTarget(null);
-        }}
-        onInsert={handleVoiceClipboardInsert}
-        items={voiceClipboardItems}
-        onDelete={handleVoiceClipboardDelete}
-        onClear={handleVoiceClipboardClear}
       />
     </div>
   );

@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { storage } from "@/lib/storage";
 import { Lesson, Card, SourceType } from "@/types/models";
 import MessageDialog from "@/components/MessageDialog";
+import VoiceInputButton from "@/components/VoiceInputButton";
 
 type InputMode = "pair" | "english_only";
 
@@ -291,18 +292,10 @@ function NewCardContent() {
                 <label className="block text-sm font-semibold">
                   日本語
                 </label>
-                <button
-                  type="button"
-                  onClick={() => handleVoiceInput("jp")}
-                  className={`flex items-center gap-2 px-3 py-1 rounded-lg text-sm font-semibold ${
-                    isRecordingJp
-                      ? "bg-red-500 text-white hover:bg-red-600"
-                      : "bg-gray-200 text-gray-700 hover:bg-gray-300"
-                  }`}
-                >
-                  <span>{isRecordingJp ? "⏹️" : "🎤"}</span>
-                  <span>{isRecordingJp ? "停止" : "音声入力"}</span>
-                </button>
+                <VoiceInputButton
+                  language="jp"
+                  onInsert={(text) => setPromptJp((prev) => prev + (prev ? " " : "") + text)}
+                />
               </div>
               <textarea
                 ref={textareaJpRef}
@@ -321,18 +314,10 @@ function NewCardContent() {
               <label className="block text-sm font-semibold">
                 英語 {inputMode === "english_only" && "(日本語は後で追加できます)"}
               </label>
-              <button
-                type="button"
-                onClick={() => handleVoiceInput("en")}
-                className={`flex items-center gap-2 px-3 py-1 rounded-lg text-sm font-semibold ${
-                  isRecordingEn
-                    ? "bg-red-500 text-white hover:bg-red-600"
-                    : "bg-gray-200 text-gray-700 hover:bg-gray-300"
-                }`}
-              >
-                <span>{isRecordingEn ? "⏹️" : "🎤"}</span>
-                <span>{isRecordingEn ? "停止" : "音声入力"}</span>
-              </button>
+              <VoiceInputButton
+                language="en"
+                onInsert={(text) => setTargetEn((prev) => prev + (prev ? " " : "") + text)}
+              />
             </div>
             <textarea
               ref={textareaEnRef}

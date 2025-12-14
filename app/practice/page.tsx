@@ -12,6 +12,7 @@ import { autoGrade, getGradingDetails, GradingDetails } from "@/lib/auto-grading
 import { splitIntoWords, getImportantWords } from "@/lib/vocabulary";
 import ErrorDialog from "@/components/ErrorDialog";
 import MessageDialog from "@/components/MessageDialog";
+import VoiceInputButton from "@/components/VoiceInputButton";
 
 function PracticeContent() {
   const router = useRouter();
@@ -576,17 +577,11 @@ function PracticeContent() {
                     }
                   }}
                 />
-                <button
-                  onClick={handleVoiceInput}
-                  disabled={isRecording}
-                  className={`px-4 py-3 rounded-lg font-semibold ${
-                    isRecording
-                      ? "bg-gray-400"
-                      : "bg-green-600 hover:bg-green-700"
-                  } text-white`}
-                >
-                  {isRecording ? "録音中..." : "🎤"}
-                </button>
+                <VoiceInputButton
+                  language="en"
+                  onInsert={(text) => setUserAnswer((prev) => prev + (prev ? " " : "") + text)}
+                  size="md"
+                />
               </div>
               <button
                 onClick={handleShowAnswer}

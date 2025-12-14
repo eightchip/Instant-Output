@@ -6,6 +6,7 @@ import { storage } from "@/lib/storage";
 import { Card } from "@/types/models";
 import { tts, TTSSpeed } from "@/lib/tts";
 import MessageDialog from "@/components/MessageDialog";
+import VoiceInputButton from "@/components/VoiceInputButton";
 
 export default function EditCardPage() {
   const router = useRouter();
@@ -489,28 +490,11 @@ export default function EditCardPage() {
                 className="flex-1 border border-gray-300 rounded-lg px-4 py-3 min-h-[100px] resize-none overflow-hidden"
                 style={{ height: "auto" }}
               />
-              <div className="flex flex-col gap-2">
-                <button
-                  onClick={() => handleVoiceInput("jp")}
-                  className={`px-4 py-2 rounded-lg font-semibold text-sm ${
-                    isRecordingJp
-                      ? "bg-red-600 hover:bg-red-700"
-                      : "bg-green-600 hover:bg-green-700"
-                  } text-white`}
-                  title={isRecordingJp ? "音声入力を停止" : "音声入力（日本語）"}
-                >
-                  {isRecordingJp ? "⏹" : "🎤"}
-                </button>
-                {isRecordingJp && (
-                  <button
-                    onClick={() => stopVoiceInput("jp")}
-                    className="px-4 py-2 rounded-lg font-semibold text-sm bg-gray-600 hover:bg-gray-700 text-white"
-                    title="停止"
-                  >
-                    停止
-                  </button>
-                )}
-              </div>
+              <VoiceInputButton
+                language="jp"
+                onInsert={(text) => setPromptJp((prev) => prev + (prev ? " " : "") + text)}
+                size="md"
+              />
             </div>
           </div>
 
@@ -542,26 +526,11 @@ export default function EditCardPage() {
                 style={{ height: "auto" }}
               />
               <div className="flex flex-col gap-2">
-                <button
-                  onClick={() => handleVoiceInput("en")}
-                  className={`px-4 py-2 rounded-lg font-semibold text-sm ${
-                    isRecordingEn
-                      ? "bg-red-600 hover:bg-red-700"
-                      : "bg-green-600 hover:bg-green-700"
-                  } text-white`}
-                  title={isRecordingEn ? "Stop recording" : "Voice input (English)"}
-                >
-                  {isRecordingEn ? "⏹" : "🎤"}
-                </button>
-                {isRecordingEn && (
-                  <button
-                    onClick={() => stopVoiceInput("en")}
-                    className="px-4 py-2 rounded-lg font-semibold text-sm bg-gray-600 hover:bg-gray-700 text-white"
-                    title="Stop"
-                  >
-                    停止
-                  </button>
-                )}
+                <VoiceInputButton
+                  language="en"
+                  onInsert={(text) => setTargetEn((prev) => prev + (prev ? " " : "") + text)}
+                  size="md"
+                />
                 {/* TTSボタン */}
                 {tts.isAvailable() && targetEn.trim() && (
                   <>
