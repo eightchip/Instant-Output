@@ -46,6 +46,7 @@ export default function ScreenshotCardPage() {
   const [cropArea, setCropArea] = useState<{ x: number; y: number; width: number; height: number } | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState<{ x: number; y: number } | null>(null);
+  const [rotation, setRotation] = useState<number>(0); // 回転角度（0, 90, 180, 270）
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const imageRef = useRef<HTMLImageElement | null>(null);
   const displaySizeRef = useRef<{ width: number; height: number } | null>(null);
@@ -689,7 +690,7 @@ export default function ScreenshotCardPage() {
   }
 
   function handleCropImage() {
-    if (!imageFile || !imagePreview || !cropArea || !displaySizeRef.current) return;
+    if (!imageFile || !imagePreview || !cropArea || !displaySizeRef.current || !canvasRef.current) return;
 
     const displaySize = displaySizeRef.current;
     if (!displaySize) return;
@@ -704,10 +705,23 @@ export default function ScreenshotCardPage() {
       const scaleX = img.width / displaySize.width;
       const scaleY = img.height / displaySize.height;
 
+      // キャンバスの表示幅と実際の画像幅の差を計算（右端が切れている場合）
+      const canvasDisplayWidth = canvasRef.current?.width || displaySize.width;
+      const actualImageDisplayWidth = (img.width * displaySize.height) / img.height;
+      const rightCutoff = Math.max(0, actualImageDisplayWidth - canvasDisplayWidth);
+      
       // トリミング領域を実際の画像サイズに変換
-      const cropX = Math.max(0, Math.round(cropArea.x * scaleX));
+      // 右端が切れている場合、選択範囲を左にシフト
+      const adjustedCropX = cropArea.x + (rightCutoff / 2); // 中央寄せを考慮
+      const cropX = Math.max(0, Math.round(adjustedCropX * scaleX));
       const cropY = Math.max(0, Math.round(cropArea.y * scaleY));
-      const cropWidth = Math.min(img.width - cropX, Math.round(cropArea.width * scaleX));
+      
+      // トリミング幅を計算（右端が切れている場合を考慮）
+      const maxCropWidth = Math.min(
+        img.width - cropX,
+        Math.round((cropArea.width + rightCutoff) * scaleX)
+      );
+      const cropWidth = Math.min(maxCropWidth, Math.round(cropArea.width * scaleX));
       const cropHeight = Math.min(img.height - cropY, Math.round(cropArea.height * scaleY));
 
       if (cropWidth <= 0 || cropHeight <= 0) {
@@ -739,6 +753,7 @@ export default function ScreenshotCardPage() {
           const reader = new FileReader();
           reader.onload = (e) => {
             setImagePreview(e.target?.result as string);
+            setRotation(0); // トリミング後は回転をリセット
           };
           reader.readAsDataURL(croppedFile);
           
@@ -759,6 +774,58 @@ export default function ScreenshotCardPage() {
   function handleCancelCrop() {
     setIsCropMode(false);
     setCropArea(null);
+  }
+
+  function handleRotateImage() {
+    if (!imagePreview || !imageFile) return;
+    
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return;
+
+      // 回転後のサイズを計算
+      const newRotation = (rotation + 90) % 360;
+      let newWidth = img.width;
+      let newHeight = img.height;
+      
+      if (newRotation === 90 || newRotation === 270) {
+        // 90度または270度回転時は幅と高さを入れ替え
+        newWidth = img.height;
+        newHeight = img.width;
+      }
+      
+      canvas.width = newWidth;
+      canvas.height = newHeight;
+      
+      // 回転の中心を設定
+      ctx.translate(newWidth / 2, newHeight / 2);
+      ctx.rotate((newRotation * Math.PI) / 180);
+      ctx.drawImage(img, -img.width / 2, -img.height / 2);
+      
+      canvas.toBlob((blob) => {
+        if (blob) {
+          const rotatedFile = new File([blob], imageFile.name, {
+            type: imageFile.type,
+            lastModified: Date.now(),
+          });
+          setImageFile(rotatedFile);
+          
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            setImagePreview(e.target?.result as string);
+            setRotation(newRotation);
+            // トリミングモードの場合は再描画
+            if (isCropMode) {
+              setCropArea(null);
+            }
+          };
+          reader.readAsDataURL(rotatedFile);
+        }
+      }, imageFile.type, 0.95);
+    };
+    img.src = imagePreview;
   }
 
   function getCanvasCoordinates(e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) {
@@ -840,11 +907,19 @@ export default function ScreenshotCardPage() {
         
         imageRef.current = img;
         
+        // 回転を考慮した画像サイズを計算
+        let imgWidth = img.width;
+        let imgHeight = img.height;
+        if (rotation === 90 || rotation === 270) {
+          imgWidth = img.height;
+          imgHeight = img.width;
+        }
+        
         // キャンバスのサイズを画像の表示サイズに合わせる
         const maxWidth = 800;
         const maxHeight = 600;
-        let displayWidth = img.width;
-        let displayHeight = img.height;
+        let displayWidth = imgWidth;
+        let displayHeight = imgHeight;
         
         if (displayWidth > maxWidth) {
           displayHeight = (displayHeight * maxWidth) / displayWidth;
@@ -859,13 +934,18 @@ export default function ScreenshotCardPage() {
         canvas.height = displayHeight;
         
         // 表示サイズを保存（トリミング時に使用）
-        displaySizeRef.current = { width: displayWidth, height: displayHeight };
+        displaySizeRef.current = { width: imgWidth, height: imgHeight };
         
-        ctx.drawImage(img, 0, 0, displayWidth, displayHeight);
+        // 回転を適用して描画
+        ctx.save();
+        ctx.translate(displayWidth / 2, displayHeight / 2);
+        ctx.rotate((rotation * Math.PI) / 180);
+        ctx.drawImage(img, -displayWidth / 2, -displayHeight / 2, displayWidth, displayHeight);
+        ctx.restore();
       };
       img.src = imagePreview;
     }
-  }, [imagePreview, isCropMode]);
+  }, [imagePreview, isCropMode, rotation]);
 
   function handleCancelExtraction() {
     if (progressUpdateIntervalRef.current) {
@@ -1050,6 +1130,10 @@ export default function ScreenshotCardPage() {
                         src={imagePreview}
                         alt="Preview"
                         className="w-full rounded-lg border border-gray-300"
+                        style={{
+                          transform: `rotate(${rotation}deg)`,
+                          transition: 'transform 0.3s ease',
+                        }}
                       />
                       <button
                         onClick={handleRemoveImage}
@@ -1059,6 +1143,12 @@ export default function ScreenshotCardPage() {
                       </button>
                     </div>
                     <div className="space-y-2">
+                      <button
+                        onClick={handleRotateImage}
+                        className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg text-sm"
+                      >
+                        🔄 画像を回転（{rotation}°）
+                      </button>
                       <button
                         onClick={handleExtractText}
                         disabled={isExtracting}
