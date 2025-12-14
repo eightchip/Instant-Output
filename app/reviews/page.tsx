@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { storage } from "@/lib/storage";
 import { getReviewSchedule, getReviewStats, ReviewStats } from "@/lib/reviews";
 import { Review } from "@/types/models";
+import MessageDialog from "@/components/MessageDialog";
 
 export default function ReviewsPage() {
   const router = useRouter();

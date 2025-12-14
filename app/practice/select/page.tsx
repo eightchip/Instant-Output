@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { storage } from "@/lib/storage";
 import { Lesson, Card } from "@/types/models";
+import MessageDialog from "@/components/MessageDialog";
 
 export default function CardSelectPage() {
   const router = useRouter();
