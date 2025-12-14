@@ -14,7 +14,8 @@ import { splitIntoWords, getImportantWords } from "@/lib/vocabulary";
 function PracticeContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const mode: PracticeMode = (searchParams.get("mode") || "normal") as PracticeMode;
+  const modeParam = searchParams.get("mode") || "normal";
+  const mode = modeParam as PracticeMode;
   const cardCount = parseInt(searchParams.get("count") || "5", 10);
 
   const [cards, setCards] = useState<Card[]>([]);
