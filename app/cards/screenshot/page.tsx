@@ -1105,13 +1105,15 @@ export default function ScreenshotCardPage() {
                     )}
                     {extractedText && showSplitView && (
                       <button
-                        onClick={() => {
+                        onClick={async () => {
                           const sentences = splitTextIntoSentences(extractedText);
                           if (sentences.length > 1) {
                             setSplitSentences(sentences);
                             setSelectedSentences(new Set(sentences.map((_, i) => i)));
                             setTranslatedSentences(new Map()); // 翻訳をリセット
                             setShowSplitView(true);
+                            // 自動的に日本語翻訳を実行
+                            await handleAutoTranslate(sentences);
                           } else if (sentences.length === 1) {
                             setMessageDialog({
                               isOpen: true,
@@ -1188,7 +1190,7 @@ export default function ScreenshotCardPage() {
                           閉じる
                         </button>
                         <button
-                          onClick={() => {
+                          onClick={async () => {
                             setIsEditingExtractedText(false);
                             const sentences = splitTextIntoSentences(extractedText);
                             if (sentences.length > 1) {
@@ -1196,6 +1198,8 @@ export default function ScreenshotCardPage() {
                               setSelectedSentences(new Set(sentences.map((_, i) => i)));
                               setTranslatedSentences(new Map()); // 翻訳をリセット
                               setShowSplitView(true);
+                              // 自動的に日本語翻訳を実行
+                              await handleAutoTranslate(sentences);
                             } else if (sentences.length === 1) {
                               setMessageDialog({
                                 isOpen: true,
