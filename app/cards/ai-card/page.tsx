@@ -36,12 +36,72 @@ function AICardContent() {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    // 画像サイズのチェック（10MB制限）
+    if (file.size > 10 * 1024 * 1024) {
+      setMessageDialog({
+        isOpen: true,
+        title: "画像サイズエラー",
+        message: "画像サイズが大きすぎます。10MB以下の画像を選択してください。",
+      });
+      return;
+    }
+
     setImageFile(file);
     const reader = new FileReader();
-    reader.onload = (e) => {
-      setImagePreview(e.target?.result as string);
+    reader.onload = async (e) => {
+      const base64 = e.target?.result as string;
+      
+      // 画像をリサイズ（必要に応じて）
+      try {
+        const resizedBase64 = await resizeImageIfNeeded(base64, 2048); // 最大2048px
+        setImagePreview(resizedBase64);
+      } catch (error) {
+        console.error("Image resize error:", error);
+        setImagePreview(base64); // リサイズに失敗した場合は元の画像を使用
+      }
     };
     reader.readAsDataURL(file);
+  };
+
+  // 画像をリサイズする関数
+  const resizeImageIfNeeded = (base64: string, maxSize: number): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => {
+        let width = img.width;
+        let height = img.height;
+
+        // サイズがmaxSize以下の場合はリサイズ不要
+        if (width <= maxSize && height <= maxSize) {
+          resolve(base64);
+          return;
+        }
+
+        // アスペクト比を保ちながらリサイズ
+        if (width > height) {
+          height = (height * maxSize) / width;
+          width = maxSize;
+        } else {
+          width = (width * maxSize) / height;
+          height = maxSize;
+        }
+
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) {
+          reject(new Error("Canvas context not available"));
+          return;
+        }
+
+        ctx.drawImage(img, 0, 0, width, height);
+        const resizedBase64 = canvas.toDataURL("image/jpeg", 0.8);
+        resolve(resizedBase64);
+      };
+      img.onerror = () => reject(new Error("Failed to load image"));
+      img.src = base64;
+    });
   };
 
   const handleLogin = () => {
