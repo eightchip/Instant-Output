@@ -94,10 +94,10 @@ This is the third sentence.`,
     // 文単位に整理（改行で分割し、空行を除去）
     const sentences = extractedText
       .split("\n")
-      .map((line) => line.trim())
-      .filter((line) => line.length > 0 && !line.match(/^[0-9]+\./)) // 番号付きリストを除外
-      .filter((line) => !line.match(/^[-•*]\s/)) // 箇条書き記号を除外
-      .map((line) => {
+      .map((line: string) => line.trim())
+      .filter((line: string) => line.length > 0 && !line.match(/^[0-9]+\./)) // 番号付きリストを除外
+      .filter((line: string) => !line.match(/^[-•*]\s/)) // 箇条書き記号を除外
+      .map((line: string) => {
         // 文末記号がない場合は追加
         if (!line.match(/[.!?]$/)) {
           return line + ".";
