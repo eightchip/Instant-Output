@@ -130,12 +130,22 @@ function NewCardContent() {
 
     setIsSaving(true);
     try {
+      await storage.init();
+      
+      // 既存のカードの最大orderを取得（既存カードの後に追加するため）
+      const existingCards = await storage.getCardsByLesson(selectedLessonId);
+      const maxOrder = existingCards.length > 0 
+        ? Math.max(...existingCards.map(c => c.order ?? -1), -1)
+        : -1;
+      
       const card: Card = {
         id: `card_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         lessonId: selectedLessonId,
         prompt_jp: promptJp.trim() || "(後で追加)",
         target_en: targetEn.trim(),
         source_type: inputMode === "pair" ? "manual_pair" : "manual_en",
+        order: maxOrder + 1, // レッスン内での表示順序を保存（既存カードの後に追加）
+        createdAt: new Date(), // 作成日時も保存（フォールバック用）
       };
       await storage.saveCard(card);
       setMessageDialog({
