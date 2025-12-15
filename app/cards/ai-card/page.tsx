@@ -86,11 +86,30 @@ function AICardContent() {
       setStatus("テキストを抽出中...");
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "OCR処理に失敗しました。");
+        let errorMessage = "OCR処理に失敗しました。";
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.message || errorData.error || errorMessage;
+        } catch (jsonError) {
+          // JSONパースに失敗した場合は、テキストとして読み込む
+          try {
+            const errorText = await response.text();
+            errorMessage = errorText || errorMessage;
+          } catch (textError) {
+            errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+          }
+        }
+        throw new Error(errorMessage);
       }
 
-      const ocrResult = await response.json();
+      let ocrResult;
+      try {
+        ocrResult = await response.json();
+      } catch (jsonError) {
+        // JSONパースに失敗した場合
+        const responseText = await response.text();
+        throw new Error(`無効なレスポンス形式: ${responseText.substring(0, 200)}`);
+      }
       setProgress(1.0);
       setStatus("OCR完了");
 
