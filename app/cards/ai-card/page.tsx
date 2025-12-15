@@ -42,6 +42,38 @@ function AICardContent() {
     }
   }, []);
 
+  // 改行を挿入する関数（スクリーンショット機能と同じ）
+  function handleInsertLineBreak() {
+    if (!ocrTextareaRef.current) return;
+    const textarea = ocrTextareaRef.current;
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const text = editingOcrText;
+    const newText = text.substring(0, start) + '\n' + text.substring(end);
+    setEditingOcrText(newText);
+    // カーソル位置を改行の後に設定
+    setTimeout(() => {
+      if (ocrTextareaRef.current) {
+        ocrTextareaRef.current.setSelectionRange(start + 1, start + 1);
+        ocrTextareaRef.current.focus();
+      }
+    }, 0);
+  }
+
+  // テキストを文に分割する関数（スクリーンショット機能と同じ）
+  function splitTextIntoSentences(text: string): string[] {
+    // 改行がある場合は改行で分割
+    if (text.includes('\n')) {
+      return text
+        .split('\n')
+        .map(s => s.trim())
+        .filter(s => s.length > 0);
+    }
+    
+    // 改行がない場合は、ピリオドや？などの句読点で自動分割
+    return processOcrText(text);
+  }
+
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
