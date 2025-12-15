@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { storage } from "@/lib/storage";
 import {
@@ -17,7 +18,9 @@ import {
 } from "@/lib/srs-config";
 import MessageDialog from "@/components/MessageDialog";
 import ConfirmDialog from "@/components/ConfirmDialog";
-import ThemeToggle from "@/components/ThemeToggle";
+const ThemeToggle = dynamic(() => import("@/components/ThemeToggle"), {
+  ssr: false,
+});
 
 export default function SettingsPage() {
   const router = useRouter();
