@@ -194,7 +194,7 @@ export default function CardSearchPage() {
             {filteredCards.map((card) => (
               <div
                 key={card.id}
-                className="bg-white rounded-lg shadow p-4 hover:shadow-md transition-shadow"
+                className="card-base p-4 hover-lift animate-fade-in"
               >
                 {/* 画像サムネイル */}
                 {card.imageData && (
@@ -230,30 +230,32 @@ export default function CardSearchPage() {
                   </p>
                 </div>
                 <div className="mt-2 flex items-center justify-between">
-                  <div className="text-xs text-gray-500 flex items-center gap-2">
-                    <span>タイプ: {card.source_type}</span>
-                    <button
-                      onClick={async (e) => {
-                        e.stopPropagation();
-                        try {
-                          await storage.init();
-                          await storage.updateCard(card.id, { isFavorite: !card.isFavorite });
-                          await loadData();
-                        } catch (error) {
-                          console.error("Failed to toggle favorite:", error);
-                          setMessageDialog({
-                            isOpen: true,
-                            title: "更新エラー",
-                            message: "お気に入りの更新に失敗しました。",
-                          });
-                        }
-                      }}
-                      className={`text-lg ${card.isFavorite ? "text-yellow-500" : "text-gray-300"} hover:text-yellow-500 transition-colors`}
-                      title={card.isFavorite ? "お気に入りを解除" : "お気に入りに追加"}
-                    >
-                      {card.isFavorite ? "✅" : "⬜"}
-                    </button>
-                  </div>
+                  <button
+                    onClick={async (e) => {
+                      e.stopPropagation();
+                      try {
+                        await storage.init();
+                        await storage.updateCard(card.id, { isFavorite: !card.isFavorite });
+                        await loadData();
+                      } catch (error) {
+                        console.error("Failed to toggle favorite:", error);
+                        setMessageDialog({
+                          isOpen: true,
+                          title: "更新エラー",
+                          message: "お気に入りの更新に失敗しました。",
+                        });
+                      }
+                    }}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold transition-all duration-200 ${
+                      card.isFavorite
+                        ? "bg-gradient-to-r from-yellow-400 to-yellow-500 text-white shadow-md hover:shadow-lg hover:scale-105"
+                        : "bg-gray-100 text-gray-600 hover:bg-gray-200 hover:scale-105"
+                    }`}
+                    title={card.isFavorite ? "お気に入りを解除" : "お気に入りに追加"}
+                  >
+                    <span>★</span>
+                    <span>お気に入り</span>
+                  </button>
                   <button
                     onClick={() => router.push(`/cards/${card.id}/edit`)}
                     className="text-sm text-blue-600 hover:text-blue-800"

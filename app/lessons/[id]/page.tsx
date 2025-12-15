@@ -214,7 +214,7 @@ export default function LessonDetailPage() {
                   });
                 }
               }}
-              className="bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-4 rounded-lg"
+              className="btn-danger"
             >
               削除
             </button>
@@ -231,7 +231,7 @@ export default function LessonDetailPage() {
           <div className="flex gap-2">
             <button
               onClick={() => router.push(`/cards/new?lessonId=${lessonId}`)}
-              className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg"
+              className="btn-primary"
             >
               + カードを追加
             </button>
@@ -277,7 +277,7 @@ export default function LessonDetailPage() {
             <div className="flex gap-2">
               <button
                 onClick={() => setShowMoveDialog(true)}
-                className="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-lg text-sm"
+                className="btn-success text-sm"
               >
                 レッスンに移動
               </button>
@@ -330,7 +330,7 @@ export default function LessonDetailPage() {
             {cards.map((card) => (
               <div
                 key={card.id}
-                className={`bg-white rounded-lg shadow p-4 hover:shadow-md transition-shadow ${
+                className={`card-base p-4 hover-lift animate-fade-in ${
                   isBatchMode && selectedCards.has(card.id)
                     ? "ring-2 ring-blue-500 bg-blue-50"
                     : ""
@@ -375,23 +375,26 @@ export default function LessonDetailPage() {
                   <p className="text-gray-600 text-sm mb-1">英語</p>
                   <p className="text-lg">{card.target_en}</p>
                 </div>
-                <div className="mt-2 text-xs text-gray-500 mb-3 flex items-center justify-between">
-                  <div>
-                    タイプ: {card.source_type}
+                <div className="mt-2 mb-3 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
                     {card.imageData && (
-                      <span className="ml-2 text-blue-600 cursor-pointer hover:underline" onClick={() => {
-                        const modal = document.createElement("div");
-                        modal.className = "fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50";
-                        modal.onclick = () => modal.remove();
-                        const img = document.createElement("img");
-                        img.src = card.imageData!;
-                        img.className = "max-w-full max-h-full object-contain";
-                        img.onclick = (e) => e.stopPropagation();
-                        modal.appendChild(img);
-                        document.body.appendChild(modal);
-                      }}>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          const modal = document.createElement("div");
+                          modal.className = "fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50";
+                          modal.onclick = () => modal.remove();
+                          const img = document.createElement("img");
+                          img.src = card.imageData!;
+                          img.className = "max-w-full max-h-full object-contain";
+                          img.onclick = (e) => e.stopPropagation();
+                          modal.appendChild(img);
+                          document.body.appendChild(modal);
+                        }}
+                        className="text-xs text-blue-600 hover:text-blue-800 font-semibold px-2 py-1 rounded hover:bg-blue-50 transition-colors"
+                      >
                         📷 元画像を表示
-                      </span>
+                      </button>
                     )}
                   </div>
                   {!isBatchMode && (
@@ -411,10 +414,15 @@ export default function LessonDetailPage() {
                           });
                         }
                       }}
-                      className={`text-2xl ${card.isFavorite ? "text-yellow-500" : "text-gray-300"} hover:text-yellow-500 transition-colors`}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold transition-all duration-200 ${
+                        card.isFavorite
+                          ? "bg-gradient-to-r from-yellow-400 to-yellow-500 text-white shadow-md hover:shadow-lg hover:scale-105"
+                          : "bg-gray-100 text-gray-600 hover:bg-gray-200 hover:scale-105"
+                      }`}
                       title={card.isFavorite ? "お気に入りを解除" : "お気に入りに追加"}
                     >
-                      {card.isFavorite ? "✅" : "⬜"}
+                      <span>★</span>
+                      <span>お気に入り</span>
                     </button>
                   )}
                 </div>
@@ -422,7 +430,7 @@ export default function LessonDetailPage() {
                   <div className="flex gap-2">
                     <button
                       onClick={() => router.push(`/cards/${card.id}/edit`)}
-                      className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg text-sm"
+                      className="flex-1 btn-primary text-sm"
                     >
                       編集
                     </button>

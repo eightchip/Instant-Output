@@ -120,7 +120,7 @@ export default function Home() {
           <div className="bg-white rounded-lg border border-gray-200 p-4 shadow-sm">
             <button
               onClick={handleStartPractice}
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-5 px-6 rounded-lg text-xl shadow-lg transition-colors mb-3 border-2 border-blue-500"
+              className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-bold py-5 px-6 rounded-lg text-xl shadow-lg hover:shadow-xl transition-all duration-200 mb-3 border-2 border-blue-500 hover:scale-105"
             >
               今日の5問を開始
             </button>
@@ -130,25 +130,25 @@ export default function Home() {
             <div className="grid grid-cols-2 gap-2">
               <button
                 onClick={() => router.push("/practice/mode-select")}
-                className="bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-800 font-semibold py-3 px-4 rounded-lg transition-colors"
+                className="bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-800 font-semibold py-3 px-4 rounded-lg transition-all duration-200 hover:scale-105 hover:shadow-md"
               >
                 学習モードを選択
               </button>
               <button
                 onClick={() => router.push("/practice/select")}
-                className="bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-800 font-semibold py-3 px-4 rounded-lg transition-colors"
+                className="bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-800 font-semibold py-3 px-4 rounded-lg transition-all duration-200 hover:scale-105 hover:shadow-md"
               >
                 カードを選択
               </button>
               <button
                 onClick={() => router.push("/practice?mode=favorite&count=10")}
-                className="bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-800 font-semibold py-3 px-4 rounded-lg transition-colors"
+                className="bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-800 font-semibold py-3 px-4 rounded-lg transition-all duration-200 hover:scale-105 hover:shadow-md"
               >
                 ⭐ お気に入り
               </button>
               <button
                 onClick={() => router.push("/practice?mode=weak&count=10")}
-                className="bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-800 font-semibold py-3 px-4 rounded-lg transition-colors"
+                className="bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-800 font-semibold py-3 px-4 rounded-lg transition-all duration-200 hover:scale-105 hover:shadow-md"
               >
                 💪 苦手克服
               </button>

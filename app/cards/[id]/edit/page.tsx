@@ -402,8 +402,7 @@ export default function EditCardPage() {
 
         <div className="bg-white rounded-lg shadow-lg p-6 space-y-6">
           {/* お気に入り */}
-          <div className="flex items-center justify-between">
-            <label className="block text-sm font-semibold">お気に入り</label>
+          <div className="flex items-center gap-3">
             <button
               onClick={async () => {
                 if (!card) return;
@@ -420,10 +419,15 @@ export default function EditCardPage() {
                   });
                 }
               }}
-              className={`text-3xl ${card.isFavorite ? "text-yellow-500" : "text-gray-300"} hover:text-yellow-500 transition-colors`}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg font-semibold transition-all duration-200 ${
+                card.isFavorite
+                  ? "bg-gradient-to-r from-yellow-400 to-yellow-500 text-white shadow-md hover:shadow-lg hover:scale-105"
+                  : "bg-gray-100 text-gray-600 hover:bg-gray-200 hover:scale-105"
+              }`}
               title={card.isFavorite ? "お気に入りを解除" : "お気に入りに追加"}
             >
-              {card.isFavorite ? "✅" : "⬜"}
+              <span className="text-lg">★</span>
+              <span>お気に入り</span>
             </button>
           </div>
 
@@ -633,7 +637,6 @@ export default function EditCardPage() {
 
           {/* カード情報 */}
           <div className="text-sm text-gray-600">
-            <p>タイプ: {card.source_type}</p>
             <p>レッスンID: {card.lessonId}</p>
           </div>
 
@@ -642,19 +645,19 @@ export default function EditCardPage() {
             <button
               onClick={handleSave}
               disabled={isSaving || !targetEn.trim()}
-              className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-bold py-3 px-4 rounded-lg"
+              className="flex-1 btn-primary disabled:bg-gray-400 disabled:cursor-not-allowed disabled:hover:scale-100 disabled:shadow-md"
             >
               {isSaving ? "保存中..." : "保存"}
             </button>
             <button
               onClick={handleDelete}
-              className="bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-4 rounded-lg"
+              className="btn-danger"
             >
               削除
             </button>
             <button
               onClick={() => router.back()}
-              className="bg-gray-500 hover:bg-gray-600 text-white font-bold py-3 px-4 rounded-lg"
+              className="btn-secondary"
             >
               キャンセル
             </button>
