@@ -22,6 +22,9 @@ function AICardContent() {
   const [rawOcrText, setRawOcrText] = useState("");
   const [sourceId, setSourceId] = useState<string | null>(null);
   const [useChatGPTTranslation, setUseChatGPTTranslation] = useState(true); // デフォルトでChatGPT翻訳を使用
+  const [isEditingOcrText, setIsEditingOcrText] = useState(false);
+  const [editingOcrText, setEditingOcrText] = useState("");
+  const ocrTextareaRef = useRef<HTMLTextAreaElement>(null);
   const [messageDialog, setMessageDialog] = useState<{ isOpen: boolean; title: string; message: string }>({
     isOpen: false,
     title: "",
@@ -181,6 +184,7 @@ function AICardContent() {
       setStatus("OCR完了");
 
       setRawOcrText(ocrResult.text);
+      setEditingOcrText(ocrResult.text); // 編集用のテキストも設定
 
       // Sourceを保存
       await storage.init();
@@ -394,12 +398,76 @@ function AICardContent() {
                 </div>
               ) : (
                 <div>
-                  <p className="text-sm text-gray-600 mb-2">OCR結果:</p>
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-sm text-gray-600">OCR結果:</p>
+                    {!isEditingOcrText ? (
+                      <button
+                        onClick={() => {
+                          setEditingOcrText(rawOcrText);
+                          setIsEditingOcrText(true);
+                          setTimeout(() => {
+                            ocrTextareaRef.current?.focus();
+                          }, 0);
+                        }}
+                        className="text-sm text-blue-600 hover:text-blue-800 font-semibold"
+                      >
+                        編集
+                      </button>
+                    ) : (
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => {
+                            setRawOcrText(editingOcrText);
+                            setIsEditingOcrText(false);
+                            // Sourceを更新
+                            if (sourceId) {
+                              storage.init().then(() => {
+                                storage.getSource(sourceId).then((source) => {
+                                  if (source) {
+                                    source.rawOcrText = editingOcrText;
+                                    storage.saveSource(source);
+                                  }
+                                });
+                              });
+                            }
+                          }}
+                          className="text-sm text-green-600 hover:text-green-800 font-semibold"
+                        >
+                          保存
+                        </button>
+                        <button
+                          onClick={() => {
+                            setEditingOcrText(rawOcrText);
+                            setIsEditingOcrText(false);
+                          }}
+                          className="text-sm text-gray-600 hover:text-gray-800 font-semibold"
+                        >
+                          キャンセル
+                        </button>
+                      </div>
+                    )}
+                  </div>
                   <textarea
-                    value={rawOcrText}
-                    readOnly
-                    className="w-full border border-gray-300 rounded-lg px-4 py-3 min-h-[200px] bg-gray-50 text-gray-900"
+                    ref={ocrTextareaRef}
+                    value={isEditingOcrText ? editingOcrText : rawOcrText}
+                    onChange={(e) => {
+                      if (isEditingOcrText) {
+                        setEditingOcrText(e.target.value);
+                      }
+                    }}
+                    readOnly={!isEditingOcrText}
+                    className={`w-full border border-gray-300 rounded-lg px-4 py-3 min-h-[200px] ${
+                      isEditingOcrText
+                        ? "bg-white text-gray-900"
+                        : "bg-gray-50 text-gray-900"
+                    }`}
+                    placeholder="OCR結果がここに表示されます"
                   />
+                  {isEditingOcrText && (
+                    <p className="text-xs text-gray-500 mt-1">
+                      💡 ヒント: 改行を入れると、その位置で文が分割されます
+                    </p>
+                  )}
                 </div>
               )}
             </div>
