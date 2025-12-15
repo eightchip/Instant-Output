@@ -232,7 +232,12 @@ class StorageService {
     return new Promise((resolve, reject) => {
       const tx = db.transaction(STORES.cards, "readwrite");
       const store = tx.objectStore(STORES.cards);
-      const request = store.put(card);
+      // createdAtをISO文字列に変換して保存
+      const cardData: any = {
+        ...card,
+        createdAt: card.createdAt instanceof Date ? card.createdAt.toISOString() : card.createdAt,
+      };
+      const request = store.put(cardData);
       request.onsuccess = () => resolve();
       request.onerror = () => reject(request.error);
     });
