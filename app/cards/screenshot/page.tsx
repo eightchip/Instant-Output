@@ -653,6 +653,14 @@ export default function ScreenshotCardPage() {
 
     setIsSaving(true);
     try {
+      await storage.init();
+      
+      // 既存のカードの最大orderを取得（既存カードの後に追加するため）
+      const existingCards = await storage.getCardsByLesson(selectedLessonId);
+      const maxOrder = existingCards.length > 0 
+        ? Math.max(...existingCards.map(c => c.order ?? -1), -1)
+        : -1;
+      
       const card: Card = {
         id: `card_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         lessonId: selectedLessonId,
@@ -660,6 +668,8 @@ export default function ScreenshotCardPage() {
         target_en: targetEn.trim(),
         source_type: "screenshot",
         imageData: imagePreview || undefined, // 画像データを保存
+        order: maxOrder + 1, // レッスン内での表示順序を保存（既存カードの後に追加）
+        createdAt: new Date(), // 作成日時も保存（フォールバック用）
       };
       await storage.saveCard(card);
       setMessageDialog({
@@ -704,7 +714,17 @@ export default function ScreenshotCardPage() {
     setIsSaving(true);
     try {
       await storage.init();
-      const cardsToSave: Card[] = Array.from(selectedSentences).map((index) => {
+      
+      // 既存のカードの最大orderを取得（既存カードの後に追加するため）
+      const existingCards = await storage.getCardsByLesson(selectedLessonId);
+      const maxOrder = existingCards.length > 0 
+        ? Math.max(...existingCards.map(c => c.order ?? -1), -1)
+        : -1;
+      
+      // 選択された文章のインデックスを順序付きで取得（元の順序を保持）
+      const selectedIndices = Array.from(selectedSentences).sort((a, b) => a - b);
+      
+      const cardsToSave: Card[] = selectedIndices.map((index, relativeOrder) => {
         const sentence = splitSentences[index];
         const translatedText = translatedSentences.get(index) || "(後で追加)";
         return {
@@ -714,6 +734,8 @@ export default function ScreenshotCardPage() {
           target_en: sentence.trim(),
           source_type: "screenshot",
           imageData: imagePreview || undefined,
+          order: maxOrder + 1 + relativeOrder, // レッスン内での表示順序を保存（既存カードの後に追加）
+          createdAt: new Date(), // 作成日時も保存（フォールバック用）
         };
       });
 

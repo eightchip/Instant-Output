@@ -77,6 +77,12 @@ export function VoiceInputProvider({ children }: { children: React.ReactNode }) 
       // 最初のレッスンを使用
       const lessonId = lessons[0].id;
       
+      // 既存のカードの最大orderを取得（既存カードの後に追加するため）
+      const existingCards = await storage.getCardsByLesson(lessonId);
+      const maxOrder = existingCards.length > 0 
+        ? Math.max(...existingCards.map(c => c.order ?? -1), -1)
+        : -1;
+      
       // カードを作成
       const card: Card = {
         id: `card_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
@@ -84,6 +90,8 @@ export function VoiceInputProvider({ children }: { children: React.ReactNode }) 
         prompt_jp: language === "jp" ? text : "(後で追加)",
         target_en: language === "en" ? text : "(後で追加)",
         source_type: language === "jp" ? "manual_pair" : "manual_en",
+        order: maxOrder + 1, // レッスン内での表示順序を保存（既存カードの後に追加）
+        createdAt: new Date(), // 作成日時も保存（フォールバック用）
       };
       
       await storage.saveCard(card);
