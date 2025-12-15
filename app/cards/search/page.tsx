@@ -9,6 +9,7 @@ import MessageDialog from "@/components/MessageDialog";
 import { useBatchCardSelection } from "@/hooks/useBatchCardSelection";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import LoadingSpinner from "@/components/LoadingSpinner";
+import AudioPlaybackButton from "@/components/AudioPlaybackButton";
 
 type FilterType = {
   lessonId?: string;
@@ -379,7 +380,14 @@ export default function CardSearchPage() {
                   </p>
                 </div>
                 <div>
-                  <p className="text-gray-600 text-sm mb-1">英語</p>
+                  <div className="flex items-center justify-between mb-1">
+                    <p className="text-gray-600 text-sm">英語</p>
+                    <AudioPlaybackButton
+                      text={card.target_en}
+                      language="en"
+                      size="sm"
+                    />
+                  </div>
                   <p className="text-lg whitespace-pre-wrap break-words">
                     {highlightText(card.target_en, searchQuery)}
                   </p>

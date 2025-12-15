@@ -14,6 +14,7 @@ import ErrorDialog from "@/components/ErrorDialog";
 import MessageDialog from "@/components/MessageDialog";
 import VoiceInputButton from "@/components/VoiceInputButton";
 import LoadingSpinner from "@/components/LoadingSpinner";
+import AudioPlaybackButton from "@/components/AudioPlaybackButton";
 
 function PracticeContent() {
   const router = useRouter();
@@ -31,10 +32,7 @@ function PracticeContent() {
   const [startTime, setStartTime] = useState<Date | null>(null);
   const [results, setResults] = useState<ReviewResult[]>([]);
   const resultsRef = useRef<ReviewResult[]>([]);
-  const [isSpeaking, setIsSpeaking] = useState(false);
-  const [isPaused, setIsPaused] = useState(false);
   const [ttsSpeed, setTtsSpeed] = useState<TTSSpeed>(1);
-  const speedCheckIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const [autoGradingResult, setAutoGradingResult] = useState<GradingDetails | null>(null);
   const [manualResult, setManualResult] = useState<ReviewResult | null>(null);
   const [errorDialog, setErrorDialog] = useState<{ isOpen: boolean; title: string; message: string; onRetry?: () => void }>({
@@ -497,30 +495,6 @@ function PracticeContent() {
     recognition.start();
   };
 
-  const handleTTSPlay = () => {
-    if (!currentCard) return;
-
-    if (isPaused) {
-      tts.resume();
-    } else if (isSpeaking) {
-      tts.stop();
-    } else {
-      tts.speak(currentCard.target_en, undefined, ttsSpeed);
-    }
-  };
-
-  const handleTTSSpeedChange = (speed: TTSSpeed) => {
-    setTtsSpeed(speed);
-    if (isSpeaking && !isPaused) {
-      // 現在読み上げ中の場合は、新しい速度で再読み上げ
-      tts.stop();
-      setTimeout(() => {
-        if (currentCard) {
-                          tts.speak(currentCard.target_en, undefined, speed);
-        }
-      }, 100);
-    }
-  };
 
   if (isLoading && !errorDialog.isOpen) {
     return <LoadingSpinner fullScreen text="カードを読み込み中..." />;
@@ -703,39 +677,12 @@ function PracticeContent() {
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                 <div className="flex items-start justify-between mb-2">
                   <p className="text-sm text-blue-800">模範解答</p>
-                  {/* TTSコントロール */}
-                  {tts.isAvailable() && (
-                    <div className="flex items-center gap-2">
-                      {/* 速度調整 */}
-                      <select
-                        value={ttsSpeed}
-                        onChange={(e) => handleTTSSpeedChange(Number(e.target.value) as TTSSpeed)}
-                        className="text-xs border border-blue-300 rounded px-2 py-1 bg-white"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <option value={0.5}>0.5x</option>
-                        <option value={0.75}>0.75x</option>
-                        <option value={1}>1x</option>
-                        <option value={1.25}>1.25x</option>
-                        <option value={1.5}>1.5x</option>
-                        <option value={2}>2x</option>
-                      </select>
-                      {/* 再生/停止ボタン */}
-                      <button
-                        onClick={handleTTSPlay}
-                        className={`px-3 py-1 rounded text-sm font-semibold ${
-                          isSpeaking && !isPaused
-                            ? "bg-red-500 hover:bg-red-600"
-                            : isPaused
-                            ? "bg-yellow-500 hover:bg-yellow-600"
-                            : "bg-blue-600 hover:bg-blue-700"
-                        } text-white`}
-                        title={isSpeaking && !isPaused ? "停止" : isPaused ? "再開" : "音声読み上げ"}
-                      >
-                        {isSpeaking && !isPaused ? "⏹" : isPaused ? "▶" : "🔊"}
-                      </button>
-                    </div>
-                  )}
+                  <AudioPlaybackButton
+                    text={currentCard.target_en}
+                    language="en"
+                    size="sm"
+                    showSpeedControl={true}
+                  />
                 </div>
                 <p className="text-xl font-semibold text-blue-900 break-words overflow-wrap-anywhere whitespace-normal word-break-break-word max-w-full">
                   {splitIntoWords(currentCard.target_en).map((item, index) => {
@@ -782,7 +729,7 @@ function PracticeContent() {
                         className="bg-purple-200 text-purple-900 px-3 py-1 rounded-full text-sm font-semibold hover:bg-purple-300 cursor-pointer transition-colors"
                         onClick={() => {
                           if (tts.isAvailable()) {
-                            tts.speak(word, undefined, ttsSpeed);
+                            tts.speak(word, "en", ttsSpeed);
                           }
                         }}
                         title="クリックで音声読み上げ"

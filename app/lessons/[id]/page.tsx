@@ -7,6 +7,7 @@ import { Lesson, Card } from "@/types/models";
 import MessageDialog from "@/components/MessageDialog";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import LoadingSpinner from "@/components/LoadingSpinner";
+import AudioPlaybackButton from "@/components/AudioPlaybackButton";
 
 export default function LessonDetailPage() {
   const router = useRouter();
@@ -403,7 +404,14 @@ export default function LessonDetailPage() {
                   <p className="text-lg font-semibold">{card.prompt_jp}</p>
                 </div>
                 <div>
-                  <p className="text-gray-600 text-sm mb-1">英語</p>
+                  <div className="flex items-center justify-between mb-1">
+                    <p className="text-gray-600 text-sm">英語</p>
+                    <AudioPlaybackButton
+                      text={card.target_en}
+                      language="en"
+                      size="sm"
+                    />
+                  </div>
                   <p className="text-lg">{card.target_en}</p>
                 </div>
                 <div className="mt-2 mb-3 flex items-center justify-between">
