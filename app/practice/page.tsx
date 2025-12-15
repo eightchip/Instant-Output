@@ -37,7 +37,7 @@ function PracticeContent() {
   const speedCheckIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const [autoGradingResult, setAutoGradingResult] = useState<GradingDetails | null>(null);
   const [manualResult, setManualResult] = useState<ReviewResult | null>(null);
-  const [errorDialog, setErrorDialog] = useState<{ isOpen: boolean; title: string; message: string }>({
+  const [errorDialog, setErrorDialog] = useState<{ isOpen: boolean; title: string; message: string; onRetry?: () => void }>({
     isOpen: false,
     title: "",
     message: "",
