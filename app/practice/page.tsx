@@ -311,28 +311,6 @@ function PracticeContent() {
     };
   }, []);
 
-  const currentCard = cards[currentIndex];
-
-  const handleShowAnswer = () => {
-    setShowAnswer(true);
-    // タイピング練習モード: タイピング開始時刻を記録
-    if (mode === "typing" && typingStartTime === null) {
-      setTypingStartTime(Date.now());
-    }
-    
-    // 自動採点を実行
-    if (currentCard && userAnswer.trim()) {
-      const gradingDetails = getGradingDetails(userAnswer, currentCard.target_en);
-      setAutoGradingResult(gradingDetails);
-      setManualResult(null); // 手動採点結果をリセット
-    }
-  };
-
-  const handleResultSelect = (result: ReviewResult) => {
-    // 手動採点結果を保存（まだ確定しない）
-    setManualResult(result);
-  };
-
   const handleResultConfirm = useCallback(async () => {
     if (!currentCard) return;
     
