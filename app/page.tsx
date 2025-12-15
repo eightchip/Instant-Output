@@ -9,6 +9,7 @@ import { getReviewCardsWithPriority, ReviewCardInfo } from "@/lib/reviews";
 import MenuButton from "@/components/MenuButton";
 import { QRCodeSVG } from "qrcode.react";
 import GlobalVoiceInputButton from "@/components/GlobalVoiceInputButton";
+import { PlayCircle, Zap } from "lucide-react";
 
 export default function Home() {
   const router = useRouter();
@@ -68,27 +69,41 @@ export default function Home() {
   return (
     <div className="flex min-h-screen flex-col bg-gray-50">
       {/* ヘッダー */}
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-40">
-        <div className="max-w-2xl mx-auto px-4 py-3 flex items-center justify-between">
-          <h1 className="text-2xl md:text-3xl font-black text-gray-900 tracking-tight" style={{ fontFamily: 'var(--font-geist-sans), sans-serif', fontWeight: 800, letterSpacing: '-0.03em' }}>Instant Output</h1>
-          <div className="flex items-center gap-3">
+      <header className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 border-b border-transparent sticky top-0 z-40 shadow-lg">
+        <div className="max-w-2xl mx-auto px-4 py-4 flex items-center justify-between relative overflow-hidden">
+          {/* 背景アニメーション */}
+          <div className="absolute inset-0 bg-gradient-to-r from-blue-400/20 via-purple-400/20 to-pink-400/20 animate-pulse-subtle"></div>
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent animate-shimmer"></div>
+          
+          <h1 
+            className="text-2xl md:text-3xl font-black text-white tracking-tight relative z-10 drop-shadow-lg"
+            style={{ 
+              fontFamily: 'var(--font-geist-sans), sans-serif', 
+              fontWeight: 900, 
+              letterSpacing: '-0.03em',
+              textShadow: '0 2px 4px rgba(0,0,0,0.2), 0 0 20px rgba(255,255,255,0.3)'
+            }}
+          >
+            Instant Output
+          </h1>
+          <div className="flex items-center gap-3 relative z-10">
             {/* QRコードボタン */}
             <button
               onClick={() => setShowQRCode(!showQRCode)}
-              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              className="p-2 hover:bg-white/20 rounded-lg transition-colors backdrop-blur-sm"
               title="QRコードを表示"
             >
-              <svg className="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
               </svg>
             </button>
             {/* ハンバーガーメニュー（モバイル） */}
             <button
               onClick={() => setShowMobileMenu(!showMobileMenu)}
-              className="md:hidden p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              className="md:hidden p-2 hover:bg-white/20 rounded-lg transition-colors backdrop-blur-sm"
               aria-label="メニュー"
             >
-              <svg className="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 {showMobileMenu ? (
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 ) : (
@@ -122,8 +137,8 @@ export default function Home() {
               onClick={handleStartPractice}
               className="w-full bg-gradient-to-br from-indigo-600 via-blue-600 to-cyan-600 hover:from-indigo-700 hover:via-blue-700 hover:to-cyan-700 text-white font-bold py-5 px-6 rounded-xl text-xl shadow-xl hover:shadow-2xl transition-all duration-300 mb-3 border-0 hover:scale-[1.02] active:scale-[0.98] relative overflow-hidden group"
             >
-              <span className="relative z-10 flex items-center justify-center gap-2">
-                <span className="text-2xl">🚀</span>
+              <span className="relative z-10 flex items-center justify-center gap-3">
+                <PlayCircle className="w-7 h-7 fill-white" strokeWidth={2.5} />
                 <span>今日の5問を開始</span>
               </span>
               <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000"></div>
@@ -308,8 +323,150 @@ export default function Home() {
           </div>
         )}
 
-        {/* 管理メニュー */}
-        <div className={`mt-8 space-y-3 ${showMobileMenu ? 'block' : 'hidden md:block'}`}>
+        {/* モバイルメニュー（スライドイン） */}
+        {showMobileMenu && (
+          <div className="md:hidden fixed inset-0 z-50 bg-black/50 backdrop-blur-sm animate-fade-in" onClick={() => setShowMobileMenu(false)}>
+            <div 
+              className="absolute right-0 top-0 h-full w-[85%] max-w-sm bg-white shadow-2xl overflow-y-auto animate-slide-in-right"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="p-4 border-b border-gray-200 flex items-center justify-between bg-gradient-to-r from-blue-600 to-indigo-600">
+                <h2 className="text-xl font-bold text-white">メニュー</h2>
+                <button
+                  onClick={() => setShowMobileMenu(false)}
+                  className="p-2 hover:bg-white/20 rounded-lg transition-colors"
+                  aria-label="メニューを閉じる"
+                >
+                  <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              <div className="p-4 space-y-3">
+                {/* 追加系 */}
+                <div className="space-y-2">
+                  <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2">
+                    カード追加
+                  </h3>
+                  <MenuButton
+                    icon="➕"
+                    title="カードを追加"
+                    description="日本語と英語を手動で入力してカードを作成。音声入力にも対応しています。"
+                    color="orange"
+                    onClick={() => {
+                      router.push("/cards/new");
+                      setShowMobileMenu(false);
+                    }}
+                  />
+                  <MenuButton
+                    icon="📷"
+                    title="スクリーンショットから追加"
+                    description="画像からOCRで英語テキストを抽出してカードを作成。複数画像の一括処理にも対応。日本語は後から追加できます。"
+                    color="orange"
+                    onClick={() => {
+                      router.push("/cards/screenshot");
+                      setShowMobileMenu(false);
+                    }}
+                  />
+                </div>
+
+                {/* 管理系 */}
+                <div className="space-y-2">
+                  <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2">
+                    管理
+                  </h3>
+                  <MenuButton
+                    icon="📚"
+                    title="コース管理"
+                    description="コースの作成・編集・削除ができます。コースにレッスンを紐付けて学習を体系化しましょう。"
+                    color="green"
+                    onClick={() => {
+                      router.push("/courses");
+                      setShowMobileMenu(false);
+                    }}
+                  />
+                  <MenuButton
+                    icon="📖"
+                    title="レッスン管理"
+                    description="レッスンの作成・編集・削除ができます。レッスンにカードを紐付けて整理しましょう。"
+                    color="green"
+                    onClick={() => {
+                      router.push("/lessons");
+                      setShowMobileMenu(false);
+                    }}
+                  />
+                  <MenuButton
+                    icon="🔍"
+                    title="カード検索"
+                    description="日本語・英語でカードを検索。レッスンやタイプでフィルタリングも可能。検索文字がハイライト表示されます。"
+                    color="green"
+                    onClick={() => {
+                      router.push("/cards/search");
+                      setShowMobileMenu(false);
+                    }}
+                  />
+                  <MenuButton
+                    icon="📚"
+                    title="語彙リスト"
+                    description="すべてのカードから重要な単語を抽出してリスト化。出現回数順に表示され、音声読み上げも可能です。"
+                    color="green"
+                    onClick={() => {
+                      router.push("/vocabulary");
+                      setShowMobileMenu(false);
+                    }}
+                  />
+                </div>
+
+                {/* 学習・統計系 */}
+                <div className="space-y-2">
+                  <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2">
+                    学習・統計
+                  </h3>
+                  <MenuButton
+                    icon="📊"
+                    title="学習統計"
+                    description="学習の進捗、正答率、連続学習日数などを確認できます。グラフで学習の推移も見られます。"
+                    color="blue"
+                    onClick={() => {
+                      router.push("/statistics");
+                      setShowMobileMenu(false);
+                    }}
+                  />
+                  <MenuButton
+                    icon="🔄"
+                    title="復習管理"
+                    description="復習スケジュールをカレンダーで確認。期限超過カードや今週の復習予定を一目で把握できます。"
+                    color="purple"
+                    onClick={() => {
+                      router.push("/reviews");
+                      setShowMobileMenu(false);
+                    }}
+                  />
+                </div>
+
+                {/* 設定系 */}
+                <div className="space-y-2">
+                  <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2">
+                    設定
+                  </h3>
+                  <MenuButton
+                    icon="⚙️"
+                    title="設定（エクスポート/インポート）"
+                    description="データのバックアップ（エクスポート）や復元（インポート）ができます。SRS設定も変更可能です。"
+                    color="gray"
+                    onClick={() => {
+                      router.push("/settings");
+                      setShowMobileMenu(false);
+                    }}
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* 管理メニュー（デスクトップ） */}
+        <div className={`mt-8 space-y-3 hidden md:block`}>
           {/* 追加系 */}
           <div className="space-y-2">
             <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2">

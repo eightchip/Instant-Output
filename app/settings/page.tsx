@@ -16,6 +16,7 @@ import {
   SRSConfig,
 } from "@/lib/srs-config";
 import MessageDialog from "@/components/MessageDialog";
+import ConfirmDialog from "@/components/ConfirmDialog";
 
 export default function SettingsPage() {
   const router = useRouter();
@@ -395,6 +396,14 @@ export default function SettingsPage() {
         title={messageDialog.title}
         message={messageDialog.message}
         onClose={() => setMessageDialog({ isOpen: false, title: "", message: "" })}
+      />
+      <ConfirmDialog
+        isOpen={confirmDialog.isOpen}
+        title={confirmDialog.title}
+        message={confirmDialog.message}
+        onConfirm={confirmDialog.onConfirm}
+        onCancel={() => setConfirmDialog({ isOpen: false, title: "", message: "", onConfirm: () => {} })}
+        variant="danger"
       />
     </div>
   );

@@ -202,7 +202,7 @@ export default function VoiceInputModal({
 
   function startRecording() {
     if (!("webkitSpeechRecognition" in window) && !("SpeechRecognition" in window)) {
-      alert("お使いのブラウザは音声認識に対応していません。");
+      console.warn("お使いのブラウザは音声認識に対応していません。");
       return;
     }
 

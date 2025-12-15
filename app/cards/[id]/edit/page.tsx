@@ -6,6 +6,7 @@ import { storage } from "@/lib/storage";
 import { Card } from "@/types/models";
 import { tts, TTSSpeed } from "@/lib/tts";
 import MessageDialog from "@/components/MessageDialog";
+import ConfirmDialog from "@/components/ConfirmDialog";
 import VoiceInputButton from "@/components/VoiceInputButton";
 
 export default function EditCardPage() {
@@ -311,10 +312,11 @@ export default function EditCardPage() {
 
   async function handleDelete() {
     if (!card) return;
+    // 確認ダイアログは呼び出し元で表示
+  }
 
-    if (!confirm("このカードを削除しますか？\n関連する復習データも削除されます。")) {
-      return;
-    }
+  async function executeDelete() {
+    if (!card) return;
 
     try {
       await storage.init();
@@ -669,6 +671,14 @@ export default function EditCardPage() {
         title={messageDialog.title}
         message={messageDialog.message}
         onClose={() => setMessageDialog({ isOpen: false, title: "", message: "" })}
+      />
+      <ConfirmDialog
+        isOpen={confirmDialog.isOpen}
+        title={confirmDialog.title}
+        message={confirmDialog.message}
+        onConfirm={executeDelete}
+        onCancel={() => setConfirmDialog({ isOpen: false, title: "", message: "" })}
+        variant="danger"
       />
     </div>
   );

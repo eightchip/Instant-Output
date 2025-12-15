@@ -5,6 +5,7 @@ import { useRouter, useParams } from "next/navigation";
 import { storage } from "@/lib/storage";
 import { Lesson, Card } from "@/types/models";
 import MessageDialog from "@/components/MessageDialog";
+import ConfirmDialog from "@/components/ConfirmDialog";
 
 export default function LessonDetailPage() {
   const router = useRouter();
@@ -21,6 +22,12 @@ export default function LessonDetailPage() {
     isOpen: false,
     title: "",
     message: "",
+  });
+  const [confirmDialog, setConfirmDialog] = useState<{ isOpen: boolean; title: string; message: string; onConfirm: () => void }>({
+    isOpen: false,
+    title: "",
+    message: "",
+    onConfirm: () => {},
   });
 
   useEffect(() => {
@@ -79,39 +86,43 @@ export default function LessonDetailPage() {
       return;
     }
 
-    if (!confirm(`${selectedCards.size}枚のカードを削除しますか？`)) {
-      return;
-    }
-
-    try {
-      await storage.init();
-      const cardIds = Array.from(selectedCards);
-      
-      // 関連するレビューも削除
-      for (const cardId of cardIds) {
-        const review = await storage.getReview(cardId);
-        if (review) {
-          await storage.deleteReview(cardId);
+    setConfirmDialog({
+      isOpen: true,
+      title: "カードを削除",
+      message: `${selectedCards.size}枚のカードを削除しますか？`,
+      onConfirm: async () => {
+        setConfirmDialog({ isOpen: false, title: "", message: "", onConfirm: () => {} });
+        try {
+          await storage.init();
+          const cardIds = Array.from(selectedCards);
+          
+          // 関連するレビューも削除
+          for (const cardId of cardIds) {
+            const review = await storage.getReview(cardId);
+            if (review) {
+              await storage.deleteReview(cardId);
+            }
+          }
+          
+          await storage.deleteCards(cardIds);
+          setSelectedCards(new Set());
+          setIsBatchMode(false);
+          await loadData();
+          setMessageDialog({
+            isOpen: true,
+            title: "削除完了",
+            message: `${cardIds.length}枚のカードを削除しました。`,
+          });
+        } catch (error) {
+          console.error("Failed to delete cards:", error);
+          setMessageDialog({
+            isOpen: true,
+            title: "削除エラー",
+            message: "カードの削除に失敗しました。",
+          });
         }
-      }
-      
-      await storage.deleteCards(cardIds);
-      setSelectedCards(new Set());
-      setIsBatchMode(false);
-      await loadData();
-      setMessageDialog({
-        isOpen: true,
-        title: "削除完了",
-        message: `${cardIds.length}枚のカードを削除しました。`,
-      });
-    } catch (error) {
-      console.error("Failed to delete cards:", error);
-      setMessageDialog({
-        isOpen: true,
-        title: "削除エラー",
-        message: "カードの削除に失敗しました。",
-      });
-    }
+      },
+    });
   }
 
   async function handleBatchMove(targetLessonId: string) {
@@ -471,6 +482,14 @@ export default function LessonDetailPage() {
         title={messageDialog.title}
         message={messageDialog.message}
         onClose={() => setMessageDialog({ isOpen: false, title: "", message: "" })}
+      />
+      <ConfirmDialog
+        isOpen={confirmDialog.isOpen}
+        title={confirmDialog.title}
+        message={confirmDialog.message}
+        onConfirm={confirmDialog.onConfirm}
+        onCancel={() => setConfirmDialog({ isOpen: false, title: "", message: "", onConfirm: () => {} })}
+        variant="danger"
       />
     </div>
   );

@@ -6,6 +6,7 @@ import { storage } from "@/lib/storage";
 import { Lesson, Card } from "@/types/models";
 import MessageDialog from "@/components/MessageDialog";
 import { useBatchCardSelection } from "@/hooks/useBatchCardSelection";
+import ConfirmDialog from "@/components/ConfirmDialog";
 
 export default function CardSelectPage() {
   const router = useRouter();
@@ -15,6 +16,11 @@ export default function CardSelectPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [messageDialog, setMessageDialog] = useState<{ isOpen: boolean; title: string; message: string }>({
+    isOpen: false,
+    title: "",
+    message: "",
+  });
+  const [confirmDialog, setConfirmDialog] = useState<{ isOpen: boolean; title: string; message: string }>({
     isOpen: false,
     title: "",
     message: "",
@@ -226,16 +232,12 @@ export default function CardSelectPage() {
             </div>
             {isBatchMode && selectedCards.size > 0 && (
               <button
-                onClick={async () => {
-                  if (
-                    !confirm(
-                      `${selectedCards.size}枚のカードを削除しますか？この操作は取り消せません。`
-                    )
-                  ) {
-                    return;
-                  }
-                  const cardIds = Array.from(selectedCards);
-                  await handleBatchDelete(cardIds);
+                onClick={() => {
+                  setConfirmDialog({
+                    isOpen: true,
+                    title: "カードを削除",
+                    message: `${selectedCards.size}枚のカードを削除しますか？\nこの操作は取り消せません。`,
+                  });
                 }}
                 disabled={isDeleting}
                 className="px-4 py-2 bg-red-600 hover:bg-red-700 disabled:bg-gray-400 text-white font-semibold rounded-lg transition-all"
@@ -326,6 +328,18 @@ export default function CardSelectPage() {
         title={messageDialog.title}
         message={messageDialog.message}
         onClose={() => setMessageDialog({ isOpen: false, title: "", message: "" })}
+      />
+      <ConfirmDialog
+        isOpen={confirmDialog.isOpen}
+        title={confirmDialog.title}
+        message={confirmDialog.message}
+        onConfirm={async () => {
+          setConfirmDialog({ isOpen: false, title: "", message: "" });
+          const cardIds = Array.from(selectedCards);
+          await handleBatchDelete(cardIds);
+        }}
+        onCancel={() => setConfirmDialog({ isOpen: false, title: "", message: "" })}
+        variant="danger"
       />
     </div>
   );

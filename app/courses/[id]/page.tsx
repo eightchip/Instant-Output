@@ -5,6 +5,7 @@ import { useRouter, useParams } from "next/navigation";
 import { storage } from "@/lib/storage";
 import { Course, Lesson } from "@/types/models";
 import MessageDialog from "@/components/MessageDialog";
+import ConfirmDialog from "@/components/ConfirmDialog";
 
 export default function CourseDetailPage() {
   const router = useRouter();
@@ -179,29 +180,34 @@ export default function CourseDetailPage() {
           <h1 className="text-3xl font-bold">{course.title}</h1>
           <div className="flex gap-2">
             <button
-              onClick={async () => {
-                if (!confirm(`コース「${course.title}」を削除しますか？\nレッスンやカードは削除されません。`)) {
-                  return;
-                }
-                try {
-                  await storage.init();
-                  await storage.deleteCourse(course.id);
-                  setMessageDialog({
-                    isOpen: true,
-                    title: "削除完了",
-                    message: "コースを削除しました。",
-                  });
-                  setTimeout(() => {
-                    router.push("/courses");
-                  }, 1000);
-                } catch (error) {
-                  console.error("Failed to delete course:", error);
-                  setMessageDialog({
-                    isOpen: true,
-                    title: "削除エラー",
-                    message: "コースの削除に失敗しました。",
-                  });
-                }
+              onClick={() => {
+                setConfirmDialog({
+                  isOpen: true,
+                  title: "コースを削除",
+                  message: `コース「${course.title}」を削除しますか？\nレッスンやカードは削除されません。`,
+                  onConfirm: async () => {
+                    setConfirmDialog({ isOpen: false, title: "", message: "", onConfirm: () => {} });
+                    try {
+                      await storage.init();
+                      await storage.deleteCourse(course.id);
+                      setMessageDialog({
+                        isOpen: true,
+                        title: "削除完了",
+                        message: "コースを削除しました。",
+                      });
+                      setTimeout(() => {
+                        router.push("/courses");
+                      }, 1000);
+                    } catch (error) {
+                      console.error("Failed to delete course:", error);
+                      setMessageDialog({
+                        isOpen: true,
+                        title: "削除エラー",
+                        message: "コースの削除に失敗しました。",
+                      });
+                    }
+                  },
+                });
               }}
               className="bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-4 rounded-lg"
             >

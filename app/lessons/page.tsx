@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { storage } from "@/lib/storage";
 import { Lesson } from "@/types/models";
 import MessageDialog from "@/components/MessageDialog";
+import ConfirmDialog from "@/components/ConfirmDialog";
 
 export default function LessonsPage() {
   const router = useRouter();
@@ -162,38 +163,43 @@ export default function LessonsPage() {
                       詳細
                     </button>
                     <button
-                      onClick={async () => {
-                        if (!confirm(`レッスン「${lesson.title}」とその中のすべてのカードを削除しますか？\nこの操作は取り消せません。`)) {
-                          return;
-                        }
-                        try {
-                          await storage.init();
-                          // レッスンに属するカードを取得
-                          const cards = await storage.getCardsByLesson(lesson.id);
-                          // カードとレビューを削除
-                          for (const card of cards) {
-                            const review = await storage.getReview(card.id);
-                            if (review) {
-                              await storage.deleteReview(card.id);
+                      onClick={() => {
+                        setConfirmDialog({
+                          isOpen: true,
+                          title: "レッスンを削除",
+                          message: `レッスン「${lesson.title}」とその中のすべてのカードを削除しますか？\nこの操作は取り消せません。`,
+                          onConfirm: async () => {
+                            setConfirmDialog({ isOpen: false, title: "", message: "", onConfirm: () => {} });
+                            try {
+                              await storage.init();
+                              // レッスンに属するカードを取得
+                              const cards = await storage.getCardsByLesson(lesson.id);
+                              // カードとレビューを削除
+                              for (const card of cards) {
+                                const review = await storage.getReview(card.id);
+                                if (review) {
+                                  await storage.deleteReview(card.id);
+                                }
+                                await storage.deleteCard(card.id);
+                              }
+                              // レッスンを削除
+                              await storage.deleteLesson(lesson.id);
+                              await loadLessons();
+                              setMessageDialog({
+                                isOpen: true,
+                                title: "削除完了",
+                                message: "レッスンを削除しました。",
+                              });
+                            } catch (error) {
+                              console.error("Failed to delete lesson:", error);
+                              setMessageDialog({
+                                isOpen: true,
+                                title: "削除エラー",
+                                message: "レッスンの削除に失敗しました。",
+                              });
                             }
-                            await storage.deleteCard(card.id);
-                          }
-                          // レッスンを削除
-                          await storage.deleteLesson(lesson.id);
-                          await loadLessons();
-                          setMessageDialog({
-                            isOpen: true,
-                            title: "削除完了",
-                            message: "レッスンを削除しました。",
-                          });
-                        } catch (error) {
-                          console.error("Failed to delete lesson:", error);
-                          setMessageDialog({
-                            isOpen: true,
-                            title: "削除エラー",
-                            message: "レッスンの削除に失敗しました。",
-                          });
-                        }
+                          },
+                        });
                       }}
                       className="bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-4 rounded-lg"
                     >
