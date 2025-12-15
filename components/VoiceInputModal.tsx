@@ -31,6 +31,10 @@ export default function VoiceInputModal({
   const [finalText, setFinalText] = useState("");
   const recognitionRef = useRef<any>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const [position, setPosition] = useState({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const modalRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     return () => {
@@ -39,6 +43,108 @@ export default function VoiceInputModal({
       }
     };
   }, []);
+
+  useEffect(() => {
+    if (isOpen) {
+      // モーダルを画面下部に配置（中央）
+      const initialY = window.innerHeight * 0.75;
+      setPosition({ x: 0, y: initialY });
+    }
+  }, [isOpen]);
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    // ボタンや入力フィールドでのドラッグを防ぐ
+    const target = e.target as HTMLElement;
+    if (target.tagName === 'BUTTON' || target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') {
+      return;
+    }
+    
+    if (modalRef.current) {
+      setIsDragging(true);
+      const rect = modalRef.current.getBoundingClientRect();
+      setDragStart({
+        x: e.clientX - rect.left,
+        y: e.clientY - rect.top,
+      });
+      e.preventDefault();
+    }
+  };
+
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (isDragging && modalRef.current) {
+        const newX = e.clientX - dragStart.x;
+        const newY = e.clientY - dragStart.y;
+        
+        // 画面内に制限
+        const maxX = window.innerWidth - modalRef.current.offsetWidth;
+        const maxY = window.innerHeight - modalRef.current.offsetHeight;
+        
+        setPosition({
+          x: Math.max(0, Math.min(newX, maxX)),
+          y: Math.max(0, Math.min(newY, maxY)),
+        });
+      }
+    };
+
+    const handleMouseUp = () => {
+      setIsDragging(false);
+    };
+
+    const handleTouchMove = (e: TouchEvent) => {
+      if (isDragging && modalRef.current && e.touches.length > 0) {
+        const touch = e.touches[0];
+        const newX = touch.clientX - dragStart.x;
+        const newY = touch.clientY - dragStart.y;
+        
+        // 画面内に制限
+        const maxX = window.innerWidth - modalRef.current.offsetWidth;
+        const maxY = window.innerHeight - modalRef.current.offsetHeight;
+        
+        setPosition({
+          x: Math.max(0, Math.min(newX, maxX)),
+          y: Math.max(0, Math.min(newY, maxY)),
+        });
+        e.preventDefault();
+      }
+    };
+
+    const handleTouchEnd = () => {
+      setIsDragging(false);
+    };
+
+    if (isDragging) {
+      document.addEventListener("mousemove", handleMouseMove);
+      document.addEventListener("mouseup", handleMouseUp);
+      document.addEventListener("touchmove", handleTouchMove, { passive: false });
+      document.addEventListener("touchend", handleTouchEnd);
+      
+      return () => {
+        document.removeEventListener("mousemove", handleMouseMove);
+        document.removeEventListener("mouseup", handleMouseUp);
+        document.removeEventListener("touchmove", handleTouchMove);
+        document.removeEventListener("touchend", handleTouchEnd);
+      };
+    }
+  }, [isDragging, dragStart]);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    // ボタンや入力フィールドでのドラッグを防ぐ
+    const target = e.target as HTMLElement;
+    if (target.tagName === 'BUTTON' || target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') {
+      return;
+    }
+    
+    if (modalRef.current) {
+      setIsDragging(true);
+      const touch = e.touches[0];
+      const rect = modalRef.current.getBoundingClientRect();
+      setDragStart({
+        x: touch.clientX - rect.left,
+        y: touch.clientY - rect.top,
+      });
+    }
+  };
 
   const langCode = language === "jp" ? "ja-JP" : "en-US";
   const langName = language === "jp" ? "日本語" : "英語";
@@ -134,13 +240,27 @@ export default function VoiceInputModal({
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent 
+        ref={modalRef}
         className="sm:max-w-[450px] max-h-[70vh] overflow-y-auto"
-        style={{ top: '10%', transform: 'translate(-50%, 0)' }}
+        style={{ 
+          position: 'fixed',
+          left: position.x === 0 ? '50%' : `${position.x}px`,
+          top: position.y === 0 ? 'auto' : `${position.y}px`,
+          bottom: position.y === 0 ? '20px' : 'auto',
+          transform: position.x === 0 ? 'translateX(-50%)' : 'none',
+          margin: 0,
+          cursor: isDragging ? 'grabbing' : 'default',
+        }}
       >
-        <DialogHeader>
+        <DialogHeader 
+          className="cursor-move select-none"
+          onMouseDown={handleMouseDown}
+          onTouchStart={handleTouchStart}
+        >
           <DialogTitle className="text-lg">{langName}音声入力</DialogTitle>
           <DialogDescription className="text-sm">
             マイクに向かって話してください。認識されたテキストが表示されます。
+            <span className="block mt-1 text-xs text-gray-500">（ヘッダーをドラッグして移動できます）</span>
           </DialogDescription>
         </DialogHeader>
 
