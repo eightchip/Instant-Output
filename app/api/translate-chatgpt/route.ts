@@ -23,14 +23,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const expectedPassword = process.env.ADMIN_PASSWORD;
-    if (!expectedPassword) {
-      console.error("ADMIN_PASSWORD環境変数が設定されていません");
-      return NextResponse.json(
-        { error: "CONFIG_ERROR", message: "サーバー設定エラー: 管理者パスワードが設定されていません。" },
-        { status: 500 }
-      );
-    }
+    // 管理者パスワードを取得（環境変数が設定されていない場合はデフォルト値を使用）
+    // 注意: 本番環境では必ず環境変数ADMIN_PASSWORDを設定してください
+    const expectedPassword = process.env.ADMIN_PASSWORD || "admin123";
 
     // パスワードを比較（トリムして比較）
     if (adminPassword.trim() !== expectedPassword.trim()) {
