@@ -553,6 +553,13 @@ export default function Home() {
               color="orange"
               onClick={() => router.push("/cards/screenshot")}
             />
+            <MenuButton
+              icon="🤖"
+              title="AI-OCRでカード化（管理者専用）"
+              description="ChatGPT APIを使用して画像から英文を抽出し、自動的に文単位で分割して日本語に翻訳します。管理者パスワードが必要です。"
+              color="orange"
+              onClick={() => router.push("/cards/ai-card")}
+            />
           </div>
 
           {/* 管理系 */}
