@@ -677,7 +677,7 @@ function PracticeContent() {
                         }`}
                         onClick={() => {
                           if (tts.isAvailable()) {
-                            tts.speak(item.word, undefined, ttsSpeed);
+                            tts.speak(item.word, "en", ttsSpeed);
                           }
                         }}
                         title={isImportant ? "⭐ 重要単語 - クリックで音声読み上げ" : "クリックで音声読み上げ"}
