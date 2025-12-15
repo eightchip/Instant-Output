@@ -410,74 +410,22 @@ function AICardContent() {
                 <div>
                   <div className="flex items-center justify-between mb-2">
                     <p className="text-sm text-gray-600">OCR結果:</p>
-                    {!isEditingOcrText ? (
-                      <button
-                        onClick={() => {
-                          setEditingOcrText(rawOcrText);
-                          setIsEditingOcrText(true);
-                          setTimeout(() => {
-                            ocrTextareaRef.current?.focus();
-                          }, 0);
-                        }}
-                        className="text-sm text-blue-600 hover:text-blue-800 font-semibold"
-                      >
-                        編集
-                      </button>
-                    ) : (
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => {
-                            setRawOcrText(editingOcrText);
-                            setIsEditingOcrText(false);
-                            // Sourceを更新
-                            if (sourceId) {
-                              storage.init().then(() => {
-                                storage.getSource(sourceId).then((source) => {
-                                  if (source) {
-                                    source.rawOcrText = editingOcrText;
-                                    storage.saveSource(source);
-                                  }
-                                });
-                              });
-                            }
-                          }}
-                          className="text-sm text-green-600 hover:text-green-800 font-semibold"
-                        >
-                          保存
-                        </button>
-                        <button
-                          onClick={() => {
-                            setEditingOcrText(rawOcrText);
-                            setIsEditingOcrText(false);
-                          }}
-                          className="text-sm text-gray-600 hover:text-gray-800 font-semibold"
-                        >
-                          キャンセル
-                        </button>
-                      </div>
-                    )}
+                    <button
+                      onClick={() => {
+                        setEditingOcrText(rawOcrText);
+                        setIsEditingOcrText(true);
+                      }}
+                      className="text-sm text-blue-600 hover:text-blue-800 font-semibold"
+                    >
+                      全画面で編集
+                    </button>
                   </div>
                   <textarea
-                    ref={ocrTextareaRef}
-                    value={isEditingOcrText ? editingOcrText : rawOcrText}
-                    onChange={(e) => {
-                      if (isEditingOcrText) {
-                        setEditingOcrText(e.target.value);
-                      }
-                    }}
-                    readOnly={!isEditingOcrText}
-                    className={`w-full border border-gray-300 rounded-lg px-4 py-3 min-h-[200px] ${
-                      isEditingOcrText
-                        ? "bg-white text-gray-900"
-                        : "bg-gray-50 text-gray-900"
-                    }`}
+                    value={rawOcrText}
+                    readOnly
+                    className="w-full border border-gray-300 rounded-lg px-4 py-3 min-h-[200px] bg-gray-50 text-gray-900"
                     placeholder="OCR結果がここに表示されます"
                   />
-                  {isEditingOcrText && (
-                    <p className="text-xs text-gray-500 mt-1">
-                      💡 ヒント: 改行を入れると、その位置で文が分割されます
-                    </p>
-                  )}
                 </div>
               )}
             </div>
@@ -547,6 +495,83 @@ function AICardContent() {
                   <p className="text-sm text-gray-600 mt-2">{status}</p>
                 </div>
               )}
+            </div>
+          )}
+
+          {/* 全画面編集モーダル（スクリーンショット機能と同じ） */}
+          {isEditingOcrText && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+              <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] flex flex-col">
+                <div className="flex items-center justify-between p-4 border-b">
+                  <h3 className="text-lg font-semibold text-gray-900">
+                    抽出されたテキストを編集
+                  </h3>
+                  <button
+                    onClick={() => {
+                      setEditingOcrText(rawOcrText);
+                      setIsEditingOcrText(false);
+                    }}
+                    className="text-gray-500 hover:text-gray-700 text-2xl"
+                  >
+                    ×
+                  </button>
+                </div>
+                <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <label className="text-sm text-gray-700 font-semibold">
+                      改行を入れるとその位置で分割されます
+                    </label>
+                    <button
+                      onClick={handleInsertLineBreak}
+                      className="text-xs bg-blue-600 hover:bg-blue-700 text-white font-semibold py-1 px-3 rounded-lg flex items-center gap-1"
+                      title="カーソル位置に改行を挿入（分割位置を明示）"
+                    >
+                      ⏎ 改行を挿入
+                    </button>
+                  </div>
+                  <textarea
+                    ref={ocrTextareaRef}
+                    value={editingOcrText}
+                    onChange={(e) => setEditingOcrText(e.target.value)}
+                    className="w-full border border-gray-300 rounded-lg px-4 py-3 text-base text-gray-800 bg-white whitespace-pre-wrap break-words min-h-[400px]"
+                    rows={20}
+                    placeholder="OCRで抽出されたテキストを編集できます。改行を入れるとその位置で分割されます。改行がない場合は、ピリオドや？などの句読点で自動分割されます。"
+                    autoFocus
+                  />
+                  <p className="text-xs text-gray-500">
+                    💡 ヒント: 「改行を挿入」ボタンで分割位置を明示できます。改行がない場合は、ピリオド（.）や疑問符（?）などで自動分割されます。
+                  </p>
+                </div>
+                <div className="flex gap-3 p-4 border-t">
+                  <button
+                    onClick={() => {
+                      setEditingOcrText(rawOcrText);
+                      setIsEditingOcrText(false);
+                    }}
+                    className="flex-1 bg-gray-500 hover:bg-gray-600 text-white font-semibold py-3 px-6 rounded-lg text-base"
+                  >
+                    閉じる
+                  </button>
+                  <button
+                    onClick={async () => {
+                      setRawOcrText(editingOcrText);
+                      setIsEditingOcrText(false);
+                      // Sourceを更新
+                      if (sourceId) {
+                        await storage.init();
+                        const source = await storage.getSource(sourceId);
+                        if (source) {
+                          source.rawOcrText = editingOcrText;
+                          await storage.saveSource(source);
+                        }
+                      }
+                    }}
+                    className="flex-1 bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-6 rounded-lg text-base"
+                  >
+                    ✓ 保存
+                  </button>
+                </div>
+              </div>
             </div>
           )}
         </div>
