@@ -187,6 +187,88 @@ function PracticeContent() {
     setManualResult(result);
   }, []);
 
+  const handleResultConfirm = useCallback(async () => {
+    if (!currentCard) return;
+    
+    // 最終的な採点結果を決定（手動採点が優先、なければ自動採点）
+    const finalResult = manualResult || autoGradingResult?.result || "NG";
+
+    // タイピング練習モード: タイピング速度を計算
+    if (mode === "typing" && typingStartTime === null && showAnswer) {
+      setTypingStartTime(Date.now());
+    }
+    if (mode === "typing" && typingStartTime !== null && showAnswer) {
+      const typingTime = (Date.now() - typingStartTime) / 1000 / 60; // 分
+      const words = userAnswer.trim().split(/\s+/).length;
+      const wpm = typingTime > 0 ? Math.round(words / typingTime) : 0;
+
+      // 正確性を計算（簡易版: 文字数ベース）
+      const targetLength = currentCard.target_en.length;
+      const userLength = userAnswer.length;
+      const accuracy =
+        targetLength > 0
+          ? Math.round(
+              (1 - Math.abs(targetLength - userLength) / targetLength) * 100
+            )
+          : 0;
+
+      setTypingStats({ wpm, accuracy });
+    }
+
+    // 結果を記録
+    const newResults = [...results, finalResult];
+    setResults(newResults);
+    resultsRef.current = newResults;
+
+    try {
+      await saveCardResult(currentCard.id, finalResult);
+      // 各カード確定時にセッションを更新
+      await saveStudySession(newResults, false);
+    } catch (error) {
+      console.error("Failed to save result:", error);
+    }
+
+    // TTSを停止
+    tts.stop();
+
+    // タイピング統計をリセット
+    setTypingStartTime(null);
+    setTypingStats(null);
+
+    // 次のカードへ
+    if (currentIndex < cards.length - 1) {
+      setCurrentIndex(currentIndex + 1);
+      setUserAnswer("");
+      setShowAnswer(false);
+      setAutoGradingResult(null);
+      setManualResult(null);
+    } else {
+      // 完了 - 学習履歴を保存
+      await saveStudySession(newResults, true);
+      const modeMessages: Record<PracticeMode, string> = {
+        normal: "今日の学習が完了しました！",
+        typing: "タイピング練習が完了しました！",
+        shuffle: "シャッフルモードの学習が完了しました！",
+        focus: "集中モードの学習が完了しました！",
+        review_only: "復習が完了しました！",
+        custom: "学習が完了しました！",
+        favorite: "お気に入りモードの学習が完了しました！",
+        weak: "苦手克服モードの学習が完了しました！",
+        random: "ランダムモードの学習が完了しました！",
+        speed: "スピードチャレンジが完了しました！",
+        flashcard: "フラッシュカード学習が完了しました！",
+      };
+      setMessageDialog({
+        isOpen: true,
+        title: "学習完了",
+        message: modeMessages[mode] || "学習が完了しました！",
+      });
+      setTimeout(() => {
+        router.push("/");
+      }, 1500);
+    }
+  }, [currentCard, manualResult, autoGradingResult, mode, typingStartTime, userAnswer, currentIndex, cards.length, results, startTime, router, showAnswer]);
+
   // キーボードショートカット
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
