@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, Suspense, useEffect } from "react";
+import { useState, Suspense, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { storage } from "@/lib/storage";
 import { Source } from "@/types/ai-card";
