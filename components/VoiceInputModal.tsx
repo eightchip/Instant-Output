@@ -133,7 +133,10 @@ export default function VoiceInputModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[450px] max-h-[70vh] overflow-y-auto">
+      <DialogContent 
+        className="sm:max-w-[450px] max-h-[70vh] overflow-y-auto"
+        style={{ top: '10%', transform: 'translate(-50%, 0)' }}
+      >
         <DialogHeader>
           <DialogTitle className="text-lg">{langName}音声入力</DialogTitle>
           <DialogDescription className="text-sm">
