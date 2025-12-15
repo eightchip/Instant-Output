@@ -35,7 +35,38 @@ class TTSService {
     const detectedLang: TTSLanguage = lang !== undefined ? lang : detectLanguage(text);
 
     this.utterance = new SpeechSynthesisUtterance(text);
-    this.utterance.lang = detectedLang === "ja" ? "ja-JP" : "en-US";
+    
+    // 言語を設定
+    const langCode = detectedLang === "ja" ? "ja-JP" : "en-US";
+    this.utterance.lang = langCode;
+    
+    // 英語の場合は英語音声を明示的に選択
+    if (detectedLang === "en") {
+      const voices = window.speechSynthesis.getVoices();
+      // 英語音声を優先的に選択（en-US、en-GBなど）
+      const englishVoice = voices.find(
+        (voice) => voice.lang.startsWith("en") && voice.localService !== false
+      ) || voices.find((voice) => voice.lang.startsWith("en"));
+      
+      if (englishVoice) {
+        this.utterance.voice = englishVoice;
+        console.log("Using English voice:", englishVoice.name, englishVoice.lang);
+      } else {
+        console.warn("English voice not found, using default");
+      }
+    } else {
+      // 日本語の場合は日本語音声を明示的に選択
+      const voices = window.speechSynthesis.getVoices();
+      const japaneseVoice = voices.find(
+        (voice) => voice.lang.startsWith("ja") && voice.localService !== false
+      ) || voices.find((voice) => voice.lang.startsWith("ja"));
+      
+      if (japaneseVoice) {
+        this.utterance.voice = japaneseVoice;
+        console.log("Using Japanese voice:", japaneseVoice.name, japaneseVoice.lang);
+      }
+    }
+    
     this.utterance.rate = speed;
     this.utterance.pitch = 1;
     this.utterance.volume = 1;
