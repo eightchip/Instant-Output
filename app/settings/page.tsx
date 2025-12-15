@@ -174,6 +174,35 @@ export default function SettingsPage() {
         </div>
 
         <div className="space-y-6">
+          {/* 重要な説明 */}
+          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-300 rounded-lg p-6 shadow-md">
+            <div className="flex items-start gap-3 mb-4">
+              <div className="text-2xl">💡</div>
+              <div className="flex-1">
+                <h3 className="text-lg font-bold text-blue-900 mb-2">
+                  データはデバイスやブラウザごとに別々に保存されます
+                </h3>
+                <p className="text-sm text-blue-800 mb-3 leading-relaxed">
+                  このアプリのデータは、それぞれのデバイス（パソコン、スマホ、タブレット）やブラウザ（Chrome、Edge、Safariなど）ごとに<b>別々に保存</b>されています。
+                </p>
+                <div className="bg-white/70 rounded-lg p-4 mb-3">
+                  <p className="text-sm font-semibold text-blue-900 mb-2">具体例：</p>
+                  <ul className="text-sm text-blue-800 space-y-1.5 list-disc list-inside ml-2">
+                    <li>家のパソコンのChromeで作ったカードは、スマホのChromeには表示されません</li>
+                    <li>パソコンのChromeで作ったカードは、同じパソコンのEdgeにも表示されません</li>
+                    <li>スマホのSafariで作ったカードは、他のブラウザやデバイスには表示されません</li>
+                  </ul>
+                </div>
+                <div className="bg-blue-100 border-l-4 border-blue-500 rounded p-3">
+                  <p className="text-sm font-semibold text-blue-900 mb-1">✅ 対処方法：</p>
+                  <p className="text-sm text-blue-800 leading-relaxed">
+                    複数のデバイスやブラウザで同じデータを使いたい場合は、<b>エクスポート</b>でデータをダウンロードし、別のデバイスやブラウザで<b>インポート</b>してください。これで、どのデバイス・ブラウザからでも同じデータにアクセスできるようになります。
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
           {/* データエクスポート */}
           <div className="bg-white rounded-lg shadow-lg p-6">
             <h2 className="text-lg font-semibold mb-4">データのエクスポート</h2>
