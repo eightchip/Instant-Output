@@ -6,7 +6,7 @@ import VoiceInputButton from "./VoiceInputButton";
 
 interface AudioPlaybackButtonProps {
   text: string;
-  language: "ja" | "en";
+  language: "jp" | "en";
   onInsert?: (text: string) => void;
   className?: string;
   size?: "sm" | "md";
@@ -55,8 +55,9 @@ export default function AudioPlaybackButton({
       tts.resume();
       setIsPaused(false);
     } else {
-      // 再生
-      tts.speak(text, language, ttsSpeed);
+      // 再生（TTSサービスは"ja"を期待するので変換）
+      const ttsLanguage = language === "jp" ? "ja" : "en";
+      tts.speak(text, ttsLanguage, ttsSpeed);
       setIsSpeaking(true);
       setIsPaused(false);
     }
@@ -64,10 +65,11 @@ export default function AudioPlaybackButton({
 
   const handleSpeedChange = (speed: TTSSpeed) => {
     setTtsSpeed(speed);
-    // 再生中なら再読み上げ
+    // 再生中なら再読み上げ（TTSサービスは"ja"を期待するので変換）
     if (isSpeaking && !isPaused) {
       tts.stop();
-      tts.speak(text, language, speed);
+      const ttsLanguage = language === "jp" ? "ja" : "en";
+      tts.speak(text, ttsLanguage, speed);
     }
   };
 
