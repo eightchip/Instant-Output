@@ -239,7 +239,7 @@ function PracticeContent() {
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [showAnswer, currentCard, manualResult, autoGradingResult, userAnswer, handleShowAnswer, handleResultSelect, handleResultConfirm]);
+  }, [showAnswer, cards, currentIndex, manualResult, autoGradingResult, userAnswer, handleShowAnswer, handleResultSelect, handleResultConfirm]);
 
   // 集中モードのタイマー
   useEffect(() => {
