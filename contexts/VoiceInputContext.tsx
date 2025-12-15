@@ -12,6 +12,7 @@ import {
   VoiceClipboardItem,
 } from "@/lib/voice-clipboard";
 import { storage } from "@/lib/storage";
+import { Card } from "@/types/models";
 
 interface VoiceInputContextType {
   openVoiceInput: (language: "jp" | "en", onInsert?: (text: string) => void, japaneseText?: string) => void;
@@ -77,12 +78,12 @@ export function VoiceInputProvider({ children }: { children: React.ReactNode }) 
       const lessonId = lessons[0].id;
       
       // カードを作成
-      const card = {
+      const card: Card = {
         id: `card_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         lessonId: lessonId,
         prompt_jp: language === "jp" ? text : "(後で追加)",
         target_en: language === "en" ? text : "(後で追加)",
-        source_type: language === "jp" ? "manual_pair" : "manual_en" as const,
+        source_type: language === "jp" ? "manual_pair" : "manual_en",
       };
       
       await storage.saveCard(card);
