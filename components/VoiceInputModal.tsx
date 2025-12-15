@@ -17,6 +17,7 @@ interface VoiceInputModalProps {
   onClose: () => void;
   onInsert: (text: string) => void;
   onSaveToClipboard?: (text: string, language: "jp" | "en") => void;
+  japaneseText?: string; // 日本語テキスト（英語音声入力時に表示）
 }
 
 export default function VoiceInputModal({
@@ -25,6 +26,7 @@ export default function VoiceInputModal({
   onClose,
   onInsert,
   onSaveToClipboard,
+  japaneseText,
 }: VoiceInputModalProps) {
   const [isRecording, setIsRecording] = useState(false);
   const [recognizedText, setRecognizedText] = useState("");
@@ -290,6 +292,14 @@ export default function VoiceInputModal({
             <span className="block mt-1 text-xs text-gray-500">（ヘッダーをドラッグして移動できます）</span>
           </DialogDescription>
         </DialogHeader>
+
+        {/* 日本語テキスト表示（英語音声入力時） */}
+        {language === "en" && japaneseText && (
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-3">
+            <p className="text-xs text-blue-700 font-semibold mb-1">日本語</p>
+            <p className="text-base text-blue-900 font-medium">{japaneseText}</p>
+          </div>
+        )}
 
         <div className="space-y-3 py-2">
           <div className="flex items-center justify-center">

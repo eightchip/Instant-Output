@@ -8,6 +8,7 @@ interface VoiceInputButtonProps {
   onInsert?: (text: string) => void;
   className?: string;
   size?: "sm" | "md";
+  japaneseText?: string; // 日本語テキスト（英語音声入力時に表示）
 }
 
 export default function VoiceInputButton({
@@ -15,6 +16,7 @@ export default function VoiceInputButton({
   onInsert,
   className = "",
   size = "sm",
+  japaneseText,
 }: VoiceInputButtonProps) {
   const { openVoiceInput, openVoiceClipboard, insertText } = useVoiceInput();
   const [showMenu, setShowMenu] = useState(false);
@@ -62,7 +64,7 @@ export default function VoiceInputButton({
         <div className="absolute top-full right-0 mt-2 bg-white rounded-lg shadow-xl border border-gray-200 p-2 min-w-[200px] z-50">
           <button
             onClick={() => {
-              openVoiceInput(language, handleInsert);
+              openVoiceInput(language, handleInsert, japaneseText);
               setShowMenu(false);
             }}
             className="w-full text-left px-4 py-2 hover:bg-gray-100 rounded-lg flex items-center gap-2"

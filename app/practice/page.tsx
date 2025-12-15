@@ -581,6 +581,7 @@ function PracticeContent() {
                   language="en"
                   onInsert={(text) => setUserAnswer((prev) => prev + (prev ? " " : "") + text)}
                   size="md"
+                  japaneseText={currentCard.prompt_jp}
                 />
               </div>
               <button

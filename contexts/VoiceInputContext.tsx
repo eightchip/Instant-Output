@@ -12,7 +12,7 @@ import {
 } from "@/lib/voice-clipboard";
 
 interface VoiceInputContextType {
-  openVoiceInput: (language: "jp" | "en", onInsert?: (text: string) => void) => void;
+  openVoiceInput: (language: "jp" | "en", onInsert?: (text: string) => void, japaneseText?: string) => void;
   openVoiceClipboard: (onInsert?: (text: string) => void) => void;
   insertText: (text: string) => void;
 }
@@ -23,6 +23,7 @@ export function VoiceInputProvider({ children }: { children: React.ReactNode }) 
   const [showVoiceInputModal, setShowVoiceInputModal] = useState(false);
   const [voiceInputLanguage, setVoiceInputLanguage] = useState<"jp" | "en">("jp");
   const [voiceInputOnInsert, setVoiceInputOnInsert] = useState<((text: string) => void) | undefined>(undefined);
+  const [voiceInputJapaneseText, setVoiceInputJapaneseText] = useState<string | undefined>(undefined);
   
   const [showVoiceClipboard, setShowVoiceClipboard] = useState(false);
   const [voiceClipboardOnInsert, setVoiceClipboardOnInsert] = useState<((text: string) => void) | undefined>(undefined);
@@ -32,9 +33,10 @@ export function VoiceInputProvider({ children }: { children: React.ReactNode }) 
     setVoiceClipboardItems(getVoiceClipboardItems());
   }, []);
 
-  const openVoiceInput = useCallback((language: "jp" | "en", onInsert?: (text: string) => void) => {
+  const openVoiceInput = useCallback((language: "jp" | "en", onInsert?: (text: string) => void, japaneseText?: string) => {
     setVoiceInputLanguage(language);
     setVoiceInputOnInsert(() => onInsert);
+    setVoiceInputJapaneseText(japaneseText);
     setShowVoiceInputModal(true);
   }, []);
 
@@ -112,9 +114,11 @@ export function VoiceInputProvider({ children }: { children: React.ReactNode }) 
         onClose={() => {
           setShowVoiceInputModal(false);
           setVoiceInputOnInsert(undefined);
+          setVoiceInputJapaneseText(undefined);
         }}
         onInsert={handleVoiceInputInsert}
         onSaveToClipboard={handleVoiceInputSave}
+        japaneseText={voiceInputJapaneseText}
       />
       <VoiceClipboard
         isOpen={showVoiceClipboard}
