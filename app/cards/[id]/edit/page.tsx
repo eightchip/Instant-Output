@@ -34,6 +34,11 @@ export default function EditCardPage() {
     title: "",
     message: "",
   });
+  const [confirmDialog, setConfirmDialog] = useState<{ isOpen: boolean; title: string; message: string }>({
+    isOpen: false,
+    title: "",
+    message: "",
+  });
 
   useEffect(() => {
     loadCard();
@@ -312,7 +317,11 @@ export default function EditCardPage() {
 
   async function handleDelete() {
     if (!card) return;
-    // 確認ダイアログは呼び出し元で表示
+    setConfirmDialog({
+      isOpen: true,
+      title: "カードを削除",
+      message: "このカードを削除しますか？この操作は取り消せません。",
+    });
   }
 
   async function executeDelete() {
@@ -676,7 +685,10 @@ export default function EditCardPage() {
         isOpen={confirmDialog.isOpen}
         title={confirmDialog.title}
         message={confirmDialog.message}
-        onConfirm={executeDelete}
+        onConfirm={async () => {
+          setConfirmDialog({ isOpen: false, title: "", message: "" });
+          await executeDelete();
+        }}
         onCancel={() => setConfirmDialog({ isOpen: false, title: "", message: "" })}
         variant="danger"
       />
