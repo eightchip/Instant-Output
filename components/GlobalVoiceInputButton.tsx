@@ -42,7 +42,7 @@ export default function GlobalVoiceInputButton({
   };
 
   const buttonClasses = variant === "floating"
-    ? `fixed bottom-6 right-6 ${sizeClasses[size]} bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-lg flex items-center justify-center z-50 transition-all hover:scale-110`
+    ? `fixed bottom-6 right-6 ${sizeClasses[size]} bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-full shadow-lg hover:shadow-xl flex items-center justify-center z-50 transition-all hover:scale-110 active:scale-95`
     : `inline-flex items-center justify-center ${sizeClasses[size]} bg-blue-600 hover:bg-blue-700 text-white rounded-lg`;
 
   return (
@@ -56,34 +56,37 @@ export default function GlobalVoiceInputButton({
       </button>
 
       {showMenu && (
-        <div className={`absolute ${variant === "floating" ? "bottom-16 right-0" : "top-full left-0 mt-2"} bg-white rounded-lg shadow-xl border border-gray-200 p-2 min-w-[200px] z-50`}>
+        <div className={`absolute ${variant === "floating" ? "bottom-16 right-0" : "top-full left-0 mt-2"} bg-white rounded-lg shadow-xl border border-gray-200 p-2 min-w-[200px] z-[60] animate-fade-in`}>
           <button
-            onClick={() => {
+            onClick={(e) => {
+              e.stopPropagation();
               openVoiceInput("jp", insertText);
               setShowMenu(false);
             }}
-            className="w-full text-left px-4 py-2 hover:bg-gray-100 rounded-lg flex items-center gap-2"
+            className="w-full text-left px-4 py-2 hover:bg-gray-100 rounded-lg flex items-center gap-2 transition-colors"
           >
             <span>🎤</span>
             <span>日本語音声入力</span>
           </button>
           <button
-            onClick={() => {
+            onClick={(e) => {
+              e.stopPropagation();
               openVoiceInput("en", insertText);
               setShowMenu(false);
             }}
-            className="w-full text-left px-4 py-2 hover:bg-gray-100 rounded-lg flex items-center gap-2"
+            className="w-full text-left px-4 py-2 hover:bg-gray-100 rounded-lg flex items-center gap-2 transition-colors"
           >
             <span>🎤</span>
             <span>英語音声入力</span>
           </button>
           <div className="border-t border-gray-200 my-1" />
           <button
-            onClick={() => {
+            onClick={(e) => {
+              e.stopPropagation();
               openVoiceClipboard(insertText);
               setShowMenu(false);
             }}
-            className="w-full text-left px-4 py-2 hover:bg-gray-100 rounded-lg flex items-center gap-2"
+            className="w-full text-left px-4 py-2 hover:bg-gray-100 rounded-lg flex items-center gap-2 transition-colors"
           >
             <span>📋</span>
             <span>クリップボード</span>

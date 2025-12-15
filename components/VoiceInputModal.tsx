@@ -133,19 +133,19 @@ export default function VoiceInputModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-[450px] max-h-[70vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{langName}音声入力</DialogTitle>
-          <DialogDescription>
+          <DialogTitle className="text-lg">{langName}音声入力</DialogTitle>
+          <DialogDescription className="text-sm">
             マイクに向かって話してください。認識されたテキストが表示されます。
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4 py-4">
+        <div className="space-y-3 py-2">
           <div className="flex items-center justify-center">
             <button
               onClick={isRecording ? stopRecording : startRecording}
-              className={`w-20 h-20 rounded-full flex items-center justify-center text-3xl transition-all ${
+              className={`w-16 h-16 rounded-full flex items-center justify-center text-2xl transition-all ${
                 isRecording
                   ? "bg-red-500 hover:bg-red-600 animate-pulse"
                   : "bg-blue-600 hover:bg-blue-700"
@@ -155,7 +155,7 @@ export default function VoiceInputModal({
             </button>
           </div>
 
-          <div className="bg-gray-50 rounded-lg p-4 min-h-[120px] max-h-[300px] overflow-y-auto">
+          <div className="bg-gray-50 rounded-lg p-3 min-h-[80px] max-h-[150px] overflow-y-auto">
             {displayText ? (
               <p className="text-base text-gray-800 whitespace-pre-wrap break-words overflow-wrap-anywhere word-break-break-word">
                 {displayText}
@@ -174,7 +174,7 @@ export default function VoiceInputModal({
             <div className="flex gap-2">
               <Button
                 onClick={handleInsert}
-                className="flex-1"
+                className="flex-1 text-sm py-2"
                 variant="default"
               >
                 テキストを挿入
@@ -182,7 +182,7 @@ export default function VoiceInputModal({
               {onSaveToClipboard && (
                 <Button
                   onClick={handleSaveToClipboard}
-                  className="flex-1"
+                  className="flex-1 text-sm py-2"
                   variant="outline"
                 >
                   クリップボードに保存
@@ -192,8 +192,8 @@ export default function VoiceInputModal({
           )}
         </div>
 
-        <DialogFooter>
-          <Button onClick={onClose} variant="outline">
+        <DialogFooter className="pt-2">
+          <Button onClick={onClose} variant="outline" className="text-sm py-2">
             閉じる
           </Button>
         </DialogFooter>
