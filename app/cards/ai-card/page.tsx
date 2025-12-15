@@ -4,7 +4,7 @@ import { useState, Suspense, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { storage } from "@/lib/storage";
 import { Source } from "@/types/ai-card";
-import { generateCardCandidates } from "@/lib/text-processing";
+import { generateCardCandidates, processOcrText } from "@/lib/text-processing";
 import { isAdminAuthenticated, setAdminAuthenticated, verifyAdminPassword } from "@/lib/admin-auth";
 import MessageDialog from "@/components/MessageDialog";
 import LoadingSpinner from "@/components/LoadingSpinner";
