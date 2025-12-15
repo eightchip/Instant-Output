@@ -317,7 +317,11 @@ function AICardContent() {
       const draftCards = cards.map((card: { en: string; jp: string }, index: number) => ({
         en: card.en,
         jp: card.jp,
-        index,
+        confidence: 1.0, // ChatGPT翻訳なので信頼度は高い
+        needsReview: false, // デフォルトではレビュー不要
+        flags: [], // フラグなし
+        sourceSentence: card.en, // 元の文は英語文と同じ
+        notes: "", // メモなし
       }));
 
       // Draftを保存
