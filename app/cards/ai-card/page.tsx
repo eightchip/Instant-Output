@@ -22,6 +22,7 @@ function AICardContent() {
   const [rawOcrText, setRawOcrText] = useState("");
   const [sourceId, setSourceId] = useState<string | null>(null);
   const [useChatGPTTranslation, setUseChatGPTTranslation] = useState(true); // デフォルトでChatGPT翻訳を使用
+  const [useOneRequestMode, setUseOneRequestMode] = useState(true); // デフォルトで1リクエストモードを使用
   const [isEditingOcrText, setIsEditingOcrText] = useState(false);
   const [editingOcrText, setEditingOcrText] = useState("");
   const ocrTextareaRef = useRef<HTMLTextAreaElement>(null);
@@ -241,6 +242,116 @@ function AICardContent() {
     }
   };
 
+  // 1リクエストでOCR+翻訳を実行
+  const handleOneRequestOCR = async () => {
+    if (!imageFile || !imagePreview) return;
+
+    if (!savedPassword) {
+      setMessageDialog({
+        isOpen: true,
+        title: "認証エラー",
+        message: "1リクエストモードを使用するには、管理者パスワードが必要です。再度ログインしてください。",
+      });
+      return;
+    }
+
+    setIsProcessing(true);
+    setStatus("ChatGPTでOCR・文分割・翻訳を実行中...");
+    setProgress(0);
+
+    try {
+      setProgress(0.2);
+      setStatus("画像をアップロード中...");
+
+      const response = await fetch("/api/ai-ocr-translate", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          imageBase64: imagePreview,
+          password: savedPassword,
+        }),
+      });
+
+      setProgress(0.5);
+      setStatus("テキストを抽出・翻訳中...");
+
+      if (!response.ok) {
+        let errorMessage = "処理に失敗しました。";
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.message || errorData.error || errorMessage;
+        } catch (jsonError) {
+          try {
+            const errorText = await response.text();
+            errorMessage = errorText || errorMessage;
+          } catch (textError) {
+            errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+          }
+        }
+        throw new Error(errorMessage);
+      }
+
+      setProgress(0.8);
+      setStatus("結果を処理中...");
+
+      const result = await response.json();
+      const cards = result.cards || [];
+
+      if (cards.length === 0) {
+        throw new Error("カードが生成されませんでした。画像に英文が含まれていない可能性があります。");
+      }
+
+      // Sourceを保存
+      await storage.init();
+      const source: Source = {
+        id: `source_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        imageId: imagePreview,
+        rawOcrText: cards.map((c: { en: string }) => c.en).join("\n"),
+        createdAt: new Date(),
+      };
+      await storage.saveSource(source);
+
+      // DraftCard形式に変換
+      const draftCards = cards.map((card: { en: string; jp: string }, index: number) => ({
+        en: card.en,
+        jp: card.jp,
+        index,
+      }));
+
+      // Draftを保存
+      const draft = {
+        id: `draft_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        sourceId: source.id,
+        cards: draftCards,
+        warnings: [],
+        detected: {
+          sentenceCount: cards.length,
+          language: "en",
+        },
+        createdAt: new Date(),
+      };
+      await storage.saveDraft(draft);
+
+      setProgress(1.0);
+      setStatus("完了");
+
+      // レビュー画面へ
+      router.push(`/cards/ai-card/review?draftId=${draft.id}`);
+    } catch (error) {
+      console.error("One request OCR error:", error);
+      setMessageDialog({
+        isOpen: true,
+        title: "処理エラー",
+        message: error instanceof Error ? error.message : "OCR・翻訳処理に失敗しました。",
+      });
+      setStatus("エラー");
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   const handleAutoCard = async () => {
     // 編集モードの場合は保存を促す
     if (isEditingOcrText) {
@@ -413,24 +524,67 @@ function AICardContent() {
             )}
           </div>
 
-          {/* ステップ2: OCR */}
+          {/* ステップ2: OCR（1リクエストモードまたは従来モード） */}
           {imageFile && (
             <div className="bg-white rounded-lg shadow-lg p-6">
-              <h2 className="text-xl font-semibold mb-4">ステップ2: ChatGPT APIでOCR実行</h2>
-              {!rawOcrText ? (
+              <h2 className="text-xl font-semibold mb-4">ステップ2: OCR・翻訳実行</h2>
+              
+              {/* モード選択 */}
+              <div className="mb-4 p-4 bg-gray-50 rounded-lg">
+                <label className="block text-sm font-semibold mb-2">実行モードを選択</label>
+                <div className="space-y-2">
+                  <label className="flex items-center cursor-pointer">
+                    <input
+                      type="radio"
+                      name="ocrMode"
+                      value="onerequest"
+                      checked={useOneRequestMode}
+                      onChange={() => setUseOneRequestMode(true)}
+                      className="mr-2"
+                      disabled={isProcessing}
+                    />
+                    <div>
+                      <span className="font-semibold text-green-600">1リクエストでOCR+翻訳（推奨）</span>
+                      <p className="text-xs text-gray-600 ml-6">
+                        画像から直接カード候補を生成。高速で正確。ChatGPTが文分割と翻訳を自動処理。
+                      </p>
+                    </div>
+                  </label>
+                  <label className="flex items-center cursor-pointer">
+                    <input
+                      type="radio"
+                      name="ocrMode"
+                      value="traditional"
+                      checked={!useOneRequestMode}
+                      onChange={() => setUseOneRequestMode(false)}
+                      className="mr-2"
+                      disabled={isProcessing}
+                    />
+                    <div>
+                      <span className="font-semibold text-gray-600">従来モード（OCR→編集→翻訳）</span>
+                      <p className="text-xs text-gray-600 ml-6">
+                        OCR結果を編集してから翻訳。細かい調整が必要な場合に便利。
+                      </p>
+                    </div>
+                  </label>
+                </div>
+              </div>
+
+              {useOneRequestMode ? (
+                // 1リクエストモード
                 <div>
                   <button
-                    onClick={handleOCR}
+                    onClick={handleOneRequestOCR}
                     disabled={isProcessing}
-                    className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-bold py-3 px-4 rounded-lg"
+                    className="w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white font-bold py-3 px-4 rounded-lg"
                   >
-                    OCRを実行
+                    {isProcessing ? "処理中..." : "OCR・翻訳を一括実行"}
                   </button>
                   {isProcessing && (
                     <div className="mt-4">
                       <div className="w-full bg-gray-200 rounded-full h-2">
                         <div
-                          className="bg-blue-600 h-2 rounded-full transition-all"
+                          className="bg-green-600 h-2 rounded-full transition-all"
                           style={{ width: `${progress * 100}%` }}
                         />
                       </div>
@@ -439,32 +593,58 @@ function AICardContent() {
                   )}
                 </div>
               ) : (
+                // 従来モード
                 <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <p className="text-sm text-gray-600">OCR結果:</p>
-                    <button
-                      onClick={() => {
-                        setEditingOcrText(rawOcrText);
-                        setIsEditingOcrText(true);
-                      }}
-                      className="text-sm text-blue-600 hover:text-blue-800 font-semibold"
-                    >
-                      全画面で編集
-                    </button>
-                  </div>
-                  <textarea
-                    value={rawOcrText}
-                    readOnly
-                    className="w-full border border-gray-300 rounded-lg px-4 py-3 min-h-[200px] bg-gray-50 text-gray-900"
-                    placeholder="OCR結果がここに表示されます"
-                  />
+                  {!rawOcrText ? (
+                    <div>
+                      <button
+                        onClick={handleOCR}
+                        disabled={isProcessing}
+                        className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-bold py-3 px-4 rounded-lg"
+                      >
+                        OCRを実行
+                      </button>
+                      {isProcessing && (
+                        <div className="mt-4">
+                          <div className="w-full bg-gray-200 rounded-full h-2">
+                            <div
+                              className="bg-blue-600 h-2 rounded-full transition-all"
+                              style={{ width: `${progress * 100}%` }}
+                            />
+                          </div>
+                          <p className="text-sm text-gray-600 mt-2">{status}</p>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <p className="text-sm text-gray-600">OCR結果:</p>
+                        <button
+                          onClick={() => {
+                            setEditingOcrText(rawOcrText);
+                            setIsEditingOcrText(true);
+                          }}
+                          className="text-sm text-blue-600 hover:text-blue-800 font-semibold"
+                        >
+                          全画面で編集
+                        </button>
+                      </div>
+                      <textarea
+                        value={rawOcrText}
+                        readOnly
+                        className="w-full border border-gray-300 rounded-lg px-4 py-3 min-h-[200px] bg-gray-50 text-gray-900"
+                        placeholder="OCR結果がここに表示されます"
+                      />
+                    </div>
+                  )}
                 </div>
               )}
             </div>
           )}
 
-          {/* ステップ3: 自動分割・翻訳 */}
-          {rawOcrText && (
+          {/* ステップ3: 自動分割・翻訳（従来モードのみ） */}
+          {rawOcrText && !useOneRequestMode && (
             <div className="bg-white rounded-lg shadow-lg p-6">
               <h2 className="text-xl font-semibold mb-4">ステップ3: 自動分割・翻訳</h2>
               
