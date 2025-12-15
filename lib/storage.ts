@@ -229,51 +229,49 @@ class StorageService {
   // Card operations
   async saveCard(card: Card): Promise<void> {
     const db = this.ensureDb();
-    return new Promise(async (resolve, reject) => {
-      try {
-        const tx = db.transaction(STORES.cards, "readwrite");
-        const store = tx.objectStore(STORES.cards);
-        
-        // 既存カードかどうかを確認
-        const existingCard = await this.getCard(card.id);
-        const isUpdate = existingCard !== null;
-        
-        // 新規カードの場合、orderが指定されていない場合は自動設定
-        let order = card.order;
-        if (!isUpdate && order === undefined) {
-          // 同じレッスンの既存カードの最大orderを取得
-          const existingCards = await this.getCardsByLesson(card.lessonId);
-          const maxOrder = existingCards.length > 0 
-            ? Math.max(...existingCards.map(c => c.order ?? -1), -1)
-            : -1;
-          order = maxOrder + 1;
-        } else if (isUpdate) {
-          // 既存カードの更新の場合は、orderを保持（指定されていない場合は既存のorderを保持）
-          order = card.order !== undefined ? card.order : existingCard?.order;
-        }
-        
-        // createdAtを設定（新規カードの場合のみ）
-        let createdAt = card.createdAt;
-        if (!isUpdate && !createdAt) {
-          createdAt = new Date();
-        } else if (isUpdate && existingCard?.createdAt) {
-          // 既存カードの更新の場合は、既存のcreatedAtを保持
-          createdAt = existingCard.createdAt;
-        }
-        
-        // createdAtをISO文字列に変換して保存
-        const cardData: any = {
-          ...card,
-          order,
-          createdAt: createdAt instanceof Date ? createdAt.toISOString() : createdAt,
-        };
-        
-        const request = store.put(cardData);
-        request.onsuccess = () => resolve();
-        request.onerror = () => reject(request.error);
-      } catch (error) {
-        reject(error);
-      }
+    
+    // 既存カードかどうかを確認（トランザクション開始前に実行）
+    const existingCard = await this.getCard(card.id);
+    const isUpdate = existingCard !== null;
+    
+    // 新規カードの場合、orderが指定されていない場合は自動設定
+    let order = card.order;
+    if (!isUpdate && order === undefined) {
+      // 同じレッスンの既存カードの最大orderを取得（トランザクション開始前に実行）
+      const existingCards = await this.getCardsByLesson(card.lessonId);
+      const maxOrder = existingCards.length > 0 
+        ? Math.max(...existingCards.map(c => c.order ?? -1), -1)
+        : -1;
+      order = maxOrder + 1;
+    } else if (isUpdate) {
+      // 既存カードの更新の場合は、orderを保持（指定されていない場合は既存のorderを保持）
+      order = card.order !== undefined ? card.order : existingCard?.order;
+    }
+    
+    // createdAtを設定（新規カードの場合のみ）
+    let createdAt = card.createdAt;
+    if (!isUpdate && !createdAt) {
+      createdAt = new Date();
+    } else if (isUpdate && existingCard?.createdAt) {
+      // 既存カードの更新の場合は、既存のcreatedAtを保持
+      createdAt = existingCard.createdAt;
+    }
+    
+    // トランザクションを開始して保存
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(STORES.cards, "readwrite");
+      const store = tx.objectStore(STORES.cards);
+      
+      // createdAtをISO文字列に変換して保存
+      const cardData: any = {
+        ...card,
+        order,
+        createdAt: createdAt instanceof Date ? createdAt.toISOString() : createdAt,
+      };
+      
+      const request = store.put(cardData);
+      request.onsuccess = () => resolve();
+      request.onerror = () => reject(request.error);
     });
   }
 
