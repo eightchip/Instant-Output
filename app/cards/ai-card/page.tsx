@@ -21,6 +21,7 @@ function AICardContent() {
   const [status, setStatus] = useState("");
   const [rawOcrText, setRawOcrText] = useState("");
   const [sourceId, setSourceId] = useState<string | null>(null);
+  const [useChatGPTTranslation, setUseChatGPTTranslation] = useState(true); // デフォルトでChatGPT翻訳を使用
   const [messageDialog, setMessageDialog] = useState<{ isOpen: boolean; title: string; message: string }>({
     isOpen: false,
     title: "",
@@ -202,15 +203,20 @@ function AICardContent() {
     if (!rawOcrText || !sourceId) return;
 
     setIsProcessing(true);
-    setStatus("自動分割・翻訳中...");
+    setStatus(useChatGPTTranslation ? "ChatGPTで自動分割・翻訳中..." : "自動分割・翻訳中...");
     setProgress(0);
 
     try {
       // 自動分割・自動翻訳を実行
-      const result = await generateCardCandidates(rawOcrText, (step, progressValue) => {
-        setStatus(step);
-        setProgress(progressValue);
-      });
+      const result = await generateCardCandidates(
+        rawOcrText,
+        (step, progressValue) => {
+          setStatus(step);
+          setProgress(progressValue);
+        },
+        useChatGPTTranslation, // ChatGPT翻訳を使用するかどうか
+        useChatGPTTranslation ? savedPassword : undefined // ChatGPT使用時のみパスワードを渡す
+      );
 
       // Draftを保存
       await storage.init();
@@ -383,6 +389,48 @@ function AICardContent() {
           {rawOcrText && (
             <div className="bg-white rounded-lg shadow-lg p-6">
               <h2 className="text-xl font-semibold mb-4">ステップ3: 自動分割・翻訳</h2>
+              
+              {/* 翻訳方法の選択 */}
+              <div className="mb-4 p-4 bg-gray-50 rounded-lg">
+                <label className="block text-sm font-semibold mb-2">翻訳方法を選択</label>
+                <div className="space-y-2">
+                  <label className="flex items-center cursor-pointer">
+                    <input
+                      type="radio"
+                      name="translationMethod"
+                      value="chatgpt"
+                      checked={useChatGPTTranslation}
+                      onChange={() => setUseChatGPTTranslation(true)}
+                      className="mr-2"
+                      disabled={isProcessing}
+                    />
+                    <div>
+                      <span className="font-semibold text-blue-600">ChatGPT翻訳（推奨）</span>
+                      <p className="text-xs text-gray-600 ml-6">
+                        高精度な翻訳。イギリス英語にも対応。Oxfordなどの教材に最適。
+                      </p>
+                    </div>
+                  </label>
+                  <label className="flex items-center cursor-pointer">
+                    <input
+                      type="radio"
+                      name="translationMethod"
+                      value="mymemory"
+                      checked={!useChatGPTTranslation}
+                      onChange={() => setUseChatGPTTranslation(false)}
+                      className="mr-2"
+                      disabled={isProcessing}
+                    />
+                    <div>
+                      <span className="font-semibold text-gray-600">MyMemory翻訳（無料）</span>
+                      <p className="text-xs text-gray-600 ml-6">
+                        無料の翻訳API。精度は中程度。1日10,000文字まで。
+                      </p>
+                    </div>
+                  </label>
+                </div>
+              </div>
+
               <button
                 onClick={handleAutoCard}
                 disabled={isProcessing}

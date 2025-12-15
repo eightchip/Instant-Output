@@ -122,10 +122,43 @@ export function cleanOcrText(text: string): string {
 /**
  * MyMemory Translation APIを使用して英文を日本語に翻訳
  * @param text 翻訳する英文
+ * @param useChatGPT ChatGPT APIを使用するかどうか（デフォルト: false）
+ * @param adminPassword 管理者パスワード（ChatGPT使用時のみ必要）
  * @returns 翻訳された日本語
  */
-export async function translateToJapanese(text: string): Promise<string> {
+export async function translateToJapanese(
+  text: string,
+  useChatGPT: boolean = false,
+  adminPassword?: string
+): Promise<string> {
   try {
+    // ChatGPT APIを使用する場合
+    if (useChatGPT && adminPassword) {
+      const response = await fetch("/api/translate-chatgpt", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          text,
+          adminPassword,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        console.warn(`ChatGPT Translation API returned status ${response.status}`);
+        return `[翻訳エラー: ${errorData.message || "API接続失敗"}]`;
+      }
+
+      const data = await response.json();
+      if (data.translatedText) {
+        return data.translatedText;
+      } else {
+        return `[翻訳エラー: 翻訳結果が取得できませんでした]`;
+      }
+    }
+
     // MyMemory Translation API（無料、制限あり）
     // 注意: 実際の運用では、レート制限やエラーハンドリングを考慮する必要があります
     const response = await fetch(
@@ -167,25 +200,31 @@ export async function translateToJapanese(text: string): Promise<string> {
  * 複数の文を並列で翻訳（レート制限を考慮して順次実行）
  * @param sentences 翻訳する文の配列
  * @param onProgress 進捗コールバック
+ * @param useChatGPT ChatGPT APIを使用するかどうか（デフォルト: false）
+ * @param adminPassword 管理者パスワード（ChatGPT使用時のみ必要）
  * @returns 翻訳結果の配列
  */
 export async function translateSentences(
   sentences: string[],
-  onProgress?: (current: number, total: number) => void
+  onProgress?: (current: number, total: number) => void,
+  useChatGPT: boolean = false,
+  adminPassword?: string
 ): Promise<string[]> {
   const translations: string[] = [];
 
   for (let i = 0; i < sentences.length; i++) {
-    const translation = await translateToJapanese(sentences[i]);
+    const translation = await translateToJapanese(sentences[i], useChatGPT, adminPassword);
     translations.push(translation);
     
     if (onProgress) {
       onProgress(i + 1, sentences.length);
     }
 
-    // APIレート制限を考慮して少し待機（1秒間隔）
+    // APIレート制限を考慮して少し待機
+    // ChatGPTの場合は少し長めに待機（APIコストを考慮）
+    const delay = useChatGPT ? 2000 : 1000;
     if (i < sentences.length - 1) {
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      await new Promise((resolve) => setTimeout(resolve, delay));
     }
   }
 
@@ -196,11 +235,15 @@ export async function translateSentences(
  * OCRテキストからカード候補を生成（自動分割・自動翻訳）
  * @param rawOcrText OCRで取得した生テキスト
  * @param onProgress 進捗コールバック
+ * @param useChatGPT ChatGPT APIを使用するかどうか（デフォルト: false）
+ * @param adminPassword 管理者パスワード（ChatGPT使用時のみ必要）
  * @returns カード候補の配列
  */
 export async function generateCardCandidates(
   rawOcrText: string,
-  onProgress?: (step: string, progress: number) => void
+  onProgress?: (step: string, progress: number) => void,
+  useChatGPT: boolean = false,
+  adminPassword?: string
 ): Promise<{
   cards: DraftCard[];
   warnings: string[];
@@ -232,17 +275,21 @@ export async function generateCardCandidates(
   }
 
   // ステップ3: 翻訳
-  if (onProgress) onProgress("翻訳中...", 0.5);
+  if (onProgress) onProgress(useChatGPT ? "ChatGPTで翻訳中..." : "翻訳中...", 0.5);
   const translations = await translateSentences(
     sentences,
     (current, total) => {
       if (onProgress) {
         onProgress(
-          `翻訳中... (${current}/${total})`,
+          useChatGPT 
+            ? `ChatGPTで翻訳中... (${current}/${total})` 
+            : `翻訳中... (${current}/${total})`,
           0.5 + (current / total) * 0.4
         );
       }
-    }
+    },
+    useChatGPT,
+    adminPassword
   );
 
   // ステップ4: カード候補を生成
