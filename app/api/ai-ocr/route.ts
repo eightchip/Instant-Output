@@ -71,13 +71,31 @@ This is the third sentence.`,
     });
 
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(
-        errorData.error?.message || `OpenAI API error: ${response.statusText}`
-      );
+      let errorMessage = `OpenAI API error: ${response.statusText}`;
+      try {
+        const errorData = await response.json();
+        errorMessage = errorData.error?.message || errorMessage;
+      } catch (e) {
+        // JSONパースに失敗した場合は、テキストとして読み込む
+        try {
+          const errorText = await response.text();
+          errorMessage = errorText || errorMessage;
+        } catch (textError) {
+          // テキスト読み込みも失敗した場合は、ステータステキストを使用
+          errorMessage = `OpenAI API error: ${response.status} ${response.statusText}`;
+        }
+      }
+      throw new Error(errorMessage);
     }
 
-    const data = await response.json();
+    let data;
+    try {
+      data = await response.json();
+    } catch (jsonError) {
+      // JSONパースに失敗した場合
+      const responseText = await response.text();
+      throw new Error(`Invalid JSON response from OpenAI API: ${responseText.substring(0, 200)}`);
+    }
     let extractedText = data.choices[0]?.message?.content || "";
 
     if (!extractedText) {
