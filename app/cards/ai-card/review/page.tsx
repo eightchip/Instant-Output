@@ -149,9 +149,18 @@ function ReviewContent() {
         }
       }
       
-      const selectedIndices = Array.from(selectedCards);
-      const cardsToSave = selectedIndices.map((index) => {
-        const draftCard = filteredCards[index];
+      // 選択されたカードのインデックスを順序付きで取得（元の順序を保持）
+      // filteredCardsは元のdraft.cardsの順序を保持しているため、その順序で保存
+      const selectedIndices = Array.from(selectedCards).sort((a, b) => a - b);
+      
+      // 既存のカードの最大orderを取得（既存カードの後に追加するため）
+      const existingCards = await storage.getCardsByLesson(selectedLessonId);
+      const maxOrder = existingCards.length > 0 
+        ? Math.max(...existingCards.map(c => c.order ?? -1), -1)
+        : -1;
+      
+      const cardsToSave = selectedIndices.map((originalIndex, relativeOrder) => {
+        const draftCard = filteredCards[originalIndex];
         const card: Card = {
           id: `card_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
           lessonId: selectedLessonId,
@@ -159,6 +168,8 @@ function ReviewContent() {
           target_en: draftCard.en,
           source_type: "screenshot",
           imageData: imageData, // 画像データを保存
+          order: maxOrder + 1 + relativeOrder, // レッスン内での表示順序を保存（既存カードの後に追加）
+          createdAt: new Date(), // 作成日時も保存（フォールバック用）
         };
         return card;
       });

@@ -31,6 +31,8 @@ export interface Card {
   notes?: string; // メモ・ノート（覚え方のコツなど）
   importantWords?: string[]; // 重要な単語・表現のリスト
   tags?: string[]; // タグのリスト
+  order?: number; // レッスン内での表示順序
+  createdAt?: Date; // 作成日時（順序保持のフォールバック）
 }
 
 export interface Review {

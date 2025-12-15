@@ -256,7 +256,27 @@ class StorageService {
       const store = tx.objectStore(STORES.cards);
       const index = store.index("lessonId");
       const request = index.getAll(lessonId);
-      request.onsuccess = () => resolve(request.result || []);
+      request.onsuccess = () => {
+        const cards = (request.result || []).map((card: any) => ({
+          ...card,
+          createdAt: card.createdAt ? new Date(card.createdAt) : undefined,
+        }));
+        // 順序でソート（orderがない場合はcreatedAt、それもない場合はidでソート）
+        const sorted = cards.sort((a: Card, b: Card) => {
+          if (a.order !== undefined && b.order !== undefined) {
+            return a.order - b.order;
+          }
+          if (a.order !== undefined) return -1;
+          if (b.order !== undefined) return 1;
+          if (a.createdAt && b.createdAt) {
+            return a.createdAt.getTime() - b.createdAt.getTime();
+          }
+          if (a.createdAt) return -1;
+          if (b.createdAt) return 1;
+          return a.id.localeCompare(b.id);
+        });
+        resolve(sorted);
+      };
       request.onerror = () => reject(request.error);
     });
   }
