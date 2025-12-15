@@ -6,6 +6,7 @@ import { storage } from "@/lib/storage";
 import { Card, Lesson, SourceType } from "@/types/models";
 import { highlightText } from "@/lib/highlight";
 import MessageDialog from "@/components/MessageDialog";
+import { useBatchCardSelection } from "@/hooks/useBatchCardSelection";
 
 type FilterType = {
   lessonId?: string;
@@ -25,6 +26,33 @@ export default function CardSearchPage() {
     isOpen: false,
     title: "",
     message: "",
+  });
+  const [isBatchMode, setIsBatchMode] = useState(false);
+
+  const {
+    selectedCards,
+    isDeleting,
+    toggleCardSelection,
+    toggleSelectAll,
+    clearSelection,
+    handleBatchDelete,
+  } = useBatchCardSelection(filteredCards, {
+    onDeleteSuccess: () => {
+      loadData();
+      setIsBatchMode(false);
+      setMessageDialog({
+        isOpen: true,
+        title: "削除完了",
+        message: "選択したカードを削除しました。",
+      });
+    },
+    onDeleteError: (error) => {
+      setMessageDialog({
+        isOpen: true,
+        title: "削除エラー",
+        message: "カードの削除に失敗しました。",
+      });
+    },
   });
 
   useEffect(() => {
@@ -180,6 +208,61 @@ export default function CardSearchPage() {
           </div>
         </div>
 
+        {/* 一括操作 */}
+        <div className="bg-white rounded-lg shadow-lg p-4 mb-6">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-4">
+              <button
+                onClick={() => {
+                  setIsBatchMode(!isBatchMode);
+                  if (isBatchMode) {
+                    clearSelection();
+                  }
+                }}
+                className={`px-4 py-2 rounded-lg font-semibold transition-all ${
+                  isBatchMode
+                    ? "bg-blue-600 text-white hover:bg-blue-700"
+                    : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                }`}
+              >
+                {isBatchMode ? "一括操作を終了" : "一括操作"}
+              </button>
+              {isBatchMode && (
+                <>
+                  <span className="text-sm text-gray-600">
+                    {selectedCards.size}件選択中
+                  </span>
+                  <button
+                    onClick={() => toggleSelectAll(filteredCards)}
+                    className="text-sm text-blue-600 hover:text-blue-800 underline"
+                  >
+                    {selectedCards.size === filteredCards.length ? "すべて解除" : "すべて選択"}
+                  </button>
+                </>
+              )}
+            </div>
+            {isBatchMode && selectedCards.size > 0 && (
+              <button
+                onClick={async () => {
+                  if (
+                    !confirm(
+                      `${selectedCards.size}枚のカードを削除しますか？この操作は取り消せません。`
+                    )
+                  ) {
+                    return;
+                  }
+                  const cardIds = Array.from(selectedCards);
+                  await handleBatchDelete(cardIds);
+                }}
+                disabled={isDeleting}
+                className="px-4 py-2 bg-red-600 hover:bg-red-700 disabled:bg-gray-400 text-white font-semibold rounded-lg transition-all"
+              >
+                {isDeleting ? "削除中..." : "選択したカードを削除"}
+              </button>
+            )}
+          </div>
+        </div>
+
         {/* 結果表示 */}
         <div className="mb-4 text-sm text-gray-600">
           {filteredCards.length} / {cards.length} 件
@@ -194,8 +277,28 @@ export default function CardSearchPage() {
             {filteredCards.map((card) => (
               <div
                 key={card.id}
-                className="card-base p-4 hover-lift animate-fade-in"
+                className={`card-base p-4 hover-lift animate-fade-in ${
+                  isBatchMode && selectedCards.has(card.id)
+                    ? "ring-2 ring-blue-500 bg-blue-50"
+                    : ""
+                } ${isBatchMode ? "cursor-pointer" : ""}`}
+                onClick={() => {
+                  if (isBatchMode) {
+                    toggleCardSelection(card.id);
+                  }
+                }}
               >
+                {isBatchMode && (
+                  <div className="mb-3">
+                    <input
+                      type="checkbox"
+                      checked={selectedCards.has(card.id)}
+                      onChange={() => toggleCardSelection(card.id)}
+                      onClick={(e) => e.stopPropagation()}
+                      className="w-5 h-5 text-blue-600 rounded"
+                    />
+                  </div>
+                )}
                 {/* 画像サムネイル */}
                 {card.imageData && (
                   <div className="mb-3">
@@ -229,40 +332,45 @@ export default function CardSearchPage() {
                     {highlightText(card.target_en, searchQuery)}
                   </p>
                 </div>
-                <div className="mt-2 flex items-center justify-between">
-                  <button
-                    onClick={async (e) => {
-                      e.stopPropagation();
-                      try {
-                        await storage.init();
-                        await storage.updateCard(card.id, { isFavorite: !card.isFavorite });
-                        await loadData();
-                      } catch (error) {
-                        console.error("Failed to toggle favorite:", error);
-                        setMessageDialog({
-                          isOpen: true,
-                          title: "更新エラー",
-                          message: "お気に入りの更新に失敗しました。",
-                        });
-                      }
-                    }}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold transition-all duration-200 ${
-                      card.isFavorite
-                        ? "bg-gradient-to-r from-yellow-400 to-yellow-500 text-white shadow-md hover:shadow-lg hover:scale-105"
-                        : "bg-gray-100 text-gray-600 hover:bg-gray-200 hover:scale-105"
-                    }`}
-                    title={card.isFavorite ? "お気に入りを解除" : "お気に入りに追加"}
-                  >
-                    <span>★</span>
-                    <span>お気に入り</span>
-                  </button>
-                  <button
-                    onClick={() => router.push(`/cards/${card.id}/edit`)}
-                    className="text-sm text-blue-600 hover:text-blue-800"
-                  >
-                    編集
-                  </button>
-                </div>
+                {!isBatchMode && (
+                  <div className="mt-2 flex items-center justify-between">
+                    <button
+                      onClick={async (e) => {
+                        e.stopPropagation();
+                        try {
+                          await storage.init();
+                          await storage.updateCard(card.id, { isFavorite: !card.isFavorite });
+                          await loadData();
+                        } catch (error) {
+                          console.error("Failed to toggle favorite:", error);
+                          setMessageDialog({
+                            isOpen: true,
+                            title: "更新エラー",
+                            message: "お気に入りの更新に失敗しました。",
+                          });
+                        }
+                      }}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold transition-all duration-200 ${
+                        card.isFavorite
+                          ? "bg-gradient-to-r from-yellow-400 to-yellow-500 text-white shadow-md hover:shadow-lg hover:scale-105"
+                          : "bg-gray-100 text-gray-600 hover:bg-gray-200 hover:scale-105"
+                      }`}
+                      title={card.isFavorite ? "お気に入りを解除" : "お気に入りに追加"}
+                    >
+                      <span>★</span>
+                      <span>お気に入り</span>
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        router.push(`/cards/${card.id}/edit`);
+                      }}
+                      className="text-sm text-blue-600 hover:text-blue-800"
+                    >
+                      編集
+                    </button>
+                  </div>
+                )}
               </div>
             ))}
           </div>

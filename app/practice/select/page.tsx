@@ -5,19 +5,50 @@ import { useRouter } from "next/navigation";
 import { storage } from "@/lib/storage";
 import { Lesson, Card } from "@/types/models";
 import MessageDialog from "@/components/MessageDialog";
+import { useBatchCardSelection } from "@/hooks/useBatchCardSelection";
 
 export default function CardSelectPage() {
   const router = useRouter();
   const [lessons, setLessons] = useState<Lesson[]>([]);
   const [selectedLessonId, setSelectedLessonId] = useState<string | null>(null);
   const [cards, setCards] = useState<Card[]>([]);
-  const [selectedCards, setSelectedCards] = useState<Set<string>>(new Set());
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [messageDialog, setMessageDialog] = useState<{ isOpen: boolean; title: string; message: string }>({
     isOpen: false,
     title: "",
     message: "",
+  });
+  const [isBatchMode, setIsBatchMode] = useState(false);
+
+  const {
+    selectedCards,
+    isDeleting,
+    toggleCardSelection,
+    toggleSelectAll,
+    clearSelection,
+    handleBatchDelete,
+  } = useBatchCardSelection(cards, {
+    onDeleteSuccess: () => {
+      if (selectedLessonId) {
+        loadCards(selectedLessonId);
+      } else {
+        loadAllCards();
+      }
+      setIsBatchMode(false);
+      setMessageDialog({
+        isOpen: true,
+        title: "削除完了",
+        message: "選択したカードを削除しました。",
+      });
+    },
+    onDeleteError: (error) => {
+      setMessageDialog({
+        isOpen: true,
+        title: "削除エラー",
+        message: "カードの削除に失敗しました。",
+      });
+    },
   });
 
   useEffect(() => {
@@ -68,26 +99,6 @@ export default function CardSelectPage() {
     }
   }
 
-  function toggleCardSelection(cardId: string) {
-    setSelectedCards((prev) => {
-      const next = new Set(prev);
-      if (next.has(cardId)) {
-        next.delete(cardId);
-      } else {
-        next.add(cardId);
-      }
-      return next;
-    });
-  }
-
-  function toggleSelectAll() {
-    const filteredCards = getFilteredCards();
-    if (selectedCards.size === filteredCards.length) {
-      setSelectedCards(new Set());
-    } else {
-      setSelectedCards(new Set(filteredCards.map((c) => c.id)));
-    }
-  }
 
   function getFilteredCards(): Card[] {
     if (!searchQuery.trim()) {
@@ -187,15 +198,51 @@ export default function CardSelectPage() {
         {/* 選択状況と操作 */}
         <div className="bg-blue-50 border-2 border-blue-300 rounded-lg p-4 mb-6">
           <div className="flex items-center justify-between mb-3">
-            <span className="font-semibold text-blue-800">
-              {selectedCards.size}件のカードを選択中
-            </span>
-            <button
-              onClick={toggleSelectAll}
-              className="text-sm text-blue-600 hover:text-blue-800 underline"
-            >
-              {selectedCards.size === filteredCards.length ? "すべて解除" : "すべて選択"}
-            </button>
+            <div className="flex items-center gap-4">
+              <button
+                onClick={() => {
+                  setIsBatchMode(!isBatchMode);
+                  if (isBatchMode) {
+                    clearSelection();
+                  }
+                }}
+                className={`px-4 py-2 rounded-lg font-semibold transition-all ${
+                  isBatchMode
+                    ? "bg-blue-600 text-white hover:bg-blue-700"
+                    : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                }`}
+              >
+                {isBatchMode ? "一括操作を終了" : "一括操作"}
+              </button>
+              <span className="font-semibold text-blue-800">
+                {selectedCards.size}件のカードを選択中
+              </span>
+              <button
+                onClick={() => toggleSelectAll(filteredCards)}
+                className="text-sm text-blue-600 hover:text-blue-800 underline"
+              >
+                {selectedCards.size === filteredCards.length ? "すべて解除" : "すべて選択"}
+              </button>
+            </div>
+            {isBatchMode && selectedCards.size > 0 && (
+              <button
+                onClick={async () => {
+                  if (
+                    !confirm(
+                      `${selectedCards.size}枚のカードを削除しますか？この操作は取り消せません。`
+                    )
+                  ) {
+                    return;
+                  }
+                  const cardIds = Array.from(selectedCards);
+                  await handleBatchDelete(cardIds);
+                }}
+                disabled={isDeleting}
+                className="px-4 py-2 bg-red-600 hover:bg-red-700 disabled:bg-gray-400 text-white font-semibold rounded-lg transition-all"
+              >
+                {isDeleting ? "削除中..." : "選択したカードを削除"}
+              </button>
+            )}
           </div>
           <button
             onClick={handleStartPractice}
