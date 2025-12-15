@@ -48,8 +48,8 @@ export default function VoiceInputModal({
 
   useEffect(() => {
     if (isOpen) {
-      // モーダルを画面下部に配置（中央）
-      const initialY = window.innerHeight * 0.75;
+      // モーダルを画面中央に配置
+      const initialY = window.innerHeight * 0.5;
       setPosition({ x: 0, y: initialY });
     }
   }, [isOpen]);

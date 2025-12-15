@@ -730,6 +730,19 @@ function PracticeContent() {
                 </div>
               )}
 
+              {/* もう一度ボタン */}
+              <button
+                onClick={() => {
+                  setShowAnswer(false);
+                  setUserAnswer("");
+                  setAutoGradingResult(null);
+                  setManualResult(null);
+                }}
+                className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-4 rounded-lg mb-2"
+              >
+                🔄 もう一度
+              </button>
+
               {/* 採点ボタン（フラッシュカードモード以外） */}
               {(mode as string) !== "flashcard" && (
                 <>
