@@ -23,6 +23,9 @@ function ReviewContent() {
   const [isSaving, setIsSaving] = useState(false);
   const [lessons, setLessons] = useState<any[]>([]);
   const [selectedLessonId, setSelectedLessonId] = useState("");
+  const [showNewLessonForm, setShowNewLessonForm] = useState(false);
+  const [newLessonTitle, setNewLessonTitle] = useState("");
+  const [sourceImage, setSourceImage] = useState<string | null>(null);
   const [messageDialog, setMessageDialog] = useState<{ isOpen: boolean; title: string; message: string }>({
     isOpen: false,
     title: "",
@@ -55,6 +58,14 @@ function ReviewContent() {
       setFilteredCards(draftData.cards);
       // 初期状態ではすべて選択
       setSelectedCards(new Set(draftData.cards.map((_, i) => i)));
+
+      // 画像データを取得
+      if (draftData.sourceId) {
+        const source = await storage.getSource(draftData.sourceId);
+        if (source?.imageId) {
+          setSourceImage(source.imageId);
+        }
+      }
     } catch (error) {
       console.error("Failed to load draft:", error);
       setMessageDialog({
@@ -88,6 +99,50 @@ function ReviewContent() {
       newSelected.add(index);
     }
     setSelectedCards(newSelected);
+  };
+
+  const selectAllCards = () => {
+    setSelectedCards(new Set(filteredCards.map((_, i) => i)));
+  };
+
+  const deselectAllCards = () => {
+    setSelectedCards(new Set());
+  };
+
+  const handleCreateLesson = async () => {
+    if (!newLessonTitle.trim()) {
+      setMessageDialog({
+        isOpen: true,
+        title: "入力エラー",
+        message: "レッスン名を入力してください。",
+      });
+      return;
+    }
+
+    try {
+      await storage.init();
+      const newLesson: Lesson = {
+        id: `lesson_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        title: newLessonTitle.trim(),
+      };
+      await storage.saveLesson(newLesson);
+      setNewLessonTitle("");
+      setShowNewLessonForm(false);
+      await loadLessons();
+      setSelectedLessonId(newLesson.id);
+      setMessageDialog({
+        isOpen: true,
+        title: "作成完了",
+        message: `レッスン「${newLesson.title}」を作成しました。`,
+      });
+    } catch (error) {
+      console.error("Failed to create lesson:", error);
+      setMessageDialog({
+        isOpen: true,
+        title: "エラー",
+        message: "レッスンの作成に失敗しました。",
+      });
+    }
   };
 
   const handleEdit = (index: number) => {
@@ -257,40 +312,126 @@ function ReviewContent() {
           </div>
         )}
 
+        {/* 写真プレビュー */}
+        {sourceImage && (
+          <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
+            <h2 className="text-lg font-semibold mb-3">元の画像</h2>
+            <div className="flex items-start gap-4">
+              <img
+                src={sourceImage}
+                alt="Source"
+                className="max-w-xs max-h-48 rounded-lg border border-gray-300"
+              />
+              <div className="flex-1">
+                <p className="text-sm text-gray-600 mb-2">
+                  この画像から {draft.cards.length} 個のカードが生成されました。
+                </p>
+                <div className="flex gap-2">
+                  <button
+                    onClick={selectAllCards}
+                    className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg text-sm"
+                  >
+                    すべて選択
+                  </button>
+                  <button
+                    onClick={deselectAllCards}
+                    className="bg-gray-500 hover:bg-gray-600 text-white font-semibold py-2 px-4 rounded-lg text-sm"
+                  >
+                    すべて解除
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* フィルタと保存 */}
         <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
-          <div className="flex items-center gap-4 mb-4">
-            <label className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                checked={showNeedsReview}
-                onChange={(e) => setShowNeedsReview(e.target.checked)}
-                className="w-4 h-4"
-              />
-              <span className="text-sm">レビュー必要のみ表示</span>
-            </label>
-            <select
-              value={selectedLessonId}
-              onChange={(e) => setSelectedLessonId(e.target.value)}
-              className="border border-gray-300 rounded-lg px-4 py-2 bg-white text-gray-900"
-            >
-              <option value="">レッスンを選択...</option>
-              {lessons.map((lesson) => (
-                <option key={lesson.id} value={lesson.id}>
-                  {lesson.title}
-                </option>
-              ))}
-            </select>
-            <button
-              onClick={handleSaveCards}
-              disabled={isSaving || selectedCards.size === 0 || !selectedLessonId}
-              className="ml-auto bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white font-bold py-2 px-4 rounded-lg flex items-center justify-center gap-2"
-            >
-              {isSaving && (
-                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-              )}
-              <span>{isSaving ? "保存中..." : `選択した${selectedCards.size}枚を保存`}</span>
-            </button>
+          <div className="space-y-4">
+            <div className="flex items-center gap-4 flex-wrap">
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={showNeedsReview}
+                  onChange={(e) => setShowNeedsReview(e.target.checked)}
+                  className="w-4 h-4"
+                />
+                <span className="text-sm">レビュー必要のみ表示</span>
+              </label>
+            </div>
+            
+            {/* レッスン選択 */}
+            <div className="flex items-center gap-4 flex-wrap">
+              <div className="flex-1 min-w-[200px]">
+                {showNewLessonForm ? (
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={newLessonTitle}
+                      onChange={(e) => setNewLessonTitle(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          handleCreateLesson();
+                        } else if (e.key === "Escape") {
+                          setShowNewLessonForm(false);
+                          setNewLessonTitle("");
+                        }
+                      }}
+                      placeholder="新しいレッスン名"
+                      className="flex-1 border border-gray-300 rounded-lg px-4 py-2 bg-white text-gray-900"
+                      autoFocus
+                    />
+                    <button
+                      onClick={handleCreateLesson}
+                      className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg"
+                    >
+                      作成
+                    </button>
+                    <button
+                      onClick={() => {
+                        setShowNewLessonForm(false);
+                        setNewLessonTitle("");
+                      }}
+                      className="bg-gray-500 hover:bg-gray-600 text-white font-semibold py-2 px-4 rounded-lg"
+                    >
+                      キャンセル
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex gap-2">
+                    <select
+                      value={selectedLessonId}
+                      onChange={(e) => {
+                        if (e.target.value === "__new__") {
+                          setShowNewLessonForm(true);
+                        } else {
+                          setSelectedLessonId(e.target.value);
+                        }
+                      }}
+                      className="flex-1 border border-gray-300 rounded-lg px-4 py-2 bg-white text-gray-900"
+                    >
+                      <option value="">レッスンを選択...</option>
+                      {lessons.map((lesson) => (
+                        <option key={lesson.id} value={lesson.id}>
+                          {lesson.title}
+                        </option>
+                      ))}
+                      <option value="__new__">+ 新規レッスンを作成</option>
+                    </select>
+                  </div>
+                )}
+              </div>
+              <button
+                onClick={handleSaveCards}
+                disabled={isSaving || selectedCards.size === 0 || !selectedLessonId}
+                className="bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white font-bold py-2 px-4 rounded-lg flex items-center justify-center gap-2"
+              >
+                {isSaving && (
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                )}
+                <span>{isSaving ? "保存中..." : `選択した${selectedCards.size}枚を保存`}</span>
+              </button>
+            </div>
           </div>
         </div>
 
