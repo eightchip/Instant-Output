@@ -49,8 +49,31 @@ export default function VoiceInputModal({
   useEffect(() => {
     if (isOpen) {
       // モーダルを画面中央に配置
-      const initialY = window.innerHeight * 0.5;
-      setPosition({ x: 0, y: initialY });
+      // モーダルが表示された後に正確な位置を計算
+      const updatePosition = () => {
+        if (modalRef.current) {
+          const rect = modalRef.current.getBoundingClientRect();
+          const centerX = (window.innerWidth - rect.width) / 2;
+          const centerY = (window.innerHeight - rect.height) / 2;
+          setPosition({ x: Math.max(0, centerX), y: Math.max(0, centerY) });
+        } else {
+          // フォールバック: デフォルト幅を想定
+          const modalWidth = 450;
+          const modalHeight = 400; // 推定高さ
+          const centerX = (window.innerWidth - modalWidth) / 2;
+          const centerY = (window.innerHeight - modalHeight) / 2;
+          setPosition({ x: Math.max(0, centerX), y: Math.max(0, centerY) });
+        }
+      };
+      
+      // モーダルが表示された後に位置を更新
+      setTimeout(updatePosition, 10);
+      // リサイズ時にも位置を更新
+      window.addEventListener('resize', updatePosition);
+      
+      return () => {
+        window.removeEventListener('resize', updatePosition);
+      };
     }
   }, [isOpen]);
 
@@ -109,12 +132,13 @@ export default function VoiceInputModal({
     const handleTouchMove = (e: TouchEvent) => {
       if (isDragging && modalRef.current && e.touches.length > 0) {
         const touch = e.touches[0];
+        const rect = modalRef.current.getBoundingClientRect();
         const newX = touch.clientX - dragStart.x;
         const newY = touch.clientY - dragStart.y;
         
         // 画面内に制限
-        const maxX = window.innerWidth - modalRef.current.offsetWidth;
-        const maxY = window.innerHeight - modalRef.current.offsetHeight;
+        const maxX = window.innerWidth - rect.width;
+        const maxY = window.innerHeight - rect.height;
         
         lastX = Math.max(0, Math.min(newX, maxX));
         lastY = Math.max(0, Math.min(newY, maxY));
@@ -271,15 +295,14 @@ export default function VoiceInputModal({
         className="sm:max-w-[450px] max-h-[70vh] overflow-y-auto"
         style={{ 
           position: 'fixed',
-          left: position.x === 0 ? '50%' : `${position.x}px`,
-          top: position.y === 0 ? 'auto' : `${position.y}px`,
-          bottom: position.y === 0 ? '20px' : 'auto',
-          transform: position.x === 0 ? 'translateX(-50%)' : 'none',
+          left: `${position.x}px !important`,
+          top: `${position.y}px !important`,
+          transform: 'none !important',
           margin: 0,
           cursor: isDragging ? 'grabbing' : 'default',
           transition: isDragging ? 'none' : 'transform 0.2s ease-out',
           willChange: isDragging ? 'transform' : 'auto',
-        }}
+        } as React.CSSProperties}
       >
         <DialogHeader 
           className="cursor-move select-none"
