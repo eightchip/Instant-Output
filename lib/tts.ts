@@ -159,10 +159,25 @@ export const tts = new TTSService();
 if (typeof window !== "undefined") {
   // Chrome では voiceschanged イベントが必要
   if ("speechSynthesis" in window) {
-    window.speechSynthesis.onvoiceschanged = () => {
-      // 音声リストが読み込まれたことを確認
-      console.log("TTS voices loaded:", tts.getAvailableVoices().length);
+    // 音声リストを強制的に読み込む
+    const loadVoices = () => {
+      const voices = window.speechSynthesis.getVoices();
+      console.log("TTS voices loaded:", voices.length);
+      // 英語音声と日本語音声を確認
+      const englishVoices = voices.filter(v => v.lang.startsWith("en"));
+      const japaneseVoices = voices.filter(v => v.lang.startsWith("ja"));
+      console.log("English voices:", englishVoices.length, englishVoices.map(v => `${v.name} (${v.lang})`));
+      console.log("Japanese voices:", japaneseVoices.length, japaneseVoices.map(v => `${v.name} (${v.lang})`));
     };
+    
+    // 初回読み込み
+    loadVoices();
+    
+    // voiceschangedイベントでも読み込み
+    window.speechSynthesis.onvoiceschanged = loadVoices;
+    
+    // 少し遅延して再度読み込み（Chromeで必要）
+    setTimeout(loadVoices, 100);
   }
 }
 
