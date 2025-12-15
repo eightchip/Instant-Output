@@ -150,9 +150,6 @@ function PracticeContent() {
     return () => {
       window.removeEventListener("beforeunload", handleBeforeUnload);
       tts.stop();
-      if (speedCheckIntervalRef.current) {
-        clearInterval(speedCheckIntervalRef.current);
-      }
       if (focusTimerRef.current) {
         clearInterval(focusTimerRef.current);
       }
@@ -372,24 +369,6 @@ function PracticeContent() {
     };
   }, [mode, focusTimeRemaining]);
 
-  // TTSの状態を監視
-  useEffect(() => {
-    if (!tts.isAvailable()) return;
-
-    const checkTTSState = () => {
-      setIsSpeaking(tts.getIsSpeaking());
-      setIsPaused(tts.getIsPaused());
-    };
-
-    // 定期的に状態をチェック
-    speedCheckIntervalRef.current = setInterval(checkTTSState, 100);
-
-    return () => {
-      if (speedCheckIntervalRef.current) {
-        clearInterval(speedCheckIntervalRef.current);
-      }
-    };
-  }, []);
 
   // セッションIDを保持（同じセッションを更新するため）
   const sessionIdRef = useRef<string | null>(null);
