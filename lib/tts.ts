@@ -31,8 +31,8 @@ class TTSService {
     // 既存の読み上げを停止
     this.stop();
 
-    // 言語が指定されていない場合は自動検出
-    const detectedLang = lang || detectLanguage(text);
+    // 言語が明示的に指定されている場合はそれを使用、指定されていない場合のみ自動検出
+    const detectedLang: TTSLanguage = lang !== undefined ? lang : detectLanguage(text);
 
     this.utterance = new SpeechSynthesisUtterance(text);
     this.utterance.lang = detectedLang === "ja" ? "ja-JP" : "en-US";
