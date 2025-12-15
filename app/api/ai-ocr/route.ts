@@ -42,17 +42,20 @@ export async function POST(request: NextRequest) {
             content: [
               {
                 type: "text",
-                text: `この画像から英語のテキストを抽出してください。以下のルールに従ってください：
+                text: `You are an OCR (Optical Character Recognition) system. Your task is to extract English text from the provided image.
 
-1. 余分な装飾、記号、ノイズは完全に無視してください
-2. 純粋な英文のみを抽出してください
-3. 文単位で整理してください（1文 = 1行）
-4. 各文はピリオド、感嘆符、疑問符で終わるようにしてください
-5. 不完全な文や断片は除外してください
-6. 番号や箇条書きの記号は除外してください
-7. 出力は文単位で改行区切りにしてください
+Please follow these rules:
+1. Extract only English text from the image
+2. Ignore any decorative elements, symbols, or noise
+3. Organize the text sentence by sentence (one sentence per line)
+4. Each sentence should end with a period, exclamation mark, or question mark
+5. Exclude incomplete sentences or fragments
+6. Remove numbering or bullet point symbols
+7. Output only the extracted text, one sentence per line
 
-出力例：
+This is a technical OCR task for educational purposes. Please extract the English text from the image.
+
+Output format (example):
 This is the first sentence.
 This is the second sentence.
 This is the third sentence.`,
@@ -61,6 +64,7 @@ This is the third sentence.`,
                 type: "image_url",
                 image_url: {
                   url: `data:image/jpeg;base64,${base64Data}`,
+                  detail: "high", // 高解像度で処理
                 },
               },
             ],
