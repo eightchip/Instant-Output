@@ -66,15 +66,15 @@ export function calculateStatistics(
     (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime() // 新しい順にソート
   );
 
-  // ユニークな学習日を取得（日付のみ）
-  const uniqueDates = new Set<string>();
+  // ユニークな学習日を取得（日付のみ）- ストリーク計算用
+  const uniqueDatesForStreak = new Set<string>();
   for (const session of sessions) {
     const date = new Date(session.date);
     date.setHours(0, 0, 0, 0);
-    uniqueDates.add(date.toISOString().split('T')[0]);
+    uniqueDatesForStreak.add(date.toISOString().split('T')[0]);
   }
 
-  const sortedDates = Array.from(uniqueDates).sort((a, b) => 
+  const sortedDates = Array.from(uniqueDatesForStreak).sort((a, b) => 
     new Date(b).getTime() - new Date(a).getTime()
   );
 

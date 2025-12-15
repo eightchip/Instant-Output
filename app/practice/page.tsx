@@ -388,7 +388,7 @@ function PracticeContent() {
         router.push("/");
       }, 1500);
     }
-  };
+  }, [currentCard, manualResult, autoGradingResult, mode, typingStartTime, userAnswer, currentIndex, cards.length, results, startTime, router, saveCardResult, saveStudySession, setResults, setUserAnswer, setShowAnswer, setAutoGradingResult, setManualResult, setTypingStartTime, setTypingStats, setMessageDialog, tts]);
 
   // セッションIDを保持（同じセッションを更新するため）
   const sessionIdRef = useRef<string | null>(null);
