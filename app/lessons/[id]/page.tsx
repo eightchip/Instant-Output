@@ -23,11 +23,10 @@ export default function LessonDetailPage() {
     title: "",
     message: "",
   });
-  const [confirmDialog, setConfirmDialog] = useState<{ isOpen: boolean; title: string; message: string; onConfirm: () => void }>({
+  const [confirmDialog, setConfirmDialog] = useState<{ isOpen: boolean; title: string; message: string }>({
     isOpen: false,
     title: "",
     message: "",
-    onConfirm: () => {},
   });
 
   useEffect(() => {
@@ -90,38 +89,6 @@ export default function LessonDetailPage() {
       isOpen: true,
       title: "カードを削除",
       message: `${selectedCards.size}枚のカードを削除しますか？`,
-      onConfirm: async () => {
-        setConfirmDialog({ isOpen: false, title: "", message: "", onConfirm: () => {} });
-        try {
-          await storage.init();
-          const cardIds = Array.from(selectedCards);
-          
-          // 関連するレビューも削除
-          for (const cardId of cardIds) {
-            const review = await storage.getReview(cardId);
-            if (review) {
-              await storage.deleteReview(cardId);
-            }
-          }
-          
-          await storage.deleteCards(cardIds);
-          setSelectedCards(new Set());
-          setIsBatchMode(false);
-          await loadData();
-          setMessageDialog({
-            isOpen: true,
-            title: "削除完了",
-            message: `${cardIds.length}枚のカードを削除しました。`,
-          });
-        } catch (error) {
-          console.error("Failed to delete cards:", error);
-          setMessageDialog({
-            isOpen: true,
-            title: "削除エラー",
-            message: "カードの削除に失敗しました。",
-          });
-        }
-      },
     });
   }
 
@@ -487,8 +454,39 @@ export default function LessonDetailPage() {
         isOpen={confirmDialog.isOpen}
         title={confirmDialog.title}
         message={confirmDialog.message}
-        onConfirm={confirmDialog.onConfirm}
-        onCancel={() => setConfirmDialog({ isOpen: false, title: "", message: "", onConfirm: () => {} })}
+        onConfirm={async () => {
+          setConfirmDialog({ isOpen: false, title: "", message: "" });
+          try {
+            await storage.init();
+            const cardIds = Array.from(selectedCards);
+            
+            // 関連するレビューも削除
+            for (const cardId of cardIds) {
+              const review = await storage.getReview(cardId);
+              if (review) {
+                await storage.deleteReview(cardId);
+              }
+            }
+            
+            await storage.deleteCards(cardIds);
+            setSelectedCards(new Set());
+            setIsBatchMode(false);
+            await loadData();
+            setMessageDialog({
+              isOpen: true,
+              title: "削除完了",
+              message: `${cardIds.length}枚のカードを削除しました。`,
+            });
+          } catch (error) {
+            console.error("Failed to delete cards:", error);
+            setMessageDialog({
+              isOpen: true,
+              title: "削除エラー",
+              message: "カードの削除に失敗しました。",
+            });
+          }
+        }}
+        onCancel={() => setConfirmDialog({ isOpen: false, title: "", message: "" })}
         variant="danger"
       />
     </div>

@@ -18,6 +18,12 @@ export default function LessonsPage() {
     title: "",
     message: "",
   });
+  const [confirmDialog, setConfirmDialog] = useState<{ isOpen: boolean; title: string; message: string; lessonIdToDelete: string | null }>({
+    isOpen: false,
+    title: "",
+    message: "",
+    lessonIdToDelete: null,
+  });
 
   useEffect(() => {
     loadLessons();
@@ -168,37 +174,7 @@ export default function LessonsPage() {
                           isOpen: true,
                           title: "レッスンを削除",
                           message: `レッスン「${lesson.title}」とその中のすべてのカードを削除しますか？\nこの操作は取り消せません。`,
-                          onConfirm: async () => {
-                            setConfirmDialog({ isOpen: false, title: "", message: "", onConfirm: () => {} });
-                            try {
-                              await storage.init();
-                              // レッスンに属するカードを取得
-                              const cards = await storage.getCardsByLesson(lesson.id);
-                              // カードとレビューを削除
-                              for (const card of cards) {
-                                const review = await storage.getReview(card.id);
-                                if (review) {
-                                  await storage.deleteReview(card.id);
-                                }
-                                await storage.deleteCard(card.id);
-                              }
-                              // レッスンを削除
-                              await storage.deleteLesson(lesson.id);
-                              await loadLessons();
-                              setMessageDialog({
-                                isOpen: true,
-                                title: "削除完了",
-                                message: "レッスンを削除しました。",
-                              });
-                            } catch (error) {
-                              console.error("Failed to delete lesson:", error);
-                              setMessageDialog({
-                                isOpen: true,
-                                title: "削除エラー",
-                                message: "レッスンの削除に失敗しました。",
-                              });
-                            }
-                          },
+                          lessonIdToDelete: lesson.id,
                         });
                       }}
                       className="bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-4 rounded-lg"
@@ -217,6 +193,46 @@ export default function LessonsPage() {
         title={messageDialog.title}
         message={messageDialog.message}
         onClose={() => setMessageDialog({ isOpen: false, title: "", message: "" })}
+      />
+      <ConfirmDialog
+        isOpen={confirmDialog.isOpen}
+        title={confirmDialog.title}
+        message={confirmDialog.message}
+        onConfirm={async () => {
+          if (confirmDialog.lessonIdToDelete) {
+            setConfirmDialog({ isOpen: false, title: "", message: "", lessonIdToDelete: null });
+            try {
+              await storage.init();
+              // レッスンに属するカードを取得
+              const cards = await storage.getCardsByLesson(confirmDialog.lessonIdToDelete);
+              // カードとレビューを削除
+              for (const card of cards) {
+                const review = await storage.getReview(card.id);
+                if (review) {
+                  await storage.deleteReview(card.id);
+                }
+                await storage.deleteCard(card.id);
+              }
+              // レッスンを削除
+              await storage.deleteLesson(confirmDialog.lessonIdToDelete);
+              await loadLessons();
+              setMessageDialog({
+                isOpen: true,
+                title: "削除完了",
+                message: "レッスンを削除しました。",
+              });
+            } catch (error) {
+              console.error("Failed to delete lesson:", error);
+              setMessageDialog({
+                isOpen: true,
+                title: "削除エラー",
+                message: "レッスンの削除に失敗しました。",
+              });
+            }
+          }
+        }}
+        onCancel={() => setConfirmDialog({ isOpen: false, title: "", message: "", lessonIdToDelete: null })}
+        variant="danger"
       />
     </div>
   );

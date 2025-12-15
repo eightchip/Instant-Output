@@ -30,6 +30,11 @@ export default function SettingsPage() {
     title: "",
     message: "",
   });
+  const [confirmDialog, setConfirmDialog] = useState<{ isOpen: boolean; title: string; message: string }>({
+    isOpen: false,
+    title: "",
+    message: "",
+  });
 
   async function handleExport() {
     setIsExporting(true);
@@ -401,8 +406,10 @@ export default function SettingsPage() {
         isOpen={confirmDialog.isOpen}
         title={confirmDialog.title}
         message={confirmDialog.message}
-        onConfirm={confirmDialog.onConfirm}
-        onCancel={() => setConfirmDialog({ isOpen: false, title: "", message: "", onConfirm: () => {} })}
+        onConfirm={() => {
+          setConfirmDialog({ isOpen: false, title: "", message: "" });
+        }}
+        onCancel={() => setConfirmDialog({ isOpen: false, title: "", message: "" })}
         variant="danger"
       />
     </div>
