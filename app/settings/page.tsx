@@ -18,9 +18,6 @@ import {
 } from "@/lib/srs-config";
 import MessageDialog from "@/components/MessageDialog";
 import ConfirmDialog from "@/components/ConfirmDialog";
-const ThemeToggle = dynamic(() => import("@/components/ThemeToggle"), {
-  ssr: false,
-});
 
 export default function SettingsPage() {
   const router = useRouter();
@@ -207,17 +204,8 @@ export default function SettingsPage() {
             </div>
           </div>
 
-          {/* テーマ設定 */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
-            <h2 className="text-lg font-semibold mb-4 dark:text-white">テーマ設定</h2>
-            <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-              アプリの表示テーマを選択できます。
-            </p>
-            <ThemeToggle />
-          </div>
-
           {/* データエクスポート */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
+          <div className="bg-white rounded-lg shadow-lg p-6">
             <h2 className="text-lg font-semibold mb-4">データのエクスポート</h2>
             <p className="text-sm text-gray-600 mb-4">
               すべてのデータをJSON形式でダウンロードします。

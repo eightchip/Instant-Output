@@ -72,7 +72,7 @@ export default function Home() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-gray-50 dark:bg-gray-900">
+    <div className="flex min-h-screen flex-col bg-gray-50">
       {/* ヘッダー */}
       <header className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 border-b border-transparent sticky top-0 z-40 shadow-lg">
         <div className="max-w-2xl mx-auto px-4 py-4 flex items-center justify-between relative overflow-hidden">
@@ -186,10 +186,10 @@ export default function Home() {
 
         {/* Instant Menu */}
         <div className="mb-8 space-y-2">
-          <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">
+          <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2">
             Instant Menu
           </h3>
-          <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 shadow-sm">
+          <div className="bg-white rounded-lg border border-gray-200 p-4 shadow-sm">
             <button
               onClick={handleStartPractice}
               className="w-full bg-gradient-to-br from-indigo-600 via-blue-600 to-cyan-600 hover:from-indigo-700 hover:via-blue-700 hover:to-cyan-700 text-white font-bold py-5 px-6 rounded-xl text-xl shadow-xl hover:shadow-2xl transition-all duration-300 mb-3 border-0 hover:scale-[1.02] active:scale-[0.98] relative overflow-hidden group"
@@ -200,31 +200,31 @@ export default function Home() {
               </span>
               <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000"></div>
             </button>
-            <p className="text-center text-gray-600 dark:text-gray-300 mb-4 text-sm">
+            <p className="text-center text-gray-600 mb-4 text-sm">
               {todayCards.length}問のカードが準備できています
             </p>
             <div className="grid grid-cols-2 gap-2">
               <button
                 onClick={() => router.push("/practice/mode-select")}
-                className="bg-slate-50 dark:bg-gray-700 hover:bg-slate-100 dark:hover:bg-gray-600 border border-slate-200 dark:border-gray-600 text-slate-800 dark:text-gray-200 font-semibold py-3 px-4 rounded-lg transition-all duration-200 hover:scale-105 hover:shadow-md"
+                className="bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-800 font-semibold py-3 px-4 rounded-lg transition-all duration-200 hover:scale-105 hover:shadow-md"
               >
                 学習モードを選択
               </button>
               <button
                 onClick={() => router.push("/practice/select")}
-                className="bg-slate-50 dark:bg-gray-700 hover:bg-slate-100 dark:hover:bg-gray-600 border border-slate-200 dark:border-gray-600 text-slate-800 dark:text-gray-200 font-semibold py-3 px-4 rounded-lg transition-all duration-200 hover:scale-105 hover:shadow-md"
+                className="bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-800 font-semibold py-3 px-4 rounded-lg transition-all duration-200 hover:scale-105 hover:shadow-md"
               >
                 カードを選択
               </button>
               <button
                 onClick={() => router.push("/practice?mode=favorite&count=10")}
-                className="bg-slate-50 dark:bg-gray-700 hover:bg-slate-100 dark:hover:bg-gray-600 border border-slate-200 dark:border-gray-600 text-slate-800 dark:text-gray-200 font-semibold py-3 px-4 rounded-lg transition-all duration-200 hover:scale-105 hover:shadow-md"
+                className="bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-800 font-semibold py-3 px-4 rounded-lg transition-all duration-200 hover:scale-105 hover:shadow-md"
               >
                 ⭐ お気に入り
               </button>
               <button
                 onClick={() => router.push("/practice?mode=weak&count=10")}
-                className="bg-slate-50 dark:bg-gray-700 hover:bg-slate-100 dark:hover:bg-gray-600 border border-slate-200 dark:border-gray-600 text-slate-800 dark:text-gray-200 font-semibold py-3 px-4 rounded-lg transition-all duration-200 hover:scale-105 hover:shadow-md"
+                className="bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-800 font-semibold py-3 px-4 rounded-lg transition-all duration-200 hover:scale-105 hover:shadow-md"
               >
                 💪 苦手克服
               </button>
@@ -259,20 +259,20 @@ export default function Home() {
                 </button>
               </div>
               <div className="space-y-2">
-                <div className="flex justify-between text-sm text-gray-600 dark:text-gray-400">
+                <div className="flex justify-between text-sm text-gray-600">
                   <span>進捗</span>
                   <span>
                     {daysElapsed}日 / {activeCourse.durationDays}日
                     {daysRemaining > 0 && ` (残り${daysRemaining}日)`}
                   </span>
                 </div>
-                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                <div className="w-full bg-gray-200 rounded-full h-2">
                   <div
                     className="bg-blue-600 h-2 rounded-full transition-all"
                     style={{ width: `${progress}%` }}
                   />
                 </div>
-                <div className="text-sm text-gray-600 dark:text-gray-400">
+                <div className="text-sm text-gray-600">
                   1日の目標: {activeCourse.dailyTarget}問
                 </div>
               </div>
@@ -282,19 +282,19 @@ export default function Home() {
 
         {/* 未消化の復習 */}
         {dueReviews.length > 0 && (
-          <div className="mb-6 p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+          <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
             <div className="flex items-center justify-between mb-2">
-              <h2 className="text-lg font-semibold text-yellow-800 dark:text-yellow-200">
+              <h2 className="text-lg font-semibold text-yellow-800">
                 復習が必要: {dueReviews.length}問
               </h2>
               <button
                 onClick={() => setShowReviewDetails(!showReviewDetails)}
-                className="text-sm text-yellow-700 dark:text-yellow-300 hover:text-yellow-900 dark:hover:text-yellow-100 underline"
+                className="text-sm text-yellow-700 hover:text-yellow-900 underline"
               >
                 {showReviewDetails ? "詳細を隠す" : "詳細を見る"}
               </button>
             </div>
-            <p className="text-sm text-yellow-700 dark:text-yellow-300 mb-2">
+            <p className="text-sm text-yellow-700 mb-2">
               未消化の復習があります。学習を開始すると優先的に出題されます。
             </p>
 
@@ -304,7 +304,7 @@ export default function Home() {
                 {reviewCardsWithPriority.slice(0, 10).map((info, index) => (
                   <div
                     key={info.card.id}
-                    className="bg-white dark:bg-gray-800 rounded-lg p-3 border border-yellow-300 dark:border-yellow-700"
+                    className="bg-white rounded-lg p-3 border border-yellow-300"
           >
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
@@ -328,10 +328,10 @@ export default function Home() {
                             </span>
                           )}
                         </div>
-                        <p className="text-sm font-medium text-gray-800 dark:text-gray-200 mb-1">
+                        <p className="text-sm font-medium text-gray-800 mb-1">
                           {info.card.prompt_jp}
                         </p>
-                        <div className="flex items-center gap-3 text-xs text-gray-600 dark:text-gray-400">
+                        <div className="flex items-center gap-3 text-xs text-gray-600">
                           <span>間隔: {info.review.interval}日</span>
                           <span>
                             期限: {info.review.dueDate.toLocaleDateString("ja-JP")}

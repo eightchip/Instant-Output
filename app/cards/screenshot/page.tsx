@@ -884,22 +884,22 @@ export default function ScreenshotCardPage() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-gray-50 dark:bg-gray-900">
+    <div className="flex min-h-screen flex-col bg-gray-50">
       <main className="flex-1 px-4 py-8 max-w-2xl mx-auto w-full">
         <div className="flex items-center justify-between mb-6">
-          <h1 className="text-3xl font-bold dark:text-white">スクリーンショットから追加</h1>
+          <h1 className="text-3xl font-bold">スクリーンショットから追加</h1>
           <button
             onClick={() => router.back()}
-            className="text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
+            className="text-gray-600 hover:text-gray-800"
           >
             ← 戻る
           </button>
         </div>
 
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 space-y-6">
+        <div className="bg-white rounded-lg shadow-lg p-6 space-y-6">
           {/* レッスン選択 */}
           <div>
-            <label className="block text-sm font-semibold mb-2 dark:text-gray-300">
+            <label className="block text-sm font-semibold mb-2">
               レッスン
             </label>
             {showNewLessonForm ? (
@@ -909,7 +909,7 @@ export default function ScreenshotCardPage() {
                   value={newLessonTitle}
                   onChange={(e) => setNewLessonTitle(e.target.value)}
                   placeholder="新しいレッスン名を入力..."
-                  className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  className="w-full border border-gray-300 rounded-lg px-4 py-2 bg-white text-gray-900"
                   onKeyDown={(e) => {
                     if (e.key === "Enter") {
                       handleCreateLesson();
@@ -943,7 +943,7 @@ export default function ScreenshotCardPage() {
                 <select
                   value={selectedLessonId}
                   onChange={(e) => setSelectedLessonId(e.target.value)}
-                  className="flex-1 border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  className="flex-1 border border-gray-300 rounded-lg px-4 py-2 bg-white text-gray-900"
                 >
                   <option value="">レッスンを選択...</option>
                   {lessons.map((lesson) => (
@@ -964,7 +964,7 @@ export default function ScreenshotCardPage() {
 
           {/* 画像アップロード */}
           <div>
-            <label className="block text-sm font-semibold mb-2 dark:text-gray-300">
+            <label className="block text-sm font-semibold mb-2">
               スクリーンショット画像
             </label>
             {!imagePreview ? (
@@ -972,13 +972,13 @@ export default function ScreenshotCardPage() {
                 onClick={() => fileInputRef.current?.click()}
                 onDragOver={handleDragOver}
                 onDrop={handleDrop}
-                className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-8 text-center cursor-pointer hover:border-gray-400 dark:hover:border-gray-500 transition-colors"
+                className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center cursor-pointer hover:border-gray-400 transition-colors"
               >
-                <p className="text-gray-600 dark:text-gray-400 mb-2">画像をクリックして選択</p>
-                <p className="text-sm text-gray-500 dark:text-gray-400">
+                <p className="text-gray-600 mb-2">画像をクリックして選択</p>
+                <p className="text-sm text-gray-500">
                   またはドラッグ&ドロップ（PNG, JPG, GIF対応）
                 </p>
-                <p className="text-xs text-gray-400 dark:text-gray-500 mt-2">
+                <p className="text-xs text-gray-400 mt-2">
                   ※ 大きな画像は自動的に最適化されます（最大1600x1600px）
                 </p>
                 <input
@@ -1043,10 +1043,10 @@ export default function ScreenshotCardPage() {
 
                 {/* OCR進捗表示 */}
                 {isExtracting && ocrProgress && (
-                  <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                     <div className="flex items-center justify-between mb-2">
                       <div className="flex items-center gap-2">
-                        <p className="text-sm text-blue-800 dark:text-blue-200 font-semibold">
+                        <p className="text-sm text-blue-800 font-semibold">
                           {ocrProgress.status}
                         </p>
                         {/* 90%以降はアニメーションで処理中であることを示す */}
@@ -1054,13 +1054,13 @@ export default function ScreenshotCardPage() {
                           <span className="animate-pulse text-blue-600">●</span>
                         )}
                       </div>
-                      <p className="text-xs text-blue-600 dark:text-blue-400 font-mono">
+                      <p className="text-xs text-blue-600 font-mono">
                         {Math.round(ocrProgress.progress * 100)}%
                       </p>
                     </div>
-                    <div className="w-full bg-blue-200 dark:bg-blue-900/40 rounded-full h-3 mb-2 relative overflow-hidden">
+                    <div className="w-full bg-blue-200 rounded-full h-3 mb-2 relative overflow-hidden">
                       <div
-                        className="bg-blue-600 dark:bg-blue-500 h-3 rounded-full transition-all duration-300"
+                        className="bg-blue-600 h-3 rounded-full transition-all duration-300"
                         style={{ width: `${ocrProgress.progress * 100}%` }}
                       />
                       {/* 90%以降はアニメーション効果 */}
@@ -1069,7 +1069,7 @@ export default function ScreenshotCardPage() {
                       )}
                     </div>
                     {ocrProgress.progress < 0.3 && (
-                      <div className="space-y-1 text-xs text-blue-700 dark:text-blue-300">
+                      <div className="space-y-1 text-xs text-blue-700">
                         <p>⏳ 初回使用時は言語データのダウンロードが必要です</p>
                         <p>📦 英語データ: 約5MB、日本語データ: 約15MB</p>
                         <p>🌐 インターネット接続が必要です</p>
@@ -1077,16 +1077,16 @@ export default function ScreenshotCardPage() {
                       </div>
                     )}
                     {ocrProgress.progress >= 0.3 && ocrProgress.progress < 0.9 && (
-                      <p className="text-xs text-blue-600 dark:text-blue-400">
+                      <p className="text-xs text-blue-600">
                         ✓ 言語データのダウンロードが完了しました
                       </p>
                     )}
                     {ocrProgress.progress >= 0.9 && ocrProgress.progress < 1.0 && (
-                      <div className="space-y-1 text-xs text-blue-700 dark:text-blue-300">
+                      <div className="space-y-1 text-xs text-blue-700">
                         <p className="font-semibold">🔄 画像からテキストを抽出中...</p>
                         <p>画像のサイズや複雑さによって時間がかかることがあります</p>
                         <p>通常は10-30秒程度です</p>
-                        <p className="text-red-600 dark:text-red-400 font-semibold mt-2">
+                        <p className="text-red-600 font-semibold mt-2">
                           ⚠️ 2分以上かかる場合は「キャンセル」ボタンで中断し、画像を小さくして再試行してください
                         </p>
                       </div>
@@ -1096,14 +1096,14 @@ export default function ScreenshotCardPage() {
 
                 {/* 抽出結果表示 */}
                 {extractedText && !isExtracting && (
-                  <div className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-3">
+                  <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
                     <div className="flex items-center justify-between mb-2">
-                      <p className="text-xs text-gray-600 dark:text-gray-400 font-semibold">
+                      <p className="text-xs text-gray-600 font-semibold">
                         抽出されたテキスト（編集可能）:
                       </p>
                       <div className="flex items-center gap-2">
                         {ocrConfidence !== null && (
-                          <p className="text-xs text-gray-500 dark:text-gray-400">
+                          <p className="text-xs text-gray-500">
                             信頼度: {ocrConfidence.toFixed(1)}%
                           </p>
                         )}
@@ -1116,17 +1116,17 @@ export default function ScreenshotCardPage() {
                       </div>
                     </div>
                     <div className="space-y-2">
-                      <div className="bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2 max-h-32 overflow-y-auto">
-                        <p className="text-sm text-gray-800 dark:text-gray-200 whitespace-pre-wrap break-words">
+                      <div className="bg-white border border-gray-300 rounded-lg p-2 max-h-32 overflow-y-auto">
+                        <p className="text-sm text-gray-800 whitespace-pre-wrap break-words">
                           {extractedText.length > 100 ? extractedText.substring(0, 100) + '...' : extractedText}
                         </p>
                       </div>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                      <p className="text-xs text-gray-500">
                         💡 ヒント: 「全画面で編集」ボタンで編集できます。改行を入れるとその位置で分割されます。改行がない場合は、ピリオド（.）や疑問符（?）などで自動分割されます。
                       </p>
                     </div>
                     {ocrConfidence !== null && ocrConfidence < 50 && (
-                      <p className="text-xs text-yellow-600 dark:text-yellow-400 mt-2">
+                      <p className="text-xs text-yellow-600 mt-2">
                         ⚠️ 信頼度が低いため、抽出結果を確認・編集してください
                       </p>
                     )}
@@ -1194,21 +1194,21 @@ export default function ScreenshotCardPage() {
                 {/* 全画面編集モーダル */}
                 {isEditingExtractedText && (
                   <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-                    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] flex flex-col">
-                      <div className="flex items-center justify-between p-4 border-b dark:border-gray-700">
-                        <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                    <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] flex flex-col">
+                      <div className="flex items-center justify-between p-4 border-b">
+                        <h3 className="text-lg font-semibold text-gray-900">
                           抽出されたテキストを編集
                         </h3>
                         <button
                           onClick={() => setIsEditingExtractedText(false)}
-                          className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 text-2xl"
+                          className="text-gray-500 hover:text-gray-700 text-2xl"
                         >
                           ×
                         </button>
                       </div>
                       <div className="flex-1 overflow-y-auto p-4 space-y-4">
                         <div className="flex items-center justify-between">
-                          <label className="text-sm text-gray-700 dark:text-gray-300 font-semibold">
+                          <label className="text-sm text-gray-700 font-semibold">
                             改行を入れるとその位置で分割されます
                           </label>
                           <button
@@ -1223,16 +1223,16 @@ export default function ScreenshotCardPage() {
                           ref={extractedTextareaRef}
                           value={extractedText}
                           onChange={(e) => setExtractedText(e.target.value)}
-                          className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-3 text-base text-gray-800 dark:text-gray-200 bg-white dark:bg-gray-700 whitespace-pre-wrap break-words min-h-[400px]"
+                          className="w-full border border-gray-300 rounded-lg px-4 py-3 text-base text-gray-800 bg-white whitespace-pre-wrap break-words min-h-[400px]"
                           rows={20}
                           placeholder="OCRで抽出されたテキストを編集できます。改行を入れるとその位置で分割されます。改行がない場合は、ピリオドや？などの句読点で自動分割されます。"
                           autoFocus
                         />
-                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                        <p className="text-xs text-gray-500">
                           💡 ヒント: 「改行を挿入」ボタンで分割位置を明示できます。改行がない場合は、ピリオド（.）や疑問符（?）などで自動分割されます。
                         </p>
                         {ocrConfidence !== null && ocrConfidence < 50 && (
-                          <p className="text-xs text-yellow-600 dark:text-yellow-400">
+                          <p className="text-xs text-yellow-600">
                             ⚠️ 信頼度が低いため、抽出結果を確認・編集してください
                           </p>
                         )}
@@ -1317,8 +1317,8 @@ export default function ScreenshotCardPage() {
               </div>
               
               {isTranslating && (
-                <div className="mb-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
-                  <p className="text-sm text-blue-800 dark:text-blue-200">
+                <div className="mb-4 bg-blue-50 border border-blue-200 rounded-lg p-3">
+                  <p className="text-sm text-blue-800">
                     🌐 日本語翻訳中... しばらくお待ちください
                   </p>
                 </div>
@@ -1327,17 +1327,17 @@ export default function ScreenshotCardPage() {
               <div className="mb-4 flex gap-2">
                 <button
                   onClick={selectAllSentences}
-                  className="bg-purple-200 dark:bg-purple-900/30 hover:bg-purple-300 dark:hover:bg-purple-900/50 text-purple-800 dark:text-purple-200 font-semibold py-2 px-4 rounded-lg text-sm"
+                  className="bg-purple-200 hover:bg-purple-300 text-purple-800 font-semibold py-2 px-4 rounded-lg text-sm"
                 >
                   すべて選択
                 </button>
                 <button
                   onClick={deselectAllSentences}
-                  className="bg-purple-200 dark:bg-purple-900/30 hover:bg-purple-300 dark:hover:bg-purple-900/50 text-purple-800 dark:text-purple-200 font-semibold py-2 px-4 rounded-lg text-sm"
+                  className="bg-purple-200 hover:bg-purple-300 text-purple-800 font-semibold py-2 px-4 rounded-lg text-sm"
                 >
                   選択解除
                 </button>
-                <span className="ml-auto text-sm text-purple-700 dark:text-purple-300 font-semibold">
+                <span className="ml-auto text-sm text-purple-700 font-semibold">
                   {selectedSentences.size} / {splitSentences.length} 個選択中
                 </span>
               </div>
@@ -1346,20 +1346,20 @@ export default function ScreenshotCardPage() {
                 {splitSentences.map((sentence, index) => (
                   <div
                     key={index}
-                    className={`bg-white dark:bg-gray-800 rounded-lg p-3 border-2 transition-colors ${
+                    className={`bg-white rounded-lg p-3 border-2 transition-colors ${
                       selectedSentences.has(index)
-                        ? "border-purple-500 dark:border-purple-400 bg-purple-100 dark:bg-purple-900/30"
-                        : "border-gray-200 dark:border-gray-700"
+                        ? "border-purple-500 bg-purple-100"
+                        : "border-gray-200"
                     }`}
                   >
                     {editingSentenceIndex === index ? (
                       <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4 md:p-8">
-                        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6">
+                        <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6">
                           <div className="flex items-center justify-between mb-4">
-                            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">文章 {index + 1} を編集</h3>
+                            <h3 className="text-lg font-semibold text-gray-900">文章 {index + 1} を編集</h3>
                             <button
                               onClick={handleCancelEdit}
-                              className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 text-2xl"
+                              className="text-gray-500 hover:text-gray-700 text-2xl"
                             >
                               ×
                             </button>
@@ -1367,7 +1367,7 @@ export default function ScreenshotCardPage() {
                           <div className="space-y-4">
                             <div>
                               <div className="flex items-center justify-between mb-2">
-                                <label className="text-sm text-gray-700 dark:text-gray-300 font-semibold block">英語:</label>
+                                <label className="text-sm text-gray-700 font-semibold block">英語:</label>
                                 <button
                                   onClick={handleSplitSentence}
                                   className="text-xs bg-purple-600 hover:bg-purple-700 text-white font-semibold py-1 px-3 rounded-lg flex items-center gap-1"
@@ -1380,18 +1380,18 @@ export default function ScreenshotCardPage() {
                                 ref={editingTextareaRef}
                                 value={editingSentenceEn}
                                 onChange={(e) => setEditingSentenceEn(e.target.value)}
-                                className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-3 text-base bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                                className="w-full border border-gray-300 rounded-lg px-4 py-3 text-base bg-white text-gray-900"
                                 rows={4}
                                 autoFocus
                                 placeholder="カーソル位置で「ここで分割」ボタンをクリックすると文章を分割できます"
                               />
-                              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                              <p className="text-xs text-gray-500 mt-1">
                                 カーソル位置で「ここで分割」ボタンをクリックすると、文章を2つに分割できます
                               </p>
                             </div>
                             <div>
                               <div className="flex items-center justify-between mb-2">
-                                <label className="text-sm text-gray-700 dark:text-gray-300 font-semibold block">日本語:</label>
+                                <label className="text-sm text-gray-700 font-semibold block">日本語:</label>
                                 {(!hasJapaneseTranslation || hasEnglishChanged) && (
                                   <button
                                     onClick={handleTranslateSingleSentence}
@@ -1405,7 +1405,7 @@ export default function ScreenshotCardPage() {
                               <textarea
                                 value={editingSentenceJp}
                                 onChange={(e) => setEditingSentenceJp(e.target.value)}
-                                className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-3 text-base bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                                className="w-full border border-gray-300 rounded-lg px-4 py-3 text-base bg-white text-gray-900"
                                 rows={4}
                                 placeholder="日本語訳を入力（任意）..."
                               />
@@ -1446,14 +1446,14 @@ export default function ScreenshotCardPage() {
                             />
                           </div>
                           <div className="flex-1">
-                            <p className="text-sm text-gray-800 dark:text-gray-200 font-medium mb-2">{sentence}</p>
+                            <p className="text-sm text-gray-800 font-medium mb-2">{sentence}</p>
                             {isTranslating && !translatedSentences.has(index) && (
-                              <p className="text-xs text-blue-600 dark:text-blue-400 italic">翻訳中...</p>
+                              <p className="text-xs text-blue-600 italic">翻訳中...</p>
                             )}
                             {translatedSentences.has(index) && (
-                              <div className="mt-2 p-2 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded">
-                                <p className="text-xs text-green-700 dark:text-green-300 font-semibold mb-1">日本語訳:</p>
-                                <p className="text-sm text-gray-800 dark:text-gray-200">{translatedSentences.get(index)}</p>
+                              <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded">
+                                <p className="text-xs text-green-700 font-semibold mb-1">日本語訳:</p>
+                                <p className="text-sm text-gray-800">{translatedSentences.get(index)}</p>
                               </div>
                             )}
                             <div className="flex items-center justify-end gap-2 mt-2">

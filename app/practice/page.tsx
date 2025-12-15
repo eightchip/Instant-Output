@@ -546,7 +546,7 @@ function PracticeContent() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-gray-50 dark:bg-gray-900">
+    <div className="flex min-h-screen flex-col bg-gray-50">
       <main className="flex-1 px-4 py-8 max-w-2xl mx-auto w-full">
         {/* モード表示 */}
         <div className="mb-4">
@@ -576,29 +576,29 @@ function PracticeContent() {
         </div>
 
         {/* 進捗表示 */}
-        <div className="mb-6 bg-white dark:bg-gray-800 rounded-lg shadow-md p-4">
+        <div className="mb-6 bg-white rounded-lg shadow-md p-4">
           <div className="flex justify-between items-center mb-3">
             <div>
-              <div className="text-lg font-bold text-gray-900 dark:text-white">
+              <div className="text-lg font-bold text-gray-900">
                 問題 {currentIndex + 1} / {cards.length}
               </div>
-              <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              <div className="text-xs text-gray-500 mt-1">
                 残り {cards.length - (currentIndex + 1)} 問
               </div>
             </div>
             {/* タイピング統計 */}
             {mode === "typing" && typingStats && (
               <div className="flex gap-4">
-                <span className="text-green-600 dark:text-green-400 font-semibold">
+                <span className="text-green-600 font-semibold">
                   WPM: {typingStats.wpm}
                 </span>
-                <span className="text-blue-600 dark:text-blue-400 font-semibold">
+                <span className="text-blue-600 font-semibold">
                   正確性: {typingStats.accuracy}%
                 </span>
               </div>
             )}
           </div>
-          <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3 overflow-hidden">
+          <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
             <div
               className="bg-gradient-to-r from-blue-500 via-blue-600 to-indigo-600 h-3 rounded-full transition-all duration-300 relative"
               style={{ width: `${((currentIndex + 1) / cards.length) * 100}%` }}
@@ -606,13 +606,13 @@ function PracticeContent() {
               <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-shimmer"></div>
             </div>
           </div>
-          <div className="mt-2 text-xs text-gray-500 dark:text-gray-400 text-center">
+          <div className="mt-2 text-xs text-gray-500 text-center">
             {Math.round(((currentIndex + 1) / cards.length) * 100)}% 完了
           </div>
         </div>
 
         {/* 問題表示 */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 mb-6">
+        <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
           {(mode as string) === "flashcard" ? (
             // フラッシュカードモード: 重要単語を表示
             <>

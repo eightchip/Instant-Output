@@ -179,7 +179,7 @@ export default function CardSearchPage() {
               <select
                 value={filters.lessonId || ""}
                 onChange={(e) => handleFilterChange("lessonId", e.target.value)}
-                className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                className="w-full border border-gray-300 rounded-lg px-4 py-2 bg-white text-gray-900"
               >
                 <option value="">すべて</option>
                 {lessons.map((lesson) => (
@@ -197,7 +197,7 @@ export default function CardSearchPage() {
                 onChange={(e) =>
                   handleFilterChange("sourceType", e.target.value || undefined)
                 }
-                className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                className="w-full border border-gray-300 rounded-lg px-4 py-2 bg-white text-gray-900"
               >
                 <option value="">すべて</option>
                 <option value="manual_pair">手入力（日英ペア）</option>
@@ -211,7 +211,7 @@ export default function CardSearchPage() {
               <select
                 value={filters.tag || ""}
                 onChange={(e) => handleFilterChange("tag", e.target.value)}
-                className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                className="w-full border border-gray-300 rounded-lg px-4 py-2 bg-white text-gray-900"
               >
                 <option value="">すべて</option>
                 {Array.from(
@@ -236,7 +236,7 @@ export default function CardSearchPage() {
               </label>
               <button
                 onClick={clearFilters}
-                className="w-full bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 font-semibold py-2 px-4 rounded-lg"
+                className="w-full bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold py-2 px-4 rounded-lg"
               >
                 リセット
               </button>

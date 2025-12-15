@@ -242,16 +242,16 @@ function AICardContent() {
   // 認証が必要な場合
   if (!isAuthenticated) {
     return (
-      <div className="flex min-h-screen flex-col bg-gray-50 dark:bg-gray-900">
+      <div className="flex min-h-screen flex-col bg-gray-50">
         <main className="flex-1 px-4 py-8 max-w-4xl mx-auto w-full flex items-center justify-center">
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-8 w-full max-w-md">
-            <h1 className="text-2xl font-bold mb-6 text-center dark:text-white">管理者認証</h1>
-            <p className="text-sm text-gray-600 dark:text-gray-400 mb-4 text-center">
+          <div className="bg-white rounded-lg shadow-lg p-8 w-full max-w-md">
+            <h1 className="text-2xl font-bold mb-6 text-center">管理者認証</h1>
+            <p className="text-sm text-gray-600 mb-4 text-center">
               AI-OCR機能を使用するには管理者パスワードが必要です。
             </p>
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-semibold mb-2 dark:text-gray-300">
+                <label className="block text-sm font-semibold mb-2">
                   パスワード
                 </label>
                 <input
@@ -264,7 +264,7 @@ function AICardContent() {
                     }
                   }}
                   placeholder="管理者パスワードを入力"
-                  className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-3 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  className="w-full border border-gray-300 rounded-lg px-4 py-3 bg-white text-gray-900"
                   autoFocus
                 />
               </div>
@@ -288,10 +288,10 @@ function AICardContent() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-gray-50 dark:bg-gray-900">
+    <div className="flex min-h-screen flex-col bg-gray-50">
       <main className="flex-1 px-4 py-8 max-w-4xl mx-auto w-full">
         <div className="flex items-center justify-between mb-6">
-          <h1 className="text-3xl font-bold dark:text-white">AI-OCRでカード化（管理者専用）</h1>
+          <h1 className="text-3xl font-bold">AI-OCRでカード化（管理者専用）</h1>
           <div className="flex items-center gap-3">
             <button
               onClick={() => {
@@ -299,21 +299,21 @@ function AICardContent() {
                 setIsAuthenticated(false);
                 setSavedPassword(""); // パスワードをクリア
               }}
-              className="text-sm text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
+              className="text-sm text-gray-600 hover:text-gray-800"
             >
               ログアウト
             </button>
             <button
               onClick={() => router.back()}
-              className="text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
+              className="text-gray-600 hover:text-gray-800"
             >
               ← 戻る
             </button>
           </div>
         </div>
 
-        <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 mb-6">
-          <p className="text-sm text-blue-800 dark:text-blue-200">
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+          <p className="text-sm text-blue-800">
             📝 <strong>機能説明:</strong> ChatGPT APIを使用して画像から英文を抽出し、自動的に文単位で分割して日本語に翻訳します。
             翻訳結果は確認・編集してからカードとして保存できます。
           </p>
@@ -321,13 +321,13 @@ function AICardContent() {
 
         <div className="space-y-6">
             {/* ステップ1: 画像アップロード */}
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
-              <h2 className="text-xl font-semibold mb-4 dark:text-white">ステップ1: 画像をアップロード</h2>
+            <div className="bg-white rounded-lg shadow-lg p-6">
+              <h2 className="text-xl font-semibold mb-4">ステップ1: 画像をアップロード</h2>
             <input
               type="file"
               accept="image/*"
               onChange={handleImageSelect}
-              className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2 mb-4 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+              className="w-full border border-gray-300 rounded-lg px-4 py-2 mb-4 bg-white text-gray-900"
               disabled={isProcessing}
             />
             {imagePreview && (
@@ -343,8 +343,8 @@ function AICardContent() {
 
           {/* ステップ2: OCR */}
           {imageFile && (
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
-              <h2 className="text-xl font-semibold mb-4 dark:text-white">ステップ2: ChatGPT APIでOCR実行</h2>
+            <div className="bg-white rounded-lg shadow-lg p-6">
+              <h2 className="text-xl font-semibold mb-4">ステップ2: ChatGPT APIでOCR実行</h2>
               {!rawOcrText ? (
                 <div>
                   <button
@@ -368,11 +368,11 @@ function AICardContent() {
                 </div>
               ) : (
                 <div>
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">OCR結果:</p>
+                  <p className="text-sm text-gray-600 mb-2">OCR結果:</p>
                   <textarea
                     value={rawOcrText}
                     readOnly
-                    className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-3 min-h-[200px] bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white"
+                    className="w-full border border-gray-300 rounded-lg px-4 py-3 min-h-[200px] bg-gray-50 text-gray-900"
                   />
                 </div>
               )}
@@ -381,8 +381,8 @@ function AICardContent() {
 
           {/* ステップ3: 自動分割・翻訳 */}
           {rawOcrText && (
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
-              <h2 className="text-xl font-semibold mb-4 dark:text-white">ステップ3: 自動分割・翻訳</h2>
+            <div className="bg-white rounded-lg shadow-lg p-6">
+              <h2 className="text-xl font-semibold mb-4">ステップ3: 自動分割・翻訳</h2>
               <button
                 onClick={handleAutoCard}
                 disabled={isProcessing}

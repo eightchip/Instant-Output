@@ -196,49 +196,49 @@ function ReviewContent() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-gray-50 dark:bg-gray-900">
+    <div className="flex min-h-screen flex-col bg-gray-50">
       <main className="flex-1 px-4 py-8 max-w-4xl mx-auto w-full">
         <div className="flex items-center justify-between mb-6">
-          <h1 className="text-3xl font-bold dark:text-white">カード候補のレビュー</h1>
+          <h1 className="text-3xl font-bold">カード候補のレビュー</h1>
           <button
             onClick={() => router.back()}
-            className="text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
+            className="text-gray-600 hover:text-gray-800"
           >
             ← 戻る
           </button>
         </div>
 
         {/* 統計情報 */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 mb-6">
+        <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div>
-              <p className="text-sm text-gray-600 dark:text-gray-400">総カード数</p>
-              <p className="text-2xl font-bold dark:text-white">{draft.cards.length}</p>
+              <p className="text-sm text-gray-600">総カード数</p>
+              <p className="text-2xl font-bold">{draft.cards.length}</p>
             </div>
             <div>
-              <p className="text-sm text-gray-600 dark:text-gray-400">レビュー必要</p>
-              <p className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">
+              <p className="text-sm text-gray-600">レビュー必要</p>
+              <p className="text-2xl font-bold text-yellow-600">
                 {draft.cards.filter((c) => c.needsReview).length}
               </p>
             </div>
             <div>
-              <p className="text-sm text-gray-600 dark:text-gray-400">選択中</p>
-              <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+              <p className="text-sm text-gray-600">選択中</p>
+              <p className="text-2xl font-bold text-blue-600">
                 {selectedCards.size}
               </p>
             </div>
             <div>
-              <p className="text-sm text-gray-600 dark:text-gray-400">検出文数</p>
-              <p className="text-2xl font-bold dark:text-white">{draft.detected.sentenceCount}</p>
+              <p className="text-sm text-gray-600">検出文数</p>
+              <p className="text-2xl font-bold">{draft.detected.sentenceCount}</p>
             </div>
           </div>
         </div>
 
         {/* 警告 */}
         {draft.warnings.length > 0 && (
-          <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4 mb-6">
-            <h3 className="font-semibold text-yellow-800 dark:text-yellow-200 mb-2">警告</h3>
-            <ul className="list-disc list-inside text-sm text-yellow-700 dark:text-yellow-300">
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
+            <h3 className="font-semibold text-yellow-800 mb-2">警告</h3>
+            <ul className="list-disc list-inside text-sm text-yellow-700">
               {draft.warnings.map((warning, i) => (
                 <li key={i}>{warning}</li>
               ))}
@@ -247,7 +247,7 @@ function ReviewContent() {
         )}
 
         {/* フィルタと保存 */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 mb-6">
+        <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
           <div className="flex items-center gap-4 mb-4">
             <label className="flex items-center gap-2">
               <input
@@ -256,12 +256,12 @@ function ReviewContent() {
                 onChange={(e) => setShowNeedsReview(e.target.checked)}
                 className="w-4 h-4"
               />
-              <span className="text-sm dark:text-gray-300">レビュー必要のみ表示</span>
+              <span className="text-sm">レビュー必要のみ表示</span>
             </label>
             <select
               value={selectedLessonId}
               onChange={(e) => setSelectedLessonId(e.target.value)}
-              className="border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+              className="border border-gray-300 rounded-lg px-4 py-2 bg-white text-gray-900"
             >
               <option value="">レッスンを選択...</option>
               {lessons.map((lesson) => (
@@ -292,8 +292,8 @@ function ReviewContent() {
             return (
               <div
                 key={index}
-                className={`bg-white dark:bg-gray-800 rounded-lg shadow p-4 border-2 ${
-                  isSelected ? "border-blue-500" : "border-gray-200 dark:border-gray-700"
+                className={`bg-white rounded-lg shadow p-4 border-2 ${
+                  isSelected ? "border-blue-500" : "border-gray-200"
                 }`}
               >
                 <div className="flex items-start gap-3">
@@ -307,7 +307,7 @@ function ReviewContent() {
                     {isEditing ? (
                       <div className="space-y-3">
                         <div>
-                          <label className="block text-sm font-semibold mb-1 dark:text-gray-300">
+                          <label className="block text-sm font-semibold mb-1">
                             英語
                           </label>
                           <textarea
@@ -315,12 +315,12 @@ function ReviewContent() {
                             onChange={(e) =>
                               setEditingCard({ ...editingCard!, en: e.target.value })
                             }
-                            className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                            className="w-full border border-gray-300 rounded-lg px-3 py-2 bg-white text-gray-900"
                             rows={2}
                           />
                         </div>
                         <div>
-                          <label className="block text-sm font-semibold mb-1 dark:text-gray-300">
+                          <label className="block text-sm font-semibold mb-1">
                             日本語
                           </label>
                           <textarea
@@ -328,7 +328,7 @@ function ReviewContent() {
                             onChange={(e) =>
                               setEditingCard({ ...editingCard!, jp: e.target.value })
                             }
-                            className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                            className="w-full border border-gray-300 rounded-lg px-3 py-2 bg-white text-gray-900"
                             rows={2}
                           />
                         </div>
@@ -353,16 +353,16 @@ function ReviewContent() {
                     ) : (
                       <>
                         <div className="mb-2">
-                          <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">英語</p>
-                          <p className="text-lg font-semibold dark:text-white">{card.en}</p>
+                          <p className="text-sm text-gray-600 mb-1">英語</p>
+                          <p className="text-lg font-semibold">{card.en}</p>
                         </div>
                         <div className="mb-2">
-                          <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">日本語</p>
-                          <p className="text-lg dark:text-white">{card.jp}</p>
+                          <p className="text-sm text-gray-600 mb-1">日本語</p>
+                          <p className="text-lg">{card.jp}</p>
                         </div>
                         <div className="flex items-center gap-2 mt-2">
                           {card.needsReview && (
-                            <span className="text-xs bg-yellow-200 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-200 px-2 py-1 rounded">
+                            <span className="text-xs bg-yellow-200 text-yellow-800 px-2 py-1 rounded">
                               レビュー必要
                             </span>
                           )}
@@ -371,19 +371,19 @@ function ReviewContent() {
                               {card.flags.map((flag, i) => (
                                 <span
                                   key={i}
-                                  className="text-xs bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-2 py-1 rounded"
+                                  className="text-xs bg-gray-200 text-gray-700 px-2 py-1 rounded"
                                 >
                                   {flag}
                                 </span>
                               ))}
                             </div>
                           )}
-                          <span className="text-xs text-gray-500 dark:text-gray-400">
+                          <span className="text-xs text-gray-500">
                             信頼度: {Math.round(card.confidence * 100)}%
                           </span>
                           <button
                             onClick={() => handleEdit(index)}
-                            className="ml-auto text-sm text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300"
+                            className="ml-auto text-sm text-blue-600 hover:text-blue-800"
                           >
                             編集
                           </button>
