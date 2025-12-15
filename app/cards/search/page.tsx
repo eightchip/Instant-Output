@@ -8,6 +8,7 @@ import { highlightText } from "@/lib/highlight";
 import MessageDialog from "@/components/MessageDialog";
 import { useBatchCardSelection } from "@/hooks/useBatchCardSelection";
 import ConfirmDialog from "@/components/ConfirmDialog";
+import LoadingSpinner from "@/components/LoadingSpinner";
 
 type FilterType = {
   lessonId?: string;
@@ -131,11 +132,7 @@ export default function CardSearchPage() {
   }
 
   if (isLoading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <div className="text-lg">読み込み中...</div>
-      </div>
-    );
+    return <LoadingSpinner fullScreen text="カードを検索中..." />;
   }
 
   return (
@@ -272,7 +269,27 @@ export default function CardSearchPage() {
 
         {filteredCards.length === 0 ? (
           <div className="bg-white rounded-lg shadow p-6 text-center">
-            <p className="text-gray-600">該当するカードがありません。</p>
+            <div className="text-center py-12">
+              <div className="text-6xl mb-4">🔍</div>
+              <h3 className="text-xl font-bold text-gray-800 mb-2">該当するカードがありません</h3>
+              <p className="text-gray-600 mb-6">
+                検索条件を変更するか、新しいカードを作成してください。
+              </p>
+              <div className="flex flex-col gap-3 max-w-xs mx-auto">
+                <button
+                  onClick={() => router.push("/cards/new")}
+                  className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors shadow-md hover:shadow-lg"
+                >
+                  ➕ カードを追加
+                </button>
+                <button
+                  onClick={() => router.push("/cards/screenshot")}
+                  className="bg-slate-600 hover:bg-slate-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors shadow-md hover:shadow-lg"
+                >
+                  📷 スクリーンショットから追加
+                </button>
+              </div>
+            </div>
           </div>
         ) : (
           <div className="space-y-3">

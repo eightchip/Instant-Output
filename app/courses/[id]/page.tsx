@@ -6,6 +6,7 @@ import { storage } from "@/lib/storage";
 import { Course, Lesson } from "@/types/models";
 import MessageDialog from "@/components/MessageDialog";
 import ConfirmDialog from "@/components/ConfirmDialog";
+import LoadingSpinner from "@/components/LoadingSpinner";
 
 export default function CourseDetailPage() {
   const router = useRouter();
@@ -154,11 +155,7 @@ export default function CourseDetailPage() {
   }
 
   if (isLoading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <div className="text-lg">読み込み中...</div>
-      </div>
-    );
+    return <LoadingSpinner fullScreen text="コースを読み込み中..." />;
   }
 
   if (!course) {

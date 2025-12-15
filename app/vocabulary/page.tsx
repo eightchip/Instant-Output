@@ -6,6 +6,7 @@ import { storage } from "@/lib/storage";
 import { Card } from "@/types/models";
 import { generateVocabularyList, getImportantWords } from "@/lib/vocabulary";
 import { tts } from "@/lib/tts";
+import LoadingSpinner from "@/components/LoadingSpinner";
 
 export default function VocabularyPage() {
   const router = useRouter();
@@ -39,11 +40,7 @@ export default function VocabularyPage() {
     .filter(([word]) => searchQuery === "" || word.toLowerCase().includes(searchQuery.toLowerCase()));
 
   if (isLoading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <div className="text-lg">読み込み中...</div>
-      </div>
-    );
+    return <LoadingSpinner fullScreen text="語彙リストを生成中..." />;
   }
 
   return (

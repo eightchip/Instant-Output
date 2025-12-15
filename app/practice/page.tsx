@@ -13,6 +13,7 @@ import { splitIntoWords, getImportantWords } from "@/lib/vocabulary";
 import ErrorDialog from "@/components/ErrorDialog";
 import MessageDialog from "@/components/MessageDialog";
 import VoiceInputButton from "@/components/VoiceInputButton";
+import LoadingSpinner from "@/components/LoadingSpinner";
 
 function PracticeContent() {
   const router = useRouter();
@@ -124,10 +125,10 @@ function PracticeContent() {
           isOpen: true,
           title: "読み込みエラー",
           message: "カードの読み込みに失敗しました。",
+          onRetry: () => {
+            loadCards();
+          },
         });
-        setTimeout(() => {
-          router.push("/");
-        }, 2000);
       } finally {
         setIsLoading(false);
       }
@@ -443,11 +444,7 @@ function PracticeContent() {
   };
 
   if (isLoading && !errorDialog.isOpen) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <div className="text-lg">読み込み中...</div>
-      </div>
-    );
+    return <LoadingSpinner fullScreen text="カードを読み込み中..." />;
   }
 
   if (!currentCard) {
@@ -825,6 +822,7 @@ function PracticeContent() {
         title={errorDialog.title}
         message={errorDialog.message}
         onClose={() => setErrorDialog({ isOpen: false, title: "", message: "" })}
+        onRetry={errorDialog.onRetry}
       />
       <MessageDialog
         isOpen={messageDialog.isOpen}
@@ -838,11 +836,7 @@ function PracticeContent() {
 
 export default function PracticePage() {
   return (
-    <Suspense fallback={
-      <div className="flex min-h-screen items-center justify-center">
-        <div className="text-lg">読み込み中...</div>
-      </div>
-    }>
+    <Suspense fallback={<LoadingSpinner fullScreen text="読み込み中..." />}>
       <PracticeContent />
     </Suspense>
   );

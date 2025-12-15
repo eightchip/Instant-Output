@@ -6,6 +6,7 @@ import { storage } from "@/lib/storage";
 import { Lesson, Card, SourceType } from "@/types/models";
 import MessageDialog from "@/components/MessageDialog";
 import VoiceInputButton from "@/components/VoiceInputButton";
+import LoadingSpinner from "@/components/LoadingSpinner";
 
 type InputMode = "pair" | "english_only";
 
@@ -23,6 +24,11 @@ function NewCardContent() {
   const [targetEn, setTargetEn] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [errors, setErrors] = useState<{
+    lessonId?: string;
+    promptJp?: string;
+    targetEn?: string;
+  }>({});
   const [isRecordingJp, setIsRecordingJp] = useState(false);
   const [isRecordingEn, setIsRecordingEn] = useState(false);
   const recognitionJpRef = useRef<any>(null);
@@ -62,35 +68,39 @@ function NewCardContent() {
     }
   }
 
-  async function handleSave() {
+  // リアルタイムバリデーション（保存ボタンを押した時のみエラー表示）
+  const validateForm = () => {
+    const newErrors: typeof errors = {};
+    
     if (!selectedLessonId) {
-      setMessageDialog({
-        isOpen: true,
-        title: "レッスンが選択されていません",
-        message: "レッスンを選択してください。",
-      });
-      return;
+      newErrors.lessonId = "レッスンを選択してください";
     }
-
+    
     if (inputMode === "pair") {
-      if (!promptJp.trim() || !targetEn.trim()) {
-        setMessageDialog({
-          isOpen: true,
-          title: "入力エラー",
-          message: "日本語と英語の両方を入力してください。",
-        });
-        return;
+      if (!promptJp.trim()) {
+        newErrors.promptJp = "日本語を入力してください";
+      }
+      if (!targetEn.trim()) {
+        newErrors.targetEn = "英語を入力してください";
       }
     } else {
       if (!targetEn.trim()) {
-        setMessageDialog({
-          isOpen: true,
-          title: "入力エラー",
-          message: "英語を入力してください。",
-        });
-        return;
+        newErrors.targetEn = "英語を入力してください";
       }
     }
+    
+    return newErrors;
+  };
+
+  async function handleSave() {
+    // バリデーション
+    const validationErrors = validateForm();
+    if (Object.keys(validationErrors).length > 0) {
+      setErrors(validationErrors);
+      return;
+    }
+    
+    setErrors({});
 
     setIsSaving(true);
     try {
@@ -205,11 +215,7 @@ function NewCardContent() {
   }
 
   if (isLoading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <div className="text-lg">読み込み中...</div>
-      </div>
-    );
+    return <LoadingSpinner fullScreen text="レッスンを読み込み中..." />;
   }
 
   return (
@@ -233,8 +239,17 @@ function NewCardContent() {
             </label>
             <select
               value={selectedLessonId}
-              onChange={(e) => setSelectedLessonId(e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-4 py-2"
+              onChange={(e) => {
+                setSelectedLessonId(e.target.value);
+                if (errors.lessonId) {
+                  setErrors({ ...errors, lessonId: undefined });
+                }
+              }}
+              className={`w-full border rounded-lg px-4 py-2 ${
+                errors.lessonId
+                  ? "border-red-500 bg-red-50"
+                  : "border-gray-300"
+              }`}
             >
               <option value="">レッスンを選択...</option>
               {lessons.map((lesson) => (
@@ -243,7 +258,13 @@ function NewCardContent() {
                 </option>
               ))}
             </select>
-            {lessons.length === 0 && (
+            {errors.lessonId && (
+              <p className="text-sm text-red-600 mt-1 flex items-center gap-1">
+                <span>⚠️</span>
+                {errors.lessonId}
+              </p>
+            )}
+            {lessons.length === 0 && !errors.lessonId && (
               <p className="text-sm text-gray-500 mt-2">
                 レッスンがありません。{" "}
                 <button
@@ -300,11 +321,26 @@ function NewCardContent() {
               <textarea
                 ref={textareaJpRef}
                 value={promptJp}
-                onChange={(e) => setPromptJp(e.target.value)}
+                onChange={(e) => {
+                  setPromptJp(e.target.value);
+                  if (errors.promptJp) {
+                    setErrors({ ...errors, promptJp: undefined });
+                  }
+                }}
                 placeholder="日本語文を入力...（音声入力にも対応）"
-                className="w-full border border-gray-300 rounded-lg px-4 py-3 min-h-[100px]"
+                className={`w-full border rounded-lg px-4 py-3 min-h-[100px] ${
+                  errors.promptJp
+                    ? "border-red-500 bg-red-50"
+                    : "border-gray-300"
+                }`}
                 rows={3}
               />
+              {errors.promptJp && (
+                <p className="text-sm text-red-600 mt-1 flex items-center gap-1">
+                  <span>⚠️</span>
+                  {errors.promptJp}
+                </p>
+              )}
             </div>
           )}
 
@@ -322,21 +358,39 @@ function NewCardContent() {
             <textarea
               ref={textareaEnRef}
               value={targetEn}
-              onChange={(e) => setTargetEn(e.target.value)}
+              onChange={(e) => {
+                setTargetEn(e.target.value);
+                if (errors.targetEn) {
+                  setErrors({ ...errors, targetEn: undefined });
+                }
+              }}
               placeholder="英語文を入力...（音声入力にも対応）"
-              className="w-full border border-gray-300 rounded-lg px-4 py-3 min-h-[100px]"
+              className={`w-full border rounded-lg px-4 py-3 min-h-[100px] ${
+                errors.targetEn
+                  ? "border-red-500 bg-red-50"
+                  : "border-gray-300"
+              }`}
               rows={3}
             />
+            {errors.targetEn && (
+              <p className="text-sm text-red-600 mt-1 flex items-center gap-1">
+                <span>⚠️</span>
+                {errors.targetEn}
+              </p>
+            )}
           </div>
 
           {/* 保存ボタン */}
           <div className="flex gap-3">
             <button
               onClick={handleSave}
-              disabled={isSaving}
-              className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-bold py-3 px-4 rounded-lg"
+              disabled={isSaving || Object.keys(validateForm()).length > 0}
+              className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-bold py-3 px-4 rounded-lg transition-all flex items-center justify-center gap-2"
             >
-              {isSaving ? "保存中..." : "保存"}
+              {isSaving && (
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+              )}
+              <span>{isSaving ? "保存中..." : "保存"}</span>
             </button>
             <button
               onClick={() => router.back()}
@@ -353,11 +407,7 @@ function NewCardContent() {
 
 export default function NewCardPage() {
   return (
-    <Suspense fallback={
-      <div className="flex min-h-screen items-center justify-center">
-        <div className="text-lg">読み込み中...</div>
-      </div>
-    }>
+    <Suspense fallback={<LoadingSpinner fullScreen text="読み込み中..." />}>
       <NewCardContent />
     </Suspense>
   );

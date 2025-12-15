@@ -1490,9 +1490,12 @@ export default function ScreenshotCardPage() {
               <button
                 onClick={handleSaveSplitCards}
                 disabled={isSaving || selectedSentences.size === 0}
-                className="w-full bg-purple-600 hover:bg-purple-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-bold py-3 px-4 rounded-lg"
+                className="w-full bg-purple-600 hover:bg-purple-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-bold py-3 px-4 rounded-lg flex items-center justify-center gap-2"
               >
-                {isSaving ? "保存中..." : `選択した${selectedSentences.size}枚のカードを作成`}
+                {isSaving && (
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                )}
+                <span>{isSaving ? "保存中..." : `選択した${selectedSentences.size}枚のカードを作成`}</span>
               </button>
             </div>
           )}
@@ -1528,9 +1531,12 @@ export default function ScreenshotCardPage() {
               <button
                 onClick={handleSave}
                 disabled={isSaving || !targetEn.trim()}
-                className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-bold py-3 px-4 rounded-lg"
+                className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-bold py-3 px-4 rounded-lg flex items-center justify-center gap-2"
               >
-                {isSaving ? "保存中..." : "保存"}
+                {isSaving && (
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                )}
+                <span>{isSaving ? "保存中..." : "保存"}</span>
               </button>
               <button
                 onClick={() => router.back()}

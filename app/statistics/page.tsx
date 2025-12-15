@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { storage } from "@/lib/storage";
 import { calculateStatistics, getDailyData, Statistics } from "@/lib/statistics";
 import { StudySession } from "@/types/models";
+import LoadingSpinner from "@/components/LoadingSpinner";
 
 export default function StatisticsPage() {
   const router = useRouter();
@@ -30,17 +31,25 @@ export default function StatisticsPage() {
   }
 
   if (isLoading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <div className="text-lg">読み込み中...</div>
-      </div>
-    );
+    return <LoadingSpinner fullScreen text="統計データを読み込み中..." />;
   }
 
   if (!statistics) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
-        <div className="text-lg">統計データがありません。</div>
+      <div className="flex min-h-screen items-center justify-center bg-gray-50">
+        <div className="text-center py-12 px-4">
+          <div className="text-6xl mb-4">📊</div>
+          <h3 className="text-xl font-bold text-gray-800 mb-2">統計データがありません</h3>
+          <p className="text-gray-600 mb-6">
+            学習を開始すると、ここに統計データが表示されます。
+          </p>
+          <button
+            onClick={() => router.push("/practice")}
+            className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors shadow-md hover:shadow-lg"
+          >
+            🎯 学習を開始
+          </button>
+        </div>
       </div>
     );
   }
@@ -215,10 +224,18 @@ export default function StatisticsPage() {
         )}
 
         {sessions.length === 0 && (
-          <div className="bg-white rounded-lg shadow p-6 text-center">
-            <p className="text-gray-600">
-              まだ学習履歴がありません。学習を開始すると統計が表示されます。
+          <div className="bg-white rounded-lg shadow p-8 text-center">
+            <div className="text-6xl mb-4">📈</div>
+            <h3 className="text-xl font-bold text-gray-800 mb-2">学習履歴がありません</h3>
+            <p className="text-gray-600 mb-6">
+              学習を開始すると、ここに統計が表示されます。
             </p>
+            <button
+              onClick={() => router.push("/practice")}
+              className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors shadow-md hover:shadow-lg"
+            >
+              🎯 学習を開始
+            </button>
           </div>
         )}
       </main>

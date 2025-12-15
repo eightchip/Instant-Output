@@ -6,6 +6,7 @@ import { storage } from "@/lib/storage";
 import { Draft, DraftCard } from "@/types/ai-card";
 import { Card } from "@/types/models";
 import MessageDialog from "@/components/MessageDialog";
+import LoadingSpinner from "@/components/LoadingSpinner";
 
 function ReviewContent() {
   const router = useRouter();
@@ -187,11 +188,7 @@ function ReviewContent() {
   };
 
   if (isLoading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <div className="text-lg">読み込み中...</div>
-      </div>
-    );
+    return <LoadingSpinner fullScreen text="カード候補を読み込み中..." />;
   }
 
   if (!draft) {
@@ -276,9 +273,12 @@ function ReviewContent() {
             <button
               onClick={handleSaveCards}
               disabled={isSaving || selectedCards.size === 0 || !selectedLessonId}
-              className="ml-auto bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white font-bold py-2 px-4 rounded-lg"
+              className="ml-auto bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white font-bold py-2 px-4 rounded-lg flex items-center justify-center gap-2"
             >
-              {isSaving ? "保存中..." : `選択した${selectedCards.size}枚を保存`}
+              {isSaving && (
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+              )}
+              <span>{isSaving ? "保存中..." : `選択した${selectedCards.size}枚を保存`}</span>
             </button>
           </div>
         </div>
@@ -409,11 +409,7 @@ function ReviewContent() {
 
 export default function ReviewPage() {
   return (
-    <Suspense fallback={
-      <div className="flex min-h-screen items-center justify-center">
-        <div className="text-lg">読み込み中...</div>
-      </div>
-    }>
+    <Suspense fallback={<LoadingSpinner fullScreen text="読み込み中..." />}>
       <ReviewContent />
     </Suspense>
   );

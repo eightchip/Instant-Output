@@ -8,6 +8,7 @@ import { tts, TTSSpeed } from "@/lib/tts";
 import MessageDialog from "@/components/MessageDialog";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import VoiceInputButton from "@/components/VoiceInputButton";
+import LoadingSpinner from "@/components/LoadingSpinner";
 
 export default function EditCardPage() {
   const router = useRouter();
@@ -18,6 +19,9 @@ export default function EditCardPage() {
   const [targetEn, setTargetEn] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [errors, setErrors] = useState<{
+    targetEn?: string;
+  }>({});
   const [isRecordingJp, setIsRecordingJp] = useState(false);
   const [isRecordingEn, setIsRecordingEn] = useState(false);
   const [isSpeakingEn, setIsSpeakingEn] = useState(false);
@@ -120,13 +124,11 @@ export default function EditCardPage() {
     if (!card) return;
 
     if (!targetEn.trim()) {
-      setMessageDialog({
-        isOpen: true,
-        title: "入力エラー",
-        message: "英語を入力してください。",
-      });
+      setErrors({ targetEn: "英語を入力してください" });
       return;
     }
+    
+    setErrors({});
 
     setIsSaving(true);
     try {
@@ -387,11 +389,7 @@ export default function EditCardPage() {
   };
 
   if (isLoading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <div className="text-lg">読み込み中...</div>
-      </div>
-    );
+    return <LoadingSpinner fullScreen text="カードを読み込み中..." />;
   }
 
   if (!card) {
@@ -590,6 +588,9 @@ export default function EditCardPage() {
                 onChange={(e) => {
                   const cursorPos = e.target.selectionStart;
                   setTargetEn(e.target.value);
+                  if (errors.targetEn) {
+                    setErrors({ ...errors, targetEn: undefined });
+                  }
                   // 自動リサイズ
                   e.target.style.height = "auto";
                   e.target.style.height = `${e.target.scrollHeight}px`;
@@ -602,7 +603,11 @@ export default function EditCardPage() {
                   });
                 }}
                 placeholder="英語文を入力..."
-                className="flex-1 border border-gray-300 rounded-lg px-4 py-3 min-h-[100px] resize-none overflow-hidden"
+                className={`flex-1 border rounded-lg px-4 py-3 min-h-[100px] resize-none overflow-hidden ${
+                  errors.targetEn
+                    ? "border-red-500 bg-red-50"
+                    : "border-gray-300"
+                }`}
                 style={{ height: "auto" }}
               />
               <div className="flex flex-col gap-2">
@@ -644,6 +649,12 @@ export default function EditCardPage() {
                 )}
               </div>
             </div>
+            {errors.targetEn && (
+              <p className="text-sm text-red-600 mt-1 flex items-center gap-1">
+                <span>⚠️</span>
+                {errors.targetEn}
+              </p>
+            )}
           </div>
 
           {/* カード情報 */}
@@ -655,10 +666,13 @@ export default function EditCardPage() {
           <div className="flex gap-3">
             <button
               onClick={handleSave}
-              disabled={isSaving || !targetEn.trim()}
-              className="flex-1 btn-primary disabled:bg-gray-400 disabled:cursor-not-allowed disabled:hover:scale-100 disabled:shadow-md"
+              disabled={isSaving || !targetEn.trim() || errors.targetEn !== undefined}
+              className="flex-1 btn-primary disabled:bg-gray-400 disabled:cursor-not-allowed disabled:hover:scale-100 disabled:shadow-md flex items-center justify-center gap-2"
             >
-              {isSaving ? "保存中..." : "保存"}
+              {isSaving && (
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+              )}
+              <span>{isSaving ? "保存中..." : "保存"}</span>
             </button>
             <button
               onClick={handleDelete}

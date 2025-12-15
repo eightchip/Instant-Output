@@ -16,6 +16,7 @@ interface MessageDialogProps {
   message: string;
   onClose: () => void;
   variant?: "default" | "success" | "error" | "warning";
+  onRetry?: () => void;
 }
 
 export default function MessageDialog({
@@ -24,6 +25,7 @@ export default function MessageDialog({
   message,
   onClose,
   variant = "default",
+  onRetry,
 }: MessageDialogProps) {
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -34,8 +36,19 @@ export default function MessageDialog({
             {message}
           </DialogDescription>
         </DialogHeader>
-        <DialogFooter>
-          <Button onClick={onClose} variant="default">
+        <DialogFooter className="gap-2">
+          {onRetry && (
+            <Button
+              onClick={() => {
+                onRetry();
+                onClose();
+              }}
+              variant="default"
+            >
+              再試行
+            </Button>
+          )}
+          <Button onClick={onClose} variant={variant === "error" ? "destructive" : "default"}>
             OK
           </Button>
         </DialogFooter>

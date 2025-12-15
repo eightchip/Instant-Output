@@ -6,6 +6,7 @@ import { storage } from "@/lib/storage";
 import { getReviewSchedule, getReviewStats, ReviewStats } from "@/lib/reviews";
 import { Review } from "@/types/models";
 import MessageDialog from "@/components/MessageDialog";
+import LoadingSpinner from "@/components/LoadingSpinner";
 
 export default function ReviewsPage() {
   const router = useRouter();
@@ -138,11 +139,7 @@ export default function ReviewsPage() {
   };
 
   if (isLoading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <div className="text-lg">読み込み中...</div>
-      </div>
-    );
+    return <LoadingSpinner fullScreen text="復習スケジュールを読み込み中..." />;
   }
 
   return (

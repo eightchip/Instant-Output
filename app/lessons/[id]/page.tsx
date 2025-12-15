@@ -6,6 +6,7 @@ import { storage } from "@/lib/storage";
 import { Lesson, Card } from "@/types/models";
 import MessageDialog from "@/components/MessageDialog";
 import ConfirmDialog from "@/components/ConfirmDialog";
+import LoadingSpinner from "@/components/LoadingSpinner";
 
 export default function LessonDetailPage() {
   const router = useRouter();
@@ -135,11 +136,7 @@ export default function LessonDetailPage() {
   }
 
   if (isLoading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <div className="text-lg">読み込み中...</div>
-      </div>
-    );
+    return <LoadingSpinner fullScreen text="レッスンを読み込み中..." />;
   }
 
   if (!lesson) {
@@ -300,8 +297,26 @@ export default function LessonDetailPage() {
         )}
 
         {cards.length === 0 ? (
-          <div className="bg-white rounded-lg shadow p-6 text-center">
-            <p className="text-gray-600">このレッスンにはまだカードがありません。</p>
+          <div className="bg-white rounded-lg shadow p-8 text-center">
+            <div className="text-6xl mb-4">📝</div>
+            <h3 className="text-xl font-bold text-gray-800 mb-2">カードがありません</h3>
+            <p className="text-gray-600 mb-6">
+              このレッスンにカードを追加して、学習を始めましょう。
+            </p>
+            <div className="flex flex-col gap-3 max-w-xs mx-auto">
+              <button
+                onClick={() => router.push(`/cards/new?lessonId=${lesson.id}`)}
+                className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors shadow-md hover:shadow-lg"
+              >
+                ➕ カードを追加
+              </button>
+              <button
+                onClick={() => router.push("/cards/screenshot")}
+                className="bg-slate-600 hover:bg-slate-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors shadow-md hover:shadow-lg"
+              >
+                📷 スクリーンショットから追加
+              </button>
+            </div>
           </div>
         ) : (
           <div className="space-y-3">

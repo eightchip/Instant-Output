@@ -7,6 +7,7 @@ import { ocrService } from "@/lib/ocr";
 import { Source } from "@/types/ai-card";
 import { generateCardCandidates } from "@/lib/text-processing";
 import MessageDialog from "@/components/MessageDialog";
+import LoadingSpinner from "@/components/LoadingSpinner";
 
 function AICardContent() {
   const router = useRouter();
@@ -234,11 +235,7 @@ function AICardContent() {
 
 export default function AICardPage() {
   return (
-    <Suspense fallback={
-      <div className="flex min-h-screen items-center justify-center">
-        <div className="text-lg">読み込み中...</div>
-      </div>
-    }>
+    <Suspense fallback={<LoadingSpinner fullScreen text="読み込み中..." />}>
       <AICardContent />
     </Suspense>
   );

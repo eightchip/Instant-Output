@@ -6,6 +6,7 @@ import { storage } from "@/lib/storage";
 import { Lesson } from "@/types/models";
 import MessageDialog from "@/components/MessageDialog";
 import ConfirmDialog from "@/components/ConfirmDialog";
+import LoadingSpinner from "@/components/LoadingSpinner";
 
 export default function LessonsPage() {
   const router = useRouter();
@@ -13,6 +14,7 @@ export default function LessonsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [showNewForm, setShowNewForm] = useState(false);
   const [newLessonTitle, setNewLessonTitle] = useState("");
+  const [errors, setErrors] = useState<{ title?: string }>({});
   const [messageDialog, setMessageDialog] = useState<{ isOpen: boolean; title: string; message: string }>({
     isOpen: false,
     title: "",
@@ -43,13 +45,11 @@ export default function LessonsPage() {
 
   async function handleCreateLesson() {
     if (!newLessonTitle.trim()) {
-      setMessageDialog({
-        isOpen: true,
-        title: "入力エラー",
-        message: "レッスン名を入力してください。",
-      });
+      setErrors({ title: "レッスン名を入力してください" });
       return;
     }
+    
+    setErrors({});
 
     try {
       const newLesson: Lesson = {
@@ -71,11 +71,7 @@ export default function LessonsPage() {
   }
 
   if (isLoading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <div className="text-lg">読み込み中...</div>
-      </div>
-    );
+    return <LoadingSpinner fullScreen text="レッスンを読み込み中..." />;
   }
 
   return (
@@ -99,15 +95,30 @@ export default function LessonsPage() {
               <input
                 type="text"
                 value={newLessonTitle}
-                onChange={(e) => setNewLessonTitle(e.target.value)}
+                onChange={(e) => {
+                  setNewLessonTitle(e.target.value);
+                  if (errors.title) {
+                    setErrors({ ...errors, title: undefined });
+                  }
+                }}
                 placeholder="レッスン名を入力..."
-                className="w-full border border-gray-300 rounded-lg px-4 py-2"
+                className={`w-full border rounded-lg px-4 py-2 ${
+                  errors.title
+                    ? "border-red-500 bg-red-50"
+                    : "border-gray-300"
+                }`}
                 onKeyDown={(e) => {
                   if (e.key === "Enter") {
                     handleCreateLesson();
                   }
                 }}
               />
+              {errors.title && (
+                <p className="text-sm text-red-600 mt-1 flex items-center gap-1">
+                  <span>⚠️</span>
+                  {errors.title}
+                </p>
+              )}
               <div className="flex gap-2">
                 <button
                   onClick={handleCreateLesson}
@@ -139,10 +150,19 @@ export default function LessonsPage() {
         {/* レッスン一覧 */}
         {lessons.length === 0 ? (
           <div className="bg-white rounded-lg shadow p-6 text-center">
-            <p className="text-gray-600 mb-4">レッスンがありません。</p>
-            <p className="text-sm text-gray-500">
-              新しいレッスンを作成して、カードを追加しましょう。
-            </p>
+            <div className="text-center py-12">
+              <div className="text-6xl mb-4">📚</div>
+              <h3 className="text-xl font-bold text-gray-800 mb-2">レッスンがありません</h3>
+              <p className="text-gray-600 mb-6">
+                新しいレッスンを作成して、カードを追加しましょう。
+              </p>
+              <button
+                onClick={() => setShowNewForm(true)}
+                className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors shadow-md hover:shadow-lg"
+              >
+                ➕ 最初のレッスンを作成
+              </button>
+            </div>
           </div>
         ) : (
           <div className="space-y-3">

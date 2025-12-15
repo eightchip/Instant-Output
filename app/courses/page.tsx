@@ -6,6 +6,7 @@ import { storage } from "@/lib/storage";
 import { Course, Lesson } from "@/types/models";
 import MessageDialog from "@/components/MessageDialog";
 import ConfirmDialog from "@/components/ConfirmDialog";
+import LoadingSpinner from "@/components/LoadingSpinner";
 
 export default function CoursesPage() {
   const router = useRouter();
@@ -16,6 +17,7 @@ export default function CoursesPage() {
   const [newCourseTitle, setNewCourseTitle] = useState("");
   const [newCourseDuration, setNewCourseDuration] = useState(30);
   const [newCourseDailyTarget, setNewCourseDailyTarget] = useState(5);
+  const [errors, setErrors] = useState<{ title?: string }>({});
   const [messageDialog, setMessageDialog] = useState<{ isOpen: boolean; title: string; message: string }>({
     isOpen: false,
     title: "",
@@ -50,13 +52,11 @@ export default function CoursesPage() {
 
   async function handleCreateCourse() {
     if (!newCourseTitle.trim()) {
-      setMessageDialog({
-        isOpen: true,
-        title: "入力エラー",
-        message: "コース名を入力してください。",
-      });
+      setErrors({ title: "コース名を入力してください" });
       return;
     }
+    
+    setErrors({});
 
     try {
       const newCourse: Course = {
@@ -84,11 +84,7 @@ export default function CoursesPage() {
   }
 
   if (isLoading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <div className="text-lg">読み込み中...</div>
-      </div>
-    );
+    return <LoadingSpinner fullScreen text="コースを読み込み中..." />;
   }
 
   return (
@@ -116,10 +112,25 @@ export default function CoursesPage() {
                 <input
                   type="text"
                   value={newCourseTitle}
-                  onChange={(e) => setNewCourseTitle(e.target.value)}
+                  onChange={(e) => {
+                    setNewCourseTitle(e.target.value);
+                    if (errors.title) {
+                      setErrors({ ...errors, title: undefined });
+                    }
+                  }}
                   placeholder="コース名を入力..."
-                  className="w-full border border-gray-300 rounded-lg px-4 py-2"
+                  className={`w-full border rounded-lg px-4 py-2 ${
+                    errors.title
+                      ? "border-red-500 bg-red-50"
+                      : "border-gray-300"
+                  }`}
                 />
+                {errors.title && (
+                  <p className="text-sm text-red-600 mt-1 flex items-center gap-1">
+                    <span>⚠️</span>
+                    {errors.title}
+                  </p>
+                )}
               </div>
               <div>
                 <label className="block text-sm font-semibold mb-2">
@@ -177,10 +188,19 @@ export default function CoursesPage() {
         {/* コース一覧 */}
         {courses.length === 0 ? (
           <div className="bg-white rounded-lg shadow p-6 text-center">
-            <p className="text-gray-600 mb-4">コースがありません。</p>
-            <p className="text-sm text-gray-500">
-              コースは任意です。レッスン単体でも学習できます。
-            </p>
+            <div className="text-center py-12">
+              <div className="text-6xl mb-4">🎓</div>
+              <h3 className="text-xl font-bold text-gray-800 mb-2">コースがありません</h3>
+              <p className="text-gray-600 mb-6">
+                コースは任意です。レッスン単体でも学習できますが、コースを作成すると学習計画を立てやすくなります。
+              </p>
+              <button
+                onClick={() => setShowNewForm(true)}
+                className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors shadow-md hover:shadow-lg"
+              >
+                ➕ 最初のコースを作成
+              </button>
+            </div>
           </div>
         ) : (
           <div className="space-y-3">

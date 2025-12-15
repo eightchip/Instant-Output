@@ -10,6 +10,7 @@ import MenuButton from "@/components/MenuButton";
 import { QRCodeSVG } from "qrcode.react";
 import GlobalVoiceInputButton from "@/components/GlobalVoiceInputButton";
 import { PlayCircle, Zap } from "lucide-react";
+import LoadingSpinner from "@/components/LoadingSpinner";
 
 export default function Home() {
   const router = useRouter();
@@ -59,11 +60,7 @@ export default function Home() {
   };
 
   if (isLoading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <div className="text-lg">読み込み中...</div>
-      </div>
-    );
+    return <LoadingSpinner fullScreen text="データを読み込み中..." />;
   }
 
   return (

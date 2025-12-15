@@ -7,6 +7,7 @@ interface ErrorDialogProps {
   title: string;
   message: string;
   onClose: () => void;
+  onRetry?: () => void;
 }
 
 export default function ErrorDialog({
@@ -14,6 +15,7 @@ export default function ErrorDialog({
   title,
   message,
   onClose,
+  onRetry,
 }: ErrorDialogProps) {
   useEffect(() => {
     if (isOpen) {
@@ -43,10 +45,21 @@ export default function ErrorDialog({
       >
         <h2 className="text-xl font-bold text-gray-900 mb-4">{title}</h2>
         <p className="text-gray-700 mb-6 whitespace-pre-line">{message}</p>
-        <div className="flex justify-end">
+        <div className="flex justify-end gap-2">
+          {onRetry && (
+            <button
+              onClick={() => {
+                onRetry();
+                onClose();
+              }}
+              className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-6 rounded-lg transition-colors"
+            >
+              再試行
+            </button>
+          )}
           <button
             onClick={onClose}
-            className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-6 rounded-lg transition-colors"
+            className={`${onRetry ? "bg-gray-500 hover:bg-gray-600" : "bg-blue-600 hover:bg-blue-700"} text-white font-semibold py-2 px-6 rounded-lg transition-colors`}
           >
             OK
           </button>
