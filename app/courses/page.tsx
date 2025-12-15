@@ -21,6 +21,12 @@ export default function CoursesPage() {
     title: "",
     message: "",
   });
+  const [confirmDialog, setConfirmDialog] = useState<{ isOpen: boolean; title: string; message: string; courseIdToDelete: string | null }>({
+    isOpen: false,
+    title: "",
+    message: "",
+    courseIdToDelete: null,
+  });
 
   useEffect(() => {
     loadData();
@@ -234,26 +240,7 @@ export default function CoursesPage() {
                           isOpen: true,
                           title: "コースを削除",
                           message: `コース「${course.title}」を削除しますか？\nレッスンやカードは削除されません。`,
-                          onConfirm: async () => {
-                            setConfirmDialog({ isOpen: false, title: "", message: "", onConfirm: () => {} });
-                            try {
-                              await storage.init();
-                              await storage.deleteCourse(course.id);
-                              await loadData();
-                              setMessageDialog({
-                                isOpen: true,
-                                title: "削除完了",
-                                message: "コースを削除しました。",
-                              });
-                            } catch (error) {
-                              console.error("Failed to delete course:", error);
-                              setMessageDialog({
-                                isOpen: true,
-                                title: "削除エラー",
-                                message: "コースの削除に失敗しました。",
-                              });
-                            }
-                          },
+                          courseIdToDelete: course.id,
                         });
                       }}
                       className="bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-4 rounded-lg"
@@ -277,8 +264,29 @@ export default function CoursesPage() {
         isOpen={confirmDialog.isOpen}
         title={confirmDialog.title}
         message={confirmDialog.message}
-        onConfirm={confirmDialog.onConfirm}
-        onCancel={() => setConfirmDialog({ isOpen: false, title: "", message: "", onConfirm: () => {} })}
+        onConfirm={async () => {
+          if (confirmDialog.courseIdToDelete) {
+            setConfirmDialog({ isOpen: false, title: "", message: "", courseIdToDelete: null });
+            try {
+              await storage.init();
+              await storage.deleteCourse(confirmDialog.courseIdToDelete);
+              await loadData();
+              setMessageDialog({
+                isOpen: true,
+                title: "削除完了",
+                message: "コースを削除しました。",
+              });
+            } catch (error) {
+              console.error("Failed to delete course:", error);
+              setMessageDialog({
+                isOpen: true,
+                title: "削除エラー",
+                message: "コースの削除に失敗しました。",
+              });
+            }
+          }
+        }}
+        onCancel={() => setConfirmDialog({ isOpen: false, title: "", message: "", courseIdToDelete: null })}
         variant="danger"
       />
     </div>
