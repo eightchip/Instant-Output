@@ -133,7 +133,13 @@ export async function translateToJapanese(
 ): Promise<string> {
   try {
     // ChatGPT APIを使用する場合
-    if (useChatGPT && adminPassword) {
+    if (useChatGPT) {
+      // パスワードが提供されていない場合はエラー
+      if (!adminPassword || adminPassword.trim().length === 0) {
+        console.error("ChatGPT翻訳には管理者パスワードが必要です");
+        return `[翻訳エラー: 管理者パスワードが提供されていません]`;
+      }
+
       const response = await fetch("/api/translate-chatgpt", {
         method: "POST",
         headers: {
@@ -141,13 +147,17 @@ export async function translateToJapanese(
         },
         body: JSON.stringify({
           text,
-          adminPassword,
+          adminPassword: adminPassword.trim(),
         }),
       });
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        console.warn(`ChatGPT Translation API returned status ${response.status}`);
+        console.warn(`ChatGPT Translation API returned status ${response.status}`, errorData);
+        // 認証エラーの場合は明確なメッセージを返す
+        if (response.status === 401) {
+          return `[翻訳エラー: 管理者パスワードが正しくありません。再度ログインしてください。]`;
+        }
         return `[翻訳エラー: ${errorData.message || "API接続失敗"}]`;
       }
 

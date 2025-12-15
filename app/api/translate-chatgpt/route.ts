@@ -16,8 +16,25 @@ export async function POST(request: NextRequest) {
     }
 
     // 管理者パスワード確認
+    if (!adminPassword || typeof adminPassword !== "string" || adminPassword.trim().length === 0) {
+      return NextResponse.json(
+        { error: "UNAUTHORIZED", message: "管理者パスワードが提供されていません。" },
+        { status: 401 }
+      );
+    }
+
     const expectedPassword = process.env.ADMIN_PASSWORD;
-    if (!expectedPassword || adminPassword !== expectedPassword) {
+    if (!expectedPassword) {
+      console.error("ADMIN_PASSWORD環境変数が設定されていません");
+      return NextResponse.json(
+        { error: "CONFIG_ERROR", message: "サーバー設定エラー: 管理者パスワードが設定されていません。" },
+        { status: 500 }
+      );
+    }
+
+    // パスワードを比較（トリムして比較）
+    if (adminPassword.trim() !== expectedPassword.trim()) {
+      console.warn("管理者パスワード認証失敗");
       return NextResponse.json(
         { error: "UNAUTHORIZED", message: "管理者パスワードが正しくありません。" },
         { status: 401 }

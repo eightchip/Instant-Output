@@ -30,7 +30,13 @@ function AICardContent() {
 
   useEffect(() => {
     // 認証状態をチェック
-    setIsAuthenticated(isAdminAuthenticated());
+    const authenticated = isAdminAuthenticated();
+    setIsAuthenticated(authenticated);
+    
+    // 認証されていない場合は、保存されたパスワードもクリア
+    if (!authenticated) {
+      setSavedPassword("");
+    }
   }, []);
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -202,6 +208,16 @@ function AICardContent() {
   const handleAutoCard = async () => {
     if (!rawOcrText || !sourceId) return;
 
+    // ChatGPT翻訳を使用する場合、パスワードが必須
+    if (useChatGPTTranslation && !savedPassword) {
+      setMessageDialog({
+        isOpen: true,
+        title: "認証エラー",
+        message: "ChatGPT翻訳を使用するには、管理者パスワードが必要です。再度ログインしてください。",
+      });
+      return;
+    }
+
     setIsProcessing(true);
     setStatus(useChatGPTTranslation ? "ChatGPTで自動分割・翻訳中..." : "自動分割・翻訳中...");
     setProgress(0);
@@ -304,6 +320,10 @@ function AICardContent() {
                 setAdminAuthenticated(false);
                 setIsAuthenticated(false);
                 setSavedPassword(""); // パスワードをクリア
+                setRawOcrText(""); // OCR結果もクリア
+                setSourceId(null);
+                setImageFile(null);
+                setImagePreview(null);
               }}
               className="text-sm text-gray-600 hover:text-gray-800"
             >
