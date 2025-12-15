@@ -4,7 +4,7 @@ import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { storage } from "@/lib/storage";
 import { Draft, DraftCard } from "@/types/ai-card";
-import { Card } from "@/types/models";
+import { Card, Lesson } from "@/types/models";
 import MessageDialog from "@/components/MessageDialog";
 import LoadingSpinner from "@/components/LoadingSpinner";
 
