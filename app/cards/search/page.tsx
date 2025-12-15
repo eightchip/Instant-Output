@@ -14,6 +14,7 @@ type FilterType = {
   lessonId?: string;
   sourceType?: SourceType;
   hasReview?: boolean;
+  tag?: string;
 };
 
 export default function CardSearchPage() {
@@ -98,7 +99,8 @@ export default function CardSearchPage() {
       filtered = filtered.filter(
         (card) =>
           card.prompt_jp.toLowerCase().includes(query) ||
-          card.target_en.toLowerCase().includes(query)
+          card.target_en.toLowerCase().includes(query) ||
+          (card.tags && card.tags.some(tag => tag.toLowerCase().includes(query)))
       );
     }
 
@@ -113,6 +115,13 @@ export default function CardSearchPage() {
     if (filters.sourceType) {
       filtered = filtered.filter(
         (card) => card.source_type === filters.sourceType
+      );
+    }
+
+    // タグでフィルタ
+    if (filters.tag) {
+      filtered = filtered.filter(
+        (card) => card.tags && card.tags.includes(filters.tag!)
       );
     }
 
@@ -164,13 +173,13 @@ export default function CardSearchPage() {
           </div>
 
           {/* フィルタ */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div>
               <label className="block text-sm font-semibold mb-2">レッスン</label>
               <select
                 value={filters.lessonId || ""}
                 onChange={(e) => handleFilterChange("lessonId", e.target.value)}
-                className="w-full border border-gray-300 rounded-lg px-4 py-2"
+                className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
               >
                 <option value="">すべて</option>
                 {lessons.map((lesson) => (
@@ -188,7 +197,7 @@ export default function CardSearchPage() {
                 onChange={(e) =>
                   handleFilterChange("sourceType", e.target.value || undefined)
                 }
-                className="w-full border border-gray-300 rounded-lg px-4 py-2"
+                className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
               >
                 <option value="">すべて</option>
                 <option value="manual_pair">手入力（日英ペア）</option>
@@ -198,12 +207,36 @@ export default function CardSearchPage() {
             </div>
 
             <div>
+              <label className="block text-sm font-semibold mb-2">タグ</label>
+              <select
+                value={filters.tag || ""}
+                onChange={(e) => handleFilterChange("tag", e.target.value)}
+                className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+              >
+                <option value="">すべて</option>
+                {Array.from(
+                  new Set(
+                    cards
+                      .flatMap((card) => card.tags || [])
+                      .filter((tag) => tag.trim().length > 0)
+                  )
+                )
+                  .sort()
+                  .map((tag) => (
+                    <option key={tag} value={tag}>
+                      {tag}
+                    </option>
+                  ))}
+              </select>
+            </div>
+
+            <div>
               <label className="block text-sm font-semibold mb-2">
                 フィルタ
               </label>
               <button
                 onClick={clearFilters}
-                className="w-full bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold py-2 px-4 rounded-lg"
+                className="w-full bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 font-semibold py-2 px-4 rounded-lg"
               >
                 リセット
               </button>

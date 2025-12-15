@@ -30,6 +30,7 @@ export interface Card {
   isFavorite?: boolean; // お気に入りフラグ
   notes?: string; // メモ・ノート（覚え方のコツなど）
   importantWords?: string[]; // 重要な単語・表現のリスト
+  tags?: string[]; // タグのリスト
 }
 
 export interface Review {

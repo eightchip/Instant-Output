@@ -63,45 +63,71 @@ export function calculateStatistics(
 
   // 連続学習日数の計算
   const sortedSessions = [...sessions].sort(
-    (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime() // 新しい順にソート
   );
 
+  // ユニークな学習日を取得（日付のみ）
+  const uniqueDates = new Set<string>();
+  for (const session of sessions) {
+    const date = new Date(session.date);
+    date.setHours(0, 0, 0, 0);
+    uniqueDates.add(date.toISOString().split('T')[0]);
+  }
+
+  const sortedDates = Array.from(uniqueDates).sort((a, b) => 
+    new Date(b).getTime() - new Date(a).getTime()
+  );
+
+  // 現在のストリークを計算（今日から逆算）
   let currentStreak = 0;
-  let longestStreak = 0;
-  let tempStreak = 0;
-  let lastDate: Date | null = null;
-
-  for (const session of sortedSessions) {
-    const sessionDate = new Date(session.date);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    sessionDate.setHours(0, 0, 0, 0);
-
-    if (lastDate) {
-      const daysDiff = Math.floor(
-        (sessionDate.getTime() - lastDate.getTime()) / (1000 * 60 * 60 * 24)
-      );
-
-      if (daysDiff === 1) {
-        // 連続
-        tempStreak++;
-        longestStreak = Math.max(longestStreak, tempStreak);
-      } else if (daysDiff > 1) {
-        // 途切れた
-        tempStreak = 1;
-      }
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const todayStr = today.toISOString().split('T')[0];
+  
+  // 今日または昨日から始まる連続日数を計算
+  let checkDate = new Date(today);
+  for (let i = 0; i < sortedDates.length; i++) {
+    const dateStr = sortedDates[i];
+    const expectedDateStr = checkDate.toISOString().split('T')[0];
+    
+    if (dateStr === expectedDateStr) {
+      currentStreak++;
+      checkDate.setDate(checkDate.getDate() - 1);
     } else {
-      tempStreak = 1;
-    }
-
-    lastDate = sessionDate;
-
-    // 現在の連続日数を計算（今日から逆算）
-    if (sessionDate.getTime() === today.getTime()) {
-      currentStreak = tempStreak;
+      // 今日または昨日のセッションがない場合は終了
+      if (i === 0 && dateStr !== todayStr) {
+        // 今日のセッションがない場合、昨日のセッションがあるかチェック
+        const yesterday = new Date(today);
+        yesterday.setDate(yesterday.getDate() - 1);
+        const yesterdayStr = yesterday.toISOString().split('T')[0];
+        if (dateStr === yesterdayStr) {
+          currentStreak = 1;
+        }
+      }
+      break;
     }
   }
 
+  // 最長ストリークを計算
+  let longestStreak = 0;
+  let tempStreak = 1;
+  for (let i = 1; i < sortedDates.length; i++) {
+    const prevDate = new Date(sortedDates[i - 1]);
+    const currDate = new Date(sortedDates[i]);
+    const daysDiff = Math.floor(
+      (prevDate.getTime() - currDate.getTime()) / (1000 * 60 * 60 * 24)
+    );
+
+    if (daysDiff === 1) {
+      // 連続
+      tempStreak++;
+      longestStreak = Math.max(longestStreak, tempStreak);
+    } else {
+      // 途切れた
+      longestStreak = Math.max(longestStreak, tempStreak);
+      tempStreak = 1;
+    }
+  }
   longestStreak = Math.max(longestStreak, tempStreak);
 
   // 学習時間の計算

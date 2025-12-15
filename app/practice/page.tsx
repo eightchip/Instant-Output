@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef, Suspense } from "react";
+import { useEffect, useState, useRef, Suspense, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { storage } from "@/lib/storage";
 import { getTodayCards, saveCardResult } from "@/lib/learning";
@@ -165,6 +165,82 @@ function PracticeContent() {
     };
   }, [router, mode, cardCount, searchParams]);
 
+  // キーボードショートカット
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // 入力フィールドにフォーカスがある場合は無視
+      if (
+        e.target instanceof HTMLInputElement ||
+        e.target instanceof HTMLTextAreaElement ||
+        e.target instanceof HTMLSelectElement
+      ) {
+        // Enterキーは入力フィールド内でのみ処理
+        if (e.key === "Enter" && e.target instanceof HTMLInputElement) {
+          return; // 入力フィールドのEnterは既存の処理に任せる
+        }
+        return;
+      }
+
+      switch (e.key) {
+        case " ": // Space: 答えを表示/非表示
+          e.preventDefault();
+          if (!showAnswer) {
+            handleShowAnswer();
+          } else {
+            setShowAnswer(false);
+            setUserAnswer("");
+            setAutoGradingResult(null);
+            setManualResult(null);
+          }
+          break;
+        case "Enter": // Enter: 答えを見る（入力フィールドがない場合）
+          e.preventDefault();
+          if (!showAnswer && currentCard) {
+            handleShowAnswer();
+          }
+          break;
+        case "1": // 1: OK
+          e.preventDefault();
+          if (showAnswer) {
+            handleResultSelect("OK");
+          }
+          break;
+        case "2": // 2: MAYBE
+          e.preventDefault();
+          if (showAnswer) {
+            handleResultSelect("MAYBE");
+          }
+          break;
+        case "3": // 3: NG
+          e.preventDefault();
+          if (showAnswer) {
+            handleResultSelect("NG");
+          }
+          break;
+        case "ArrowRight": // →: 次へ（答えが表示されている場合）
+          e.preventDefault();
+          if (showAnswer && (manualResult || autoGradingResult?.result)) {
+            handleResultConfirm();
+          }
+          break;
+        case "ArrowLeft": // ←: 前へ（答えが表示されている場合）
+          e.preventDefault();
+          if (showAnswer) {
+            setShowAnswer(false);
+            setUserAnswer("");
+            setAutoGradingResult(null);
+            setManualResult(null);
+          }
+          break;
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [showAnswer, currentCard, manualResult, autoGradingResult, userAnswer, handleShowAnswer, handleResultSelect, handleResultConfirm]);
+
   // 集中モードのタイマー
   useEffect(() => {
     if (mode === "focus" && focusTimeRemaining !== null && focusTimeRemaining > 0) {
@@ -235,7 +311,7 @@ function PracticeContent() {
     setManualResult(result);
   };
 
-  const handleResultConfirm = async () => {
+  const handleResultConfirm = useCallback(async () => {
     if (!currentCard) return;
     
     // 最終的な採点結果を決定（手動採点が優先、なければ自動採点）
@@ -467,7 +543,7 @@ function PracticeContent() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-gray-50">
+    <div className="flex min-h-screen flex-col bg-gray-50 dark:bg-gray-900">
       <main className="flex-1 px-4 py-8 max-w-2xl mx-auto w-full">
         {/* モード表示 */}
         <div className="mb-4">
@@ -497,31 +573,43 @@ function PracticeContent() {
         </div>
 
         {/* 進捗表示 */}
-        <div className="mb-6">
-          <div className="flex justify-between text-sm text-gray-600 mb-2">
-            <span>問題 {currentIndex + 1} / {cards.length}</span>
+        <div className="mb-6 bg-white dark:bg-gray-800 rounded-lg shadow-md p-4">
+          <div className="flex justify-between items-center mb-3">
+            <div>
+              <div className="text-lg font-bold text-gray-900 dark:text-white">
+                問題 {currentIndex + 1} / {cards.length}
+              </div>
+              <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                残り {cards.length - (currentIndex + 1)} 問
+              </div>
+            </div>
             {/* タイピング統計 */}
             {mode === "typing" && typingStats && (
               <div className="flex gap-4">
-                <span className="text-green-600">
+                <span className="text-green-600 dark:text-green-400 font-semibold">
                   WPM: {typingStats.wpm}
                 </span>
-                <span className="text-blue-600">
+                <span className="text-blue-600 dark:text-blue-400 font-semibold">
                   正確性: {typingStats.accuracy}%
                 </span>
               </div>
             )}
           </div>
-          <div className="w-full bg-gray-200 rounded-full h-2">
+          <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3 overflow-hidden">
             <div
-              className="bg-blue-600 h-2 rounded-full transition-all"
+              className="bg-gradient-to-r from-blue-500 via-blue-600 to-indigo-600 h-3 rounded-full transition-all duration-300 relative"
               style={{ width: `${((currentIndex + 1) / cards.length) * 100}%` }}
-            />
+            >
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-shimmer"></div>
+            </div>
+          </div>
+          <div className="mt-2 text-xs text-gray-500 dark:text-gray-400 text-center">
+            {Math.round(((currentIndex + 1) / cards.length) * 100)}% 完了
           </div>
         </div>
 
         {/* 問題表示 */}
-        <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 mb-6">
           {(mode as string) === "flashcard" ? (
             // フラッシュカードモード: 重要単語を表示
             <>

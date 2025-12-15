@@ -479,9 +479,9 @@ export default function EditCardPage() {
                 }
               }}
               placeholder="例: important, remember, useful"
-              className="w-full border border-gray-300 rounded-lg px-4 py-3"
+              className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-3 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
             />
-            <p className="text-xs text-gray-500 mt-1">
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
               このカードで覚えたい重要な単語や表現を入力してください。練習時にハイライト表示されます。
             </p>
             {card.importantWords && card.importantWords.length > 0 && (
@@ -489,9 +489,46 @@ export default function EditCardPage() {
                 {card.importantWords.map((word, index) => (
                   <span
                     key={index}
-                    className="bg-purple-100 text-purple-800 px-2 py-1 rounded text-sm"
+                    className="bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200 px-2 py-1 rounded text-sm"
                   >
                     {word}
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* タグ */}
+          <div>
+            <label className="block text-sm font-semibold mb-2">
+              🏷️ タグ（カンマ区切り）
+            </label>
+            <input
+              type="text"
+              value={card.tags ? card.tags.join(", ") : ""}
+              onChange={(e) => {
+                if (card) {
+                  const tags = e.target.value
+                    .split(",")
+                    .map(t => t.trim())
+                    .filter(t => t.length > 0);
+                  setCard({ ...card, tags: tags.length > 0 ? tags : undefined });
+                }
+              }}
+              placeholder="例: 文法, 単語, 会話"
+              className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-3 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+            />
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              カードを分類するためのタグを入力してください。検索やフィルタリングに使用できます。
+            </p>
+            {card.tags && card.tags.length > 0 && (
+              <div className="mt-2 flex flex-wrap gap-2">
+                {card.tags.map((tag, index) => (
+                  <span
+                    key={index}
+                    className="bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-2 py-1 rounded text-sm"
+                  >
+                    {tag}
                   </span>
                 ))}
               </div>
