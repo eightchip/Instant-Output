@@ -9,11 +9,23 @@ import { DraftCard } from "@/types/ai-card";
  */
 export function splitIntoSentences(text: string): string[] {
   // 基本的な文分割ルール
-  // 1. ピリオド、感嘆符、疑問符で分割
-  // 2. ただし、Mr. Mrs. Dr. などの略語は除外
-  // 3. 引用符内の文は考慮
+  // 1. 改行がある場合は改行で分割（ChatGPT APIの出力形式に合わせる）
+  // 2. 改行がない場合は、ピリオド、感嘆符、疑問符で分割
+  // 3. ただし、Mr. Mrs. Dr. などの略語は除外
+  // 4. 引用符内の文は考慮
 
-  // テキストを正規化（改行を空白に、連続する空白を1つに）
+  if (!text || text.trim().length === 0) return [];
+
+  // 改行がある場合は改行で分割（ChatGPT APIの出力は改行区切りの可能性が高い）
+  if (text.includes('\n')) {
+    return text
+      .split('\n')
+      .map(s => s.trim())
+      .filter(s => s.length > 0);
+  }
+
+  // 改行がない場合は、ピリオド、感嘆符、疑問符で分割
+  // テキストを正規化（連続する空白を1つに）
   const normalized = text.replace(/\s+/g, " ").trim();
   
   if (!normalized) return [];
@@ -44,10 +56,18 @@ export function splitIntoSentences(text: string): string[] {
     
     // 文の終わりを検出（引用符内でない場合）
     if (!inQuotes && (char === "." || char === "!" || char === "?")) {
-      // 次の文字が空白で、その次が大文字、または終端の場合
+      // より確実な文の終わり判定
+      // 1. 終端の場合
+      // 2. 次の文字が空白で、その次が大文字の場合
+      // 3. 次の文字が空白で、その次が数字の場合（番号付きリスト）
+      // 4. 次の文字が空白で、その次が空白の場合（複数の空白）
       const isEndOfSentence = 
-        (nextChar === " " && nextNextChar && nextNextChar === nextNextChar.toUpperCase() && nextNextChar !== nextNextChar.toLowerCase()) ||
-        nextChar === "";
+        nextChar === "" || // 終端
+        (nextChar === " " && (
+          nextNextChar === "" || // 空白の後に終端
+          (nextNextChar && nextNextChar === nextNextChar.toUpperCase() && nextNextChar !== nextNextChar.toLowerCase()) || // 大文字
+          /[0-9]/.test(nextNextChar) // 数字
+        ));
       
       if (isEndOfSentence) {
         const words = currentSentence.trim().split(/\s+/);
