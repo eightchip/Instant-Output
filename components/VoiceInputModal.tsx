@@ -17,6 +17,7 @@ interface VoiceInputModalProps {
   onClose: () => void;
   onInsert: (text: string) => void;
   onSaveToClipboard?: (text: string, language: "jp" | "en") => void;
+  onSaveAsCard?: (text: string, language: "jp" | "en") => void;
   japaneseText?: string; // 日本語テキスト（英語音声入力時に表示）
 }
 
@@ -26,6 +27,7 @@ export default function VoiceInputModal({
   onClose,
   onInsert,
   onSaveToClipboard,
+  onSaveAsCard,
   japaneseText,
 }: VoiceInputModalProps) {
   const [isRecording, setIsRecording] = useState(false);
@@ -286,6 +288,16 @@ export default function VoiceInputModal({
     }
   }
 
+  function handleSaveAsCard() {
+    const textToSave = finalText || recognizedText;
+    if (textToSave.trim() && onSaveAsCard) {
+      onSaveAsCard(textToSave.trim(), language);
+      setFinalText("");
+      setRecognizedText("");
+      onClose();
+    }
+  }
+
   const displayText = finalText || recognizedText;
 
   return (
@@ -354,21 +366,32 @@ export default function VoiceInputModal({
           </div>
 
           {displayText && (
-            <div className="flex gap-2">
-              <Button
-                onClick={handleInsert}
-                className="flex-1 text-sm py-2"
-                variant="default"
-              >
-                テキストを挿入
-              </Button>
-              {onSaveToClipboard && (
+            <div className="flex flex-col gap-2">
+              <div className="flex gap-2">
                 <Button
-                  onClick={handleSaveToClipboard}
+                  onClick={handleInsert}
                   className="flex-1 text-sm py-2"
-                  variant="outline"
+                  variant="default"
                 >
-                  クリップボードに保存
+                  テキストを挿入
+                </Button>
+                {onSaveToClipboard && (
+                  <Button
+                    onClick={handleSaveToClipboard}
+                    className="flex-1 text-sm py-2"
+                    variant="outline"
+                  >
+                    クリップボードに保存
+                  </Button>
+                )}
+              </div>
+              {onSaveAsCard && (
+                <Button
+                  onClick={handleSaveAsCard}
+                  className="w-full text-sm py-2 bg-green-600 hover:bg-green-700 text-white"
+                  variant="default"
+                >
+                  💾 カードとして保存
                 </Button>
               )}
             </div>

@@ -43,7 +43,33 @@ function NewCardContent() {
 
   useEffect(() => {
     loadLessons();
-  }, []);
+    
+    // URLパラメータから保存完了メッセージを表示
+    const saved = searchParams.get("saved");
+    const text = searchParams.get("text");
+    const language = searchParams.get("language");
+    
+    if (saved === "true" && text) {
+      // テキストを入力フィールドに設定
+      if (language === "jp") {
+        setPromptJp(decodeURIComponent(text));
+        setInputMode("pair");
+      } else if (language === "en") {
+        setTargetEn(decodeURIComponent(text));
+        setInputMode("english_only");
+      }
+      
+      // 保存完了メッセージを表示
+      setMessageDialog({
+        isOpen: true,
+        title: "保存完了",
+        message: "カードを保存しました！",
+      });
+      
+      // URLパラメータをクリア
+      router.replace("/cards/new", { scroll: false });
+    }
+  }, [searchParams, router]);
 
   async function loadLessons() {
     try {

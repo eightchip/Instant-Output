@@ -447,6 +447,21 @@ function PracticeContent() {
     return <LoadingSpinner fullScreen text="カードを読み込み中..." />;
   }
 
+  // エラーダイアログが表示されている場合は、currentCardがなくてもエラーダイアログを表示
+  if (errorDialog.isOpen) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-gray-50">
+        <ErrorDialog
+          isOpen={errorDialog.isOpen}
+          title={errorDialog.title}
+          message={errorDialog.message}
+          onClose={() => setErrorDialog({ isOpen: false, title: "", message: "" })}
+          onRetry={errorDialog.onRetry}
+        />
+      </div>
+    );
+  }
+
   if (!currentCard) {
     return null;
   }

@@ -1,6 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useState, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import VoiceInputModal from "@/components/VoiceInputModal";
 import VoiceClipboard from "@/components/VoiceClipboard";
 import {
@@ -10,20 +11,24 @@ import {
   clearVoiceClipboard,
   VoiceClipboardItem,
 } from "@/lib/voice-clipboard";
+import { storage } from "@/lib/storage";
 
 interface VoiceInputContextType {
   openVoiceInput: (language: "jp" | "en", onInsert?: (text: string) => void, japaneseText?: string) => void;
   openVoiceClipboard: (onInsert?: (text: string) => void) => void;
   insertText: (text: string) => void;
+  saveAsCard?: (text: string, language: "jp" | "en") => void;
 }
 
 const VoiceInputContext = createContext<VoiceInputContextType | undefined>(undefined);
 
 export function VoiceInputProvider({ children }: { children: React.ReactNode }) {
+  const router = useRouter();
   const [showVoiceInputModal, setShowVoiceInputModal] = useState(false);
   const [voiceInputLanguage, setVoiceInputLanguage] = useState<"jp" | "en">("jp");
   const [voiceInputOnInsert, setVoiceInputOnInsert] = useState<((text: string) => void) | undefined>(undefined);
   const [voiceInputJapaneseText, setVoiceInputJapaneseText] = useState<string | undefined>(undefined);
+  const [isGlobalVoiceInput, setIsGlobalVoiceInput] = useState(false);
   
   const [showVoiceClipboard, setShowVoiceClipboard] = useState(false);
   const [voiceClipboardOnInsert, setVoiceClipboardOnInsert] = useState<((text: string) => void) | undefined>(undefined);
@@ -37,6 +42,7 @@ export function VoiceInputProvider({ children }: { children: React.ReactNode }) 
     setVoiceInputLanguage(language);
     setVoiceInputOnInsert(() => onInsert);
     setVoiceInputJapaneseText(japaneseText);
+    setIsGlobalVoiceInput(!onInsert); // onInsertがない場合はグローバル音声入力
     setShowVoiceInputModal(true);
   }, []);
 
@@ -52,7 +58,46 @@ export function VoiceInputProvider({ children }: { children: React.ReactNode }) 
     }
     setShowVoiceInputModal(false);
     setVoiceInputOnInsert(undefined);
+    setIsGlobalVoiceInput(false);
   }, [voiceInputOnInsert]);
+
+  const saveAsCard = useCallback(async (text: string, language: "jp" | "en") => {
+    try {
+      await storage.init();
+      const lessons = await storage.getAllLessons();
+      if (lessons.length === 0) {
+        // レッスンがない場合はレッスン作成ページに遷移
+        router.push("/lessons?createFirst=true");
+        setShowVoiceInputModal(false);
+        setIsGlobalVoiceInput(false);
+        return;
+      }
+
+      // 最初のレッスンを使用
+      const lessonId = lessons[0].id;
+      
+      // カードを作成
+      const card = {
+        id: `card_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        lessonId: lessonId,
+        prompt_jp: language === "jp" ? text : "(後で追加)",
+        target_en: language === "en" ? text : "(後で追加)",
+        source_type: language === "jp" ? "manual_pair" : "manual_en" as const,
+      };
+      
+      await storage.saveCard(card);
+      
+      // 保存完了メッセージを表示するために、カード作成ページに遷移
+      router.push(`/cards/new?lessonId=${lessonId}&saved=true&text=${encodeURIComponent(text)}&language=${language}`);
+      
+      setShowVoiceInputModal(false);
+      setIsGlobalVoiceInput(false);
+    } catch (error) {
+      console.error("Failed to save card:", error);
+      setShowVoiceInputModal(false);
+      setIsGlobalVoiceInput(false);
+    }
+  }, [router]);
 
   const handleVoiceInputSave = useCallback((text: string, language: "jp" | "en") => {
     saveVoiceClipboardItem(text, language);
@@ -105,6 +150,7 @@ export function VoiceInputProvider({ children }: { children: React.ReactNode }) 
         openVoiceInput,
         openVoiceClipboard,
         insertText,
+        saveAsCard: isGlobalVoiceInput ? saveAsCard : undefined,
       }}
     >
       {children}
@@ -115,9 +161,11 @@ export function VoiceInputProvider({ children }: { children: React.ReactNode }) 
           setShowVoiceInputModal(false);
           setVoiceInputOnInsert(undefined);
           setVoiceInputJapaneseText(undefined);
+          setIsGlobalVoiceInput(false);
         }}
         onInsert={handleVoiceInputInsert}
         onSaveToClipboard={handleVoiceInputSave}
+        onSaveAsCard={isGlobalVoiceInput ? saveAsCard : undefined}
         japaneseText={voiceInputJapaneseText}
       />
       <VoiceClipboard
