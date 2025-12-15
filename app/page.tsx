@@ -120,9 +120,13 @@ export default function Home() {
           <div className="bg-white rounded-lg border border-gray-200 p-4 shadow-sm">
             <button
               onClick={handleStartPractice}
-              className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-bold py-5 px-6 rounded-lg text-xl shadow-lg hover:shadow-xl transition-all duration-200 mb-3 border-2 border-blue-500 hover:scale-105"
+              className="w-full bg-gradient-to-br from-indigo-600 via-blue-600 to-cyan-600 hover:from-indigo-700 hover:via-blue-700 hover:to-cyan-700 text-white font-bold py-5 px-6 rounded-xl text-xl shadow-xl hover:shadow-2xl transition-all duration-300 mb-3 border-0 hover:scale-[1.02] active:scale-[0.98] relative overflow-hidden group"
             >
-              今日の5問を開始
+              <span className="relative z-10 flex items-center justify-center gap-2">
+                <span className="text-2xl">🚀</span>
+                <span>今日の5問を開始</span>
+              </span>
+              <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000"></div>
             </button>
             <p className="text-center text-gray-600 mb-4 text-sm">
               {todayCards.length}問のカードが準備できています

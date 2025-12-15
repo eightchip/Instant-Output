@@ -71,6 +71,10 @@ export default function VoiceInputModal({
   };
 
   useEffect(() => {
+    let animationFrameId: number | null = null;
+    let lastX = 0;
+    let lastY = 0;
+
     const handleMouseMove = (e: MouseEvent) => {
       if (isDragging && modalRef.current) {
         const newX = e.clientX - dragStart.x;
@@ -80,14 +84,23 @@ export default function VoiceInputModal({
         const maxX = window.innerWidth - modalRef.current.offsetWidth;
         const maxY = window.innerHeight - modalRef.current.offsetHeight;
         
-        setPosition({
-          x: Math.max(0, Math.min(newX, maxX)),
-          y: Math.max(0, Math.min(newY, maxY)),
+        lastX = Math.max(0, Math.min(newX, maxX));
+        lastY = Math.max(0, Math.min(newY, maxY));
+        
+        // requestAnimationFrameでスムーズに更新
+        if (animationFrameId) {
+          cancelAnimationFrame(animationFrameId);
+        }
+        animationFrameId = requestAnimationFrame(() => {
+          setPosition({ x: lastX, y: lastY });
         });
       }
     };
 
     const handleMouseUp = () => {
+      if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId);
+      }
       setIsDragging(false);
     };
 
@@ -101,25 +114,37 @@ export default function VoiceInputModal({
         const maxX = window.innerWidth - modalRef.current.offsetWidth;
         const maxY = window.innerHeight - modalRef.current.offsetHeight;
         
-        setPosition({
-          x: Math.max(0, Math.min(newX, maxX)),
-          y: Math.max(0, Math.min(newY, maxY)),
+        lastX = Math.max(0, Math.min(newX, maxX));
+        lastY = Math.max(0, Math.min(newY, maxY));
+        
+        // requestAnimationFrameでスムーズに更新
+        if (animationFrameId) {
+          cancelAnimationFrame(animationFrameId);
+        }
+        animationFrameId = requestAnimationFrame(() => {
+          setPosition({ x: lastX, y: lastY });
         });
         e.preventDefault();
       }
     };
 
     const handleTouchEnd = () => {
+      if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId);
+      }
       setIsDragging(false);
     };
 
     if (isDragging) {
-      document.addEventListener("mousemove", handleMouseMove);
+      document.addEventListener("mousemove", handleMouseMove, { passive: true });
       document.addEventListener("mouseup", handleMouseUp);
       document.addEventListener("touchmove", handleTouchMove, { passive: false });
       document.addEventListener("touchend", handleTouchEnd);
       
       return () => {
+        if (animationFrameId) {
+          cancelAnimationFrame(animationFrameId);
+        }
         document.removeEventListener("mousemove", handleMouseMove);
         document.removeEventListener("mouseup", handleMouseUp);
         document.removeEventListener("touchmove", handleTouchMove);
@@ -250,6 +275,8 @@ export default function VoiceInputModal({
           transform: position.x === 0 ? 'translateX(-50%)' : 'none',
           margin: 0,
           cursor: isDragging ? 'grabbing' : 'default',
+          transition: isDragging ? 'none' : 'transform 0.2s ease-out',
+          willChange: isDragging ? 'transform' : 'auto',
         }}
       >
         <DialogHeader 
