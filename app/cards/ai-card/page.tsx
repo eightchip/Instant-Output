@@ -210,6 +210,16 @@ function AICardContent() {
   };
 
   const handleAutoCard = async () => {
+    // 編集モードの場合は保存を促す
+    if (isEditingOcrText) {
+      setMessageDialog({
+        isOpen: true,
+        title: "編集を保存",
+        message: "OCR結果を編集しています。先に「保存」ボタンをクリックしてから、自動分割・翻訳を実行してください。",
+      });
+      return;
+    }
+
     if (!rawOcrText || !sourceId) return;
 
     // ChatGPT翻訳を使用する場合、パスワードが必須
