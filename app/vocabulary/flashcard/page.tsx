@@ -81,25 +81,41 @@ function VocabularyFlashcardContent() {
   const currentWord = flashcardWords[currentIndex];
   const wordData = currentWord ? vocabulary.get(currentWord) : null;
   const [wordMeanings, setWordMeanings] = useState<Map<string, string>>(new Map());
+  const [loadingMeanings, setLoadingMeanings] = useState<Set<string>>(new Set());
 
-  // 単語の意味を取得（保存された意味があればそれを使う）
+  // 現在の単語の意味を取得（遅延読み込み）
   useEffect(() => {
-    async function loadMeanings() {
-      if (flashcardWords.length === 0 || cards.length === 0) return;
+    async function loadCurrentMeaning() {
+      if (!currentWord || !wordData) return;
       
-      const meanings = new Map<string, string>();
-      for (const word of flashcardWords) {
-        const data = vocabulary.get(word);
-        if (data) {
-          const meaning = await getWordMeaning(word, cards, data.isIdiom);
-          meanings.set(word, meaning);
-        }
+      // 既に読み込み済みまたは読み込み中の場合はスキップ
+      if (wordMeanings.has(currentWord) || loadingMeanings.has(currentWord)) {
+        return;
       }
-      setWordMeanings(meanings);
+      
+      setLoadingMeanings(prev => new Set(prev).add(currentWord));
+      
+      try {
+        const meaning = await getWordMeaning(currentWord, cards, wordData.isIdiom);
+        setWordMeanings(prev => {
+          const next = new Map(prev);
+          next.set(currentWord, meaning);
+          return next;
+        });
+      } catch (error) {
+        console.error("Failed to load meaning for word:", currentWord, error);
+      } finally {
+        setLoadingMeanings(prev => {
+          const next = new Set(prev);
+          next.delete(currentWord);
+          return next;
+        });
+      }
     }
-    loadMeanings();
+    
+    loadCurrentMeaning();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [flashcardWords.length, cards.length]);
+  }, [currentWord]);
 
   function getWordTranslation(word: string): string {
     return wordMeanings.get(word) || "";
