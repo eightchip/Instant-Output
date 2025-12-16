@@ -69,30 +69,23 @@ export function extractWords(text: string): string[] {
 }
 
 /**
- * イディオムを検出（既知のイディオム辞書を使用）
+ * イディオムを検出（既知のイディオム辞書のみを使用、より厳格に）
  */
 export function detectIdioms(text: string): string[] {
   const idioms: string[] = [];
   const lowerText = text.toLowerCase();
   
-  // 既知のイディオム辞書と照合
+  // 既知のイディオム辞書と照合（完全一致または単語境界で一致）
   for (const idiom of KNOWN_IDIOMS) {
     const lowerIdiom = idiom.toLowerCase();
-    // テキスト内にイディオムが含まれているかチェック
-    if (lowerText.includes(lowerIdiom)) {
+    // より厳格なマッチング：単語境界で囲まれたイディオムを検出
+    const regex = new RegExp(`\\b${lowerIdiom.replace(/\s+/g, '\\s+')}\\b`, 'i');
+    if (regex.test(lowerText)) {
       idioms.push(idiom);
     }
   }
   
-  // フォールバック: パターンマッチング（既知のイディオムが見つからない場合のみ）
-  if (idioms.length === 0) {
-    for (const pattern of IDIOM_PATTERNS) {
-      const matches = lowerText.match(pattern);
-      if (matches) {
-        idioms.push(...matches.map(m => m.trim()));
-      }
-    }
-  }
+  // パターンマッチングは使用しない（誤検出を避けるため）
   
   return [...new Set(idioms)]; // 重複を除去
 }
@@ -162,6 +155,13 @@ export function generateVocabularyList(cards: Card[]): Map<string, { count: numb
     // 重要単語を取得
     const words = getImportantWords(card);
     for (const word of words) {
+      // 2語以上のフレーズはidiom候補として扱わない（既知のidiomのみ）
+      const isMultiWord = word.includes(" ");
+      if (isMultiWord && !isKnownIdiom(word)) {
+        // 既知のidiomでない2語以上のフレーズはスキップ
+        continue;
+      }
+      
       const existing = vocabulary.get(word);
       const difficulty = calculateWordDifficulty(word);
       // 既知のイディオム辞書で判定
@@ -184,9 +184,14 @@ export function generateVocabularyList(cards: Card[]): Map<string, { count: numb
       }
     }
     
-    // 検出されたイディオムも追加
+    // 検出されたイディオムも追加（既知のidiomのみ）
     const detectedIdioms = detectIdioms(card.target_en);
     for (const idiom of detectedIdioms) {
+      // 既知のidiomのみを追加
+      if (!isKnownIdiom(idiom)) {
+        continue;
+      }
+      
       const existing = vocabulary.get(idiom);
       const difficulty = calculateWordDifficulty(idiom) + 10; // イディオムは難易度を高く設定
       

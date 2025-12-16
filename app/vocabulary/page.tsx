@@ -148,14 +148,35 @@ export default function VocabularyPage() {
                       </span>
                     </div>
                     <div className="mt-2 text-sm text-gray-600">
-                      {cards
-                        .filter(card => getImportantWords(card).includes(word.toLowerCase()))
-                        .slice(0, 3)
-                        .map(card => (
-                          <div key={card.id} className="mb-1">
-                            "{card.target_en}" - {card.prompt_jp}
+                      {(() => {
+                        // idiomの場合は、idiomが含まれるカードを検索
+                        const exampleCards = data.isIdiom
+                          ? cards.filter(card => {
+                              const lowerText = card.target_en.toLowerCase();
+                              const lowerWord = word.toLowerCase();
+                              return lowerText.includes(lowerWord);
+                            })
+                          : cards.filter(card => getImportantWords(card).includes(word.toLowerCase()));
+                        
+                        if (exampleCards.length === 0) {
+                          return (
+                            <div className="text-gray-400 italic text-xs">
+                              {data.isIdiom ? "このイディオムを含む例文が見つかりませんでした。" : "例文が見つかりませんでした。"}
+                            </div>
+                          );
+                        }
+                        
+                        return exampleCards.slice(0, 3).map(card => (
+                          <div key={card.id} className="mb-2 p-2 bg-gray-50 rounded border border-gray-200">
+                            <div className="font-semibold text-gray-800 mb-1">
+                              "{card.target_en}"
+                            </div>
+                            <div className="text-gray-600 text-xs">
+                              {card.prompt_jp}
+                            </div>
                           </div>
-                        ))}
+                        ));
+                      })()}
                     </div>
                   </div>
                   {tts.isAvailable() && (
