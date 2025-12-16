@@ -39,6 +39,7 @@ export default function ScreenshotCardPage() {
   const extractedTextareaRef = useRef<HTMLTextAreaElement>(null);
   const [showNewLessonForm, setShowNewLessonForm] = useState(false);
   const [newLessonTitle, setNewLessonTitle] = useState("");
+  const [inputMode, setInputMode] = useState<"screenshot" | "manual">("screenshot");
 
   function handleInsertLineBreak() {
     if (!extractedTextareaRef.current) return;
@@ -1527,7 +1528,7 @@ export default function ScreenshotCardPage() {
             <div>
               <div className="flex items-center justify-between mb-2">
                 <label className="block text-sm font-semibold">
-                  英語（編集可能）
+                  英語
                 </label>
                 <VoiceInputButton
                   language="en"
@@ -1537,13 +1538,35 @@ export default function ScreenshotCardPage() {
               <textarea
                 value={targetEn}
                 onChange={(e) => setTargetEn(e.target.value)}
-                placeholder="英語文を入力（OCR結果を編集できます）..."
+                placeholder={inputMode === "screenshot" ? "英語文を入力（OCR結果を編集できます）..." : "英語文を入力..."}
                 className="w-full border border-gray-300 rounded-lg px-4 py-3 min-h-[100px]"
                 rows={3}
               />
               <p className="text-xs text-gray-500 mt-1">
-                OCRで抽出したテキストを編集できます
+                {inputMode === "screenshot" ? "OCRで抽出したテキストを編集できます" : "英語文を直接入力してください"}
               </p>
+            </div>
+          )}
+
+          {/* 日本語入力（手動モードのみ、分割ビューが表示されていない場合） */}
+          {inputMode === "manual" && !showSplitView && (
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <label className="block text-sm font-semibold">
+                  日本語
+                </label>
+                <VoiceInputButton
+                  language="jp"
+                  onInsert={(text) => setPromptJp((prev) => prev + (prev ? " " : "") + text)}
+                />
+              </div>
+              <textarea
+                value={promptJp}
+                onChange={(e) => setPromptJp(e.target.value)}
+                placeholder="日本語を入力（後で追加も可能）..."
+                className="w-full border border-gray-300 rounded-lg px-4 py-3 min-h-[100px]"
+                rows={3}
+              />
             </div>
           )}
 
