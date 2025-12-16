@@ -845,6 +845,170 @@ function PracticeContent() {
         message={messageDialog.message}
         onClose={() => setMessageDialog({ isOpen: false, title: "", message: "" })}
       />
+
+      {/* 学習結果サマリーモーダル */}
+      {showResultSummary && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={() => setShowResultSummary(false)}>
+          <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+            <div className="p-6">
+              <div className="text-center mb-6">
+                <div className="text-5xl mb-4">🎉</div>
+                <h2 className="text-3xl font-black bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-2">
+                  学習完了！
+                </h2>
+                <p className="text-gray-600">
+                  {(() => {
+                    const modeMessages: Record<PracticeMode, string> = {
+                      normal: "今日の学習が完了しました",
+                      typing: "タイピング練習が完了しました",
+                      shuffle: "シャッフルモードの学習が完了しました",
+                      focus: "集中モードの学習が完了しました",
+                      review_only: "復習が完了しました",
+                      custom: "学習が完了しました",
+                      favorite: "お気に入りモードの学習が完了しました",
+                      weak: "苦手克服モードの学習が完了しました",
+                      random: "ランダムモードの学習が完了しました",
+                      speed: "スピードチャレンジが完了しました",
+                      flashcard: "フラッシュカード学習が完了しました",
+                    };
+                    return modeMessages[mode] || "学習が完了しました";
+                  })()}
+                </p>
+              </div>
+
+              {/* 統計サマリー */}
+              <div className="grid grid-cols-3 gap-4 mb-6">
+                <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-xl p-4 border-2 border-green-200">
+                  <div className="text-3xl font-black text-green-700 mb-1">
+                    {sessionResults.filter(r => r === "OK").length}
+                  </div>
+                  <div className="text-sm font-semibold text-green-800">OK</div>
+                  <div className="text-xs text-green-600 mt-1">
+                    {sessionResults.length > 0 
+                      ? Math.round((sessionResults.filter(r => r === "OK").length / sessionResults.length) * 100)
+                      : 0}%
+                  </div>
+                </div>
+                <div className="bg-gradient-to-br from-yellow-50 to-yellow-100 rounded-xl p-4 border-2 border-yellow-200">
+                  <div className="text-3xl font-black text-yellow-700 mb-1">
+                    {sessionResults.filter(r => r === "MAYBE").length}
+                  </div>
+                  <div className="text-sm font-semibold text-yellow-800">MAYBE</div>
+                  <div className="text-xs text-yellow-600 mt-1">
+                    {sessionResults.length > 0 
+                      ? Math.round((sessionResults.filter(r => r === "MAYBE").length / sessionResults.length) * 100)
+                      : 0}%
+                  </div>
+                </div>
+                <div className="bg-gradient-to-br from-red-50 to-red-100 rounded-xl p-4 border-2 border-red-200">
+                  <div className="text-3xl font-black text-red-700 mb-1">
+                    {sessionResults.filter(r => r === "NG").length}
+                  </div>
+                  <div className="text-sm font-semibold text-red-800">NG</div>
+                  <div className="text-xs text-red-600 mt-1">
+                    {sessionResults.length > 0 
+                      ? Math.round((sessionResults.filter(r => r === "NG").length / sessionResults.length) * 100)
+                      : 0}%
+                  </div>
+                </div>
+              </div>
+
+              {/* 詳細統計 */}
+              <div className="bg-gray-50 rounded-xl p-5 mb-6 space-y-3">
+                <h3 className="text-lg font-bold text-gray-800 mb-3">📊 詳細統計</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <div className="text-sm text-gray-600 mb-1">総問題数</div>
+                    <div className="text-2xl font-bold text-gray-900">{sessionResults.length}問</div>
+                  </div>
+                  <div>
+                    <div className="text-sm text-gray-600 mb-1">正答率</div>
+                    <div className="text-2xl font-bold text-blue-600">
+                      {sessionResults.length > 0
+                        ? Math.round(
+                            ((sessionResults.filter(r => r === "OK").length + 
+                              sessionResults.filter(r => r === "MAYBE").length * 0.5) / 
+                             sessionResults.length) * 100
+                          )
+                        : 0}%
+                    </div>
+                  </div>
+                  {startTime && (
+                    <>
+                      <div>
+                        <div className="text-sm text-gray-600 mb-1">学習時間</div>
+                        <div className="text-2xl font-bold text-gray-900">
+                          {Math.floor((Date.now() - startTime.getTime()) / 1000 / 60)}分
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-sm text-gray-600 mb-1">1問あたり</div>
+                        <div className="text-2xl font-bold text-gray-900">
+                          {sessionResults.length > 0
+                            ? Math.round((Date.now() - startTime.getTime()) / 1000 / sessionResults.length)
+                            : 0}秒
+                        </div>
+                      </div>
+                    </>
+                  )}
+                  {mode === "typing" && typingStats && (
+                    <>
+                      <div>
+                        <div className="text-sm text-gray-600 mb-1">タイピング速度</div>
+                        <div className="text-2xl font-bold text-green-600">{typingStats.wpm} WPM</div>
+                      </div>
+                      <div>
+                        <div className="text-sm text-gray-600 mb-1">正確性</div>
+                        <div className="text-2xl font-bold text-blue-600">{typingStats.accuracy}%</div>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+
+              {/* 改善提案 */}
+              {sessionResults.filter(r => r === "NG").length > 0 && (
+                <div className="bg-blue-50 border-2 border-blue-200 rounded-xl p-4 mb-6">
+                  <div className="flex items-start gap-3">
+                    <div className="text-2xl">💡</div>
+                    <div>
+                      <div className="font-semibold text-blue-900 mb-1">改善のヒント</div>
+                      <div className="text-sm text-blue-800">
+                        {sessionResults.filter(r => r === "NG").length}問が不正解でした。
+                        復習モードで再度学習することで、定着率が向上します。
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* アクションボタン */}
+              <div className="flex gap-3">
+                <button
+                  onClick={() => {
+                    setShowResultSummary(false);
+                    router.push("/");
+                  }}
+                  className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold py-3 px-6 rounded-xl shadow-lg hover:shadow-xl transition-all"
+                >
+                  ホームに戻る
+                </button>
+                {sessionResults.filter(r => r === "NG").length > 0 && (
+                  <button
+                    onClick={() => {
+                      setShowResultSummary(false);
+                      router.push("/practice?mode=review_only&count=10");
+                    }}
+                    className="flex-1 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-bold py-3 px-6 rounded-xl shadow-lg hover:shadow-xl transition-all"
+                  >
+                    🔄 復習する
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
