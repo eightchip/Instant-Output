@@ -3,10 +3,11 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { storage } from "@/lib/storage";
-import { Card, Review } from "@/types/models";
+import { Card, Review, Lesson } from "@/types/models";
 import { generateVocabularyList, getImportantWords } from "@/lib/vocabulary";
 import { tts } from "@/lib/tts";
 import LoadingSpinner from "@/components/LoadingSpinner";
+import AudioPlaybackButton from "@/components/AudioPlaybackButton";
 
 type FilterType = {
   idiomOnly: boolean;
@@ -20,6 +21,7 @@ type FilterType = {
 export default function VocabularyPage() {
   const router = useRouter();
   const [cards, setCards] = useState<Card[]>([]);
+  const [lessons, setLessons] = useState<Lesson[]>([]);
   const [reviews, setReviews] = useState<Map<string, Review>>(new Map());
   const [vocabulary, setVocabulary] = useState<Map<string, { count: number; difficulty: number; importance: number; isIdiom: boolean }>>(new Map());
   const [isLoading, setIsLoading] = useState(true);
@@ -42,13 +44,15 @@ export default function VocabularyPage() {
   async function loadData() {
     try {
       await storage.init();
-      const [allCards, allReviews] = await Promise.all([
+      const [allCards, allReviews, allLessons] = await Promise.all([
         storage.getAllCards(),
         storage.getAllReviews(),
+        storage.getAllLessons(),
       ]);
       // テンプレートカードを除外
       const userCards = allCards.filter(card => card.source_type !== "template");
       setCards(userCards);
+      setLessons(allLessons);
       
       // 復習情報をマップに変換
       const reviewsMap = new Map<string, Review>();
