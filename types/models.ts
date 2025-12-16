@@ -52,3 +52,12 @@ export interface StudySession {
   durationSeconds?: number; // 学習時間（秒）
 }
 
+export interface VocabularyWord {
+  word: string; // 単語（小文字で正規化）
+  meaning: string; // ユーザーが編集可能な意味
+  isLearned: boolean; // 覚えたフラグ
+  isWantToLearn: boolean; // 覚えたいフラグ
+  notes?: string; // メモ
+  updatedAt?: Date; // 更新日時
+}
+

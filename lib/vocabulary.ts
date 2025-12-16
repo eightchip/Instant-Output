@@ -1,6 +1,7 @@
 // 語彙・単語関連のユーティリティ
 
-import { Card } from "@/types/models";
+import { Card, VocabularyWord } from "@/types/models";
+import { storage } from "./storage";
 
 // 基本的な単語（stop words）のリスト
 const STOP_WORDS = new Set([
@@ -242,5 +243,81 @@ export function splitIntoWords(text: string): Array<{ word: string; isPunctuatio
   }
   
   return result;
+}
+
+/**
+ * 単語の意味を取得（ユーザーが編集した意味があればそれを、なければカードから抽出）
+ */
+export async function getWordMeaning(word: string, cards: Card[], isIdiom: boolean): Promise<string> {
+  // まず、保存された意味を確認
+  const vocabWord = await storage.getVocabularyWord(word);
+  if (vocabWord && vocabWord.meaning) {
+    return vocabWord.meaning;
+  }
+  
+  // 保存された意味がない場合、カードから抽出を試みる
+  const wordCards = isIdiom
+    ? cards.filter(card => {
+        const lowerText = card.target_en.toLowerCase();
+        const lowerWord = word.toLowerCase();
+        return lowerText.includes(lowerWord);
+      })
+    : cards.filter(card => getImportantWords(card).includes(word.toLowerCase()));
+  
+  if (wordCards.length === 0) {
+    return "";
+  }
+  
+  // 最初のカードの日本語訳を返す（後で改善可能）
+  return wordCards[0].prompt_jp;
+}
+
+/**
+ * 単語の意味を保存
+ */
+export async function saveWordMeaning(word: string, meaning: string, notes?: string): Promise<void> {
+  const vocabWord: VocabularyWord = {
+    word: word.toLowerCase(),
+    meaning,
+    isLearned: false,
+    isWantToLearn: false,
+    notes,
+    updatedAt: new Date(),
+  };
+  await storage.saveVocabularyWord(vocabWord);
+}
+
+/**
+ * 単語の覚えたフラグを更新
+ */
+export async function updateWordLearnedStatus(word: string, isLearned: boolean): Promise<void> {
+  const existing = await storage.getVocabularyWord(word);
+  const vocabWord: VocabularyWord = existing || {
+    word: word.toLowerCase(),
+    meaning: "",
+    isLearned,
+    isWantToLearn: false,
+    updatedAt: new Date(),
+  };
+  vocabWord.isLearned = isLearned;
+  vocabWord.updatedAt = new Date();
+  await storage.saveVocabularyWord(vocabWord);
+}
+
+/**
+ * 単語の覚えたいフラグを更新
+ */
+export async function updateWordWantToLearnStatus(word: string, isWantToLearn: boolean): Promise<void> {
+  const existing = await storage.getVocabularyWord(word);
+  const vocabWord: VocabularyWord = existing || {
+    word: word.toLowerCase(),
+    meaning: "",
+    isLearned: false,
+    isWantToLearn,
+    updatedAt: new Date(),
+  };
+  vocabWord.isWantToLearn = isWantToLearn;
+  vocabWord.updatedAt = new Date();
+  await storage.saveVocabularyWord(vocabWord);
 }
 

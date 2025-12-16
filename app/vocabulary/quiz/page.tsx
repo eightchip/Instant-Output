@@ -4,7 +4,7 @@ import { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { storage } from "@/lib/storage";
 import { Card, Review } from "@/types/models";
-import { generateVocabularyList, getImportantWords } from "@/lib/vocabulary";
+import { generateVocabularyList, getImportantWords, getWordMeaning } from "@/lib/vocabulary";
 import { tts } from "@/lib/tts";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import AudioPlaybackButton from "@/components/AudioPlaybackButton";
@@ -83,23 +83,29 @@ function VocabularyQuizContent() {
 
   const currentWord = quizWords[currentIndex];
   const wordData = currentWord ? vocabulary.get(currentWord) : null;
+  const [wordMeanings, setWordMeanings] = useState<Map<string, string>>(new Map());
 
-  // 現在の単語を含むカードから日本語訳を取得
+  // 単語の意味を取得（保存された意味があればそれを使う）
+  useEffect(() => {
+    async function loadMeanings() {
+      if (quizWords.length === 0 || cards.length === 0) return;
+      
+      const meanings = new Map<string, string>();
+      for (const word of quizWords) {
+        const data = vocabulary.get(word);
+        if (data) {
+          const meaning = await getWordMeaning(word, cards, data.isIdiom);
+          meanings.set(word, meaning);
+        }
+      }
+      setWordMeanings(meanings);
+    }
+    loadMeanings();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [quizWords.length, cards.length]);
+
   function getWordTranslation(word: string): string {
-    if (!wordData) return "";
-    
-    const wordCards = wordData.isIdiom
-      ? cards.filter(card => {
-          const lowerText = card.target_en.toLowerCase();
-          const lowerWord = word.toLowerCase();
-          return lowerText.includes(lowerWord);
-        })
-      : cards.filter(card => getImportantWords(card).includes(word.toLowerCase()));
-    
-    if (wordCards.length === 0) return "";
-    
-    // 最初のカードの日本語訳を返す（より良い方法があれば改善可能）
-    return wordCards[0].prompt_jp;
+    return wordMeanings.get(word) || "";
   }
 
   function handleShowAnswer() {

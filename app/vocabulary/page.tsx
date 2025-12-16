@@ -3,11 +3,103 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { storage } from "@/lib/storage";
-import { Card, Review, Lesson } from "@/types/models";
-import { generateVocabularyList, getImportantWords } from "@/lib/vocabulary";
+import { Card, Review, Lesson, VocabularyWord } from "@/types/models";
+import { generateVocabularyList, getImportantWords, getWordMeaning } from "@/lib/vocabulary";
 import { tts } from "@/lib/tts";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import AudioPlaybackButton from "@/components/AudioPlaybackButton";
+import VocabularyWordEditor from "@/components/VocabularyWordEditor";
+
+// 編集モーダルコンポーネント
+function VocabularyWordEditorModal({
+  word,
+  vocabularyWords,
+  vocabulary,
+  cards,
+  onClose,
+  onSave,
+}: {
+  word: string;
+  vocabularyWords: Map<string, VocabularyWord>;
+  vocabulary: Map<string, { count: number; difficulty: number; importance: number; isIdiom: boolean }>;
+  cards: Card[];
+  onClose: () => void;
+  onSave: () => Promise<void>;
+}) {
+  const [currentMeaning, setCurrentMeaning] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
+  const vocabWord = vocabularyWords.get(word.toLowerCase());
+  const wordData = vocabulary.get(word);
+
+  useEffect(() => {
+    async function loadMeaning() {
+      if (vocabWord?.meaning) {
+        setCurrentMeaning(vocabWord.meaning);
+        setIsLoading(false);
+      } else if (wordData) {
+        const meaning = await getWordMeaning(word, cards, wordData.isIdiom);
+        setCurrentMeaning(meaning);
+        setIsLoading(false);
+      } else {
+        setIsLoading(false);
+      }
+    }
+    loadMeaning();
+  }, [word, vocabWord, wordData, cards]);
+
+  if (isLoading || !wordData) {
+    return (
+      <div 
+        className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+        onClick={onClose}
+      >
+        <div 
+          className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full p-6"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <LoadingSpinner text="読み込み中..." />
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div 
+      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+      onClick={onClose}
+    >
+      <div 
+        className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-2xl font-bold text-gray-900">単語を編集</h2>
+            <button
+              onClick={onClose}
+              className="text-gray-500 hover:text-gray-700 text-2xl font-bold"
+            >
+              ×
+            </button>
+          </div>
+          <VocabularyWordEditor
+            word={word}
+            initialMeaning={currentMeaning}
+            initialIsLearned={vocabWord?.isLearned || false}
+            initialIsWantToLearn={vocabWord?.isWantToLearn || false}
+            initialNotes={vocabWord?.notes || ""}
+            onSave={async (updated) => {
+              await onSave();
+              onClose();
+            }}
+            onCancel={onClose}
+            autoFocus
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
 
 type FilterType = {
   idiomOnly: boolean;
@@ -16,6 +108,8 @@ type FilterType = {
   minCount: number | null;
   maxCount: number | null;
   learnedOnly: boolean | null; // true: 学習済みのみ, false: 未学習のみ, null: すべて
+  hideLearned: boolean; // 覚えた単語を非表示
+  wantToLearnOnly: boolean; // 覚えたい単語のみ表示
 };
 
 export default function VocabularyPage() {
@@ -34,9 +128,13 @@ export default function VocabularyPage() {
     minCount: null,
     maxCount: null,
     learnedOnly: null,
+    hideLearned: false,
+    wantToLearnOnly: false,
   });
   const [showFilters, setShowFilters] = useState(false);
   const [selectedWord, setSelectedWord] = useState<string | null>(null);
+  const [editingWord, setEditingWord] = useState<string | null>(null);
+  const [vocabularyWords, setVocabularyWords] = useState<Map<string, VocabularyWord>>(new Map());
 
   useEffect(() => {
     loadData();
@@ -45,10 +143,11 @@ export default function VocabularyPage() {
   async function loadData() {
     try {
       await storage.init();
-      const [allCards, allReviews, allLessons] = await Promise.all([
+      const [allCards, allReviews, allLessons, allVocabWords] = await Promise.all([
         storage.getAllCards(),
         storage.getAllReviews(),
         storage.getAllLessons(),
+        storage.getAllVocabularyWords(),
       ]);
       // テンプレートカードを除外
       const userCards = allCards.filter(card => card.source_type !== "template");
@@ -61,6 +160,13 @@ export default function VocabularyPage() {
         reviewsMap.set(review.cardId, review);
       }
       setReviews(reviewsMap);
+      
+      // 単語データをマップに変換
+      const vocabWordsMap = new Map<string, VocabularyWord>();
+      for (const vocabWord of allVocabWords) {
+        vocabWordsMap.set(vocabWord.word.toLowerCase(), vocabWord);
+      }
+      setVocabularyWords(vocabWordsMap);
       
       // 既知のイディオム辞書を使用（無料）
       const vocab = generateVocabularyList(userCards);
@@ -136,6 +242,22 @@ export default function VocabularyPage() {
           return false;
         }
         if (!filters.learnedOnly && mastery.isLearned) {
+          return false;
+        }
+      }
+      
+      // 覚えた単語を非表示
+      if (filters.hideLearned) {
+        const vocabWord = vocabularyWords.get(word.toLowerCase());
+        if (vocabWord?.isLearned) {
+          return false;
+        }
+      }
+      
+      // 覚えたい単語のみ表示
+      if (filters.wantToLearnOnly) {
+        const vocabWord = vocabularyWords.get(word.toLowerCase());
+        if (!vocabWord?.isWantToLearn) {
           return false;
         }
       }
@@ -262,6 +384,32 @@ export default function VocabularyPage() {
                   </select>
                 </div>
 
+                {/* 覚えた単語を非表示 */}
+                <div>
+                  <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2">
+                    <input
+                      type="checkbox"
+                      checked={filters.hideLearned}
+                      onChange={(e) => setFilters({ ...filters, hideLearned: e.target.checked })}
+                      className="w-4 h-4 text-indigo-600 rounded"
+                    />
+                    覚えた単語を非表示
+                  </label>
+                </div>
+
+                {/* 覚えたい単語のみ表示 */}
+                <div>
+                  <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2">
+                    <input
+                      type="checkbox"
+                      checked={filters.wantToLearnOnly}
+                      onChange={(e) => setFilters({ ...filters, wantToLearnOnly: e.target.checked })}
+                      className="w-4 h-4 text-indigo-600 rounded"
+                    />
+                    覚えたい単語のみ表示
+                  </label>
+                </div>
+
                 {/* 難易度範囲 */}
                 <div>
                   <label className="text-sm font-semibold text-gray-700 mb-2 block">難易度範囲:</label>
@@ -330,6 +478,8 @@ export default function VocabularyPage() {
                   minCount: null,
                   maxCount: null,
                   learnedOnly: null,
+                  hideLearned: false,
+                  wantToLearnOnly: false,
                 })}
                 className="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold rounded-lg transition-all text-sm"
               >
@@ -435,6 +585,13 @@ export default function VocabularyPage() {
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setEditingWord(word)}
+                      className="px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-semibold"
+                      title="編集"
+                    >
+                      ✏️ 編集
+                    </button>
                     {tts.isAvailable() && (
                       <button
                         onClick={() => tts.speak(word, "en", 1)}
@@ -632,11 +789,24 @@ export default function VocabularyPage() {
                           {card.lessonId && lessonMap.has(card.lessonId) && (
                             <div className="text-xs text-gray-500 mt-2">
                               レッスン: {lessonMap.get(card.lessonId)?.title}
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
+          </div>
+      )}
+
+      {/* 編集モーダル */}
+      {editingWord && <VocabularyWordEditorModal
+        word={editingWord}
+        vocabularyWords={vocabularyWords}
+        vocabulary={vocabulary}
+        cards={cards}
+        onClose={() => setEditingWord(null)}
+        onSave={async () => {
+          // データを再読み込み
+          await loadData();
+        }}
+      />}
+    </div>
+  );
+})}
                   </div>
                 </div>
               </div>

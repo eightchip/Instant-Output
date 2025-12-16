@@ -1,10 +1,10 @@
 // IndexedDB ストレージ層
 
-import { Course, Lesson, Card, Review, StudySession } from "@/types/models";
+import { Course, Lesson, Card, Review, StudySession, VocabularyWord } from "@/types/models";
 import { Source, Draft } from "@/types/ai-card";
 
 const DB_NAME = "instant_output_db";
-const DB_VERSION = 3; // バージョンを3に更新
+const DB_VERSION = 4; // バージョンを4に更新（VocabularyWordストア追加）
 
 const STORES = {
   courses: "courses",
@@ -14,6 +14,7 @@ const STORES = {
   studySessions: "studySessions",
   sources: "sources",
   drafts: "drafts",
+  vocabularyWords: "vocabularyWords",
 } as const;
 
 class StorageService {
@@ -87,6 +88,14 @@ class StorageService {
           });
           draftStore.createIndex("sourceId", "sourceId", { unique: false });
           draftStore.createIndex("createdAt", "createdAt", { unique: false });
+        }
+
+        // VocabularyWords store
+        if (!db.objectStoreNames.contains(STORES.vocabularyWords)) {
+          const vocabStore = db.createObjectStore(STORES.vocabularyWords, {
+            keyPath: "word",
+          });
+          vocabStore.createIndex("updatedAt", "updatedAt", { unique: false });
         }
       };
     });
@@ -735,6 +744,76 @@ class StorageService {
       const tx = db.transaction(STORES.drafts, "readwrite");
       const store = tx.objectStore(STORES.drafts);
       const request = store.delete(id);
+      request.onsuccess = () => resolve();
+      request.onerror = () => reject(request.error);
+    });
+  }
+
+  // VocabularyWord operations
+  async saveVocabularyWord(vocabWord: VocabularyWord): Promise<void> {
+    const db = this.ensureDb();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(STORES.vocabularyWords, "readwrite");
+      const store = tx.objectStore(STORES.vocabularyWords);
+      // Date型をISO文字列に変換
+      const vocabData = {
+        ...vocabWord,
+        updatedAt: vocabWord.updatedAt instanceof Date ? vocabWord.updatedAt.toISOString() : vocabWord.updatedAt || new Date().toISOString(),
+      };
+      const request = store.put(vocabData);
+      request.onsuccess = () => resolve();
+      request.onerror = () => reject(request.error);
+    });
+  }
+
+  async getVocabularyWord(word: string): Promise<VocabularyWord | null> {
+    const db = this.ensureDb();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(STORES.vocabularyWords, "readonly");
+      const store = tx.objectStore(STORES.vocabularyWords);
+      const request = store.get(word.toLowerCase());
+      request.onsuccess = () => {
+        const result = request.result;
+        if (!result) {
+          resolve(null);
+          return;
+        }
+        // ISO文字列をDate型に変換
+        resolve({
+          ...result,
+          updatedAt: result.updatedAt ? new Date(result.updatedAt) : undefined,
+        });
+      };
+      request.onerror = () => reject(request.error);
+    });
+  }
+
+  async getAllVocabularyWords(): Promise<VocabularyWord[]> {
+    const db = this.ensureDb();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(STORES.vocabularyWords, "readonly");
+      const store = tx.objectStore(STORES.vocabularyWords);
+      const request = store.getAll();
+      request.onsuccess = () => {
+        const results = request.result || [];
+        // ISO文字列をDate型に変換
+        resolve(
+          results.map((vocab: any) => ({
+            ...vocab,
+            updatedAt: vocab.updatedAt ? new Date(vocab.updatedAt) : undefined,
+          }))
+        );
+      };
+      request.onerror = () => reject(request.error);
+    });
+  }
+
+  async deleteVocabularyWord(word: string): Promise<void> {
+    const db = this.ensureDb();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(STORES.vocabularyWords, "readwrite");
+      const store = tx.objectStore(STORES.vocabularyWords);
+      const request = store.delete(word.toLowerCase());
       request.onsuccess = () => resolve();
       request.onerror = () => reject(request.error);
     });
