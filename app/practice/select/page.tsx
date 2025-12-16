@@ -112,12 +112,6 @@ export default function CardSelectPage() {
   }
 
 
-  const filteredCards = getFilteredCards();
-  const { displayedItems, sentinelRef } = useInfiniteScroll(filteredCards, {
-    initialCount: 20,
-    increment: 20,
-  });
-
   function getFilteredCards(): Card[] {
     if (!searchQuery.trim()) {
       return cards;
