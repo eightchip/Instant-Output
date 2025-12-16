@@ -10,6 +10,8 @@ import ConfirmDialog from "@/components/ConfirmDialog";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import CardEditor from "@/components/CardEditor";
 import AudioPlaybackButton from "@/components/AudioPlaybackButton";
+import { useInfiniteScroll } from "@/hooks/useInfiniteScroll";
+import InfiniteScrollSentinel from "@/components/InfiniteScrollSentinel";
 
 export default function CardSelectPage() {
   const router = useRouter();
