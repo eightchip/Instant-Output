@@ -127,10 +127,64 @@ export default function CardSelectPage() {
   }
 
   const filteredCards = getFilteredCards();
+  
+  // レッスンが選択されている場合のみ並び替え可能
+  const canReorder = selectedLessonId !== null;
+  
   const { displayedItems, sentinelRef } = useInfiniteScroll(filteredCards, {
     initialCount: 20,
     increment: 20,
   });
+
+  async function handleCardReorder(draggedId: string, targetId: string) {
+    if (!canReorder || !selectedLessonId) return;
+    
+    try {
+      await storage.init();
+      
+      // 同じレッスンのカードのみ取得
+      const lessonCards = await storage.getCardsByLesson(selectedLessonId);
+      const userCards = lessonCards.filter(card => card.source_type !== "template");
+      
+      const draggedIndex = userCards.findIndex(c => c.id === draggedId);
+      const targetIndex = userCards.findIndex(c => c.id === targetId);
+      
+      if (draggedIndex === -1 || targetIndex === -1) return;
+      
+      // カードを移動
+      const [movedCard] = userCards.splice(draggedIndex, 1);
+      userCards.splice(targetIndex, 0, movedCard);
+      
+      // 新しいorderを設定
+      const updates: Promise<void>[] = [];
+      for (let i = 0; i < userCards.length; i++) {
+        const card = userCards[i];
+        if (card.order !== i) {
+          updates.push(storage.updateCard(card.id, { order: i }));
+        }
+      }
+      
+      await Promise.all(updates);
+      if (selectedLessonId) {
+        await loadCards(selectedLessonId);
+      } else {
+        await loadAllCards();
+      }
+      
+      setMessageDialog({
+        isOpen: true,
+        title: "並び替え完了",
+        message: "カードの順序を更新しました。",
+      });
+    } catch (error) {
+      console.error("Failed to reorder cards:", error);
+      setMessageDialog({
+        isOpen: true,
+        title: "エラー",
+        message: "カードの並び替えに失敗しました。",
+      });
+    }
+  }
 
   function handleStartPractice() {
     if (selectedCards.size === 0) {
