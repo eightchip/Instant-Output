@@ -907,10 +907,12 @@ export default function ScreenshotCardPage() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-gray-50">
+    <div className="flex min-h-screen flex-col bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
       <main className="flex-1 px-4 py-8 max-w-2xl mx-auto w-full">
         <div className="flex items-center justify-between mb-6">
-          <h1 className="text-3xl font-bold">スクリーンショットから追加</h1>
+          <h1 className="text-3xl font-black bg-gradient-to-r from-slate-600 to-indigo-600 bg-clip-text text-transparent">
+            📷 スクリーンショットから追加
+          </h1>
           <button
             onClick={() => router.back()}
             className="text-gray-600 hover:text-gray-800"

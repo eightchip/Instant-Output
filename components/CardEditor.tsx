@@ -31,6 +31,7 @@ export default function CardEditor({
   const [isFavorite, setIsFavorite] = useState(card.isFavorite || false);
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isTranslating, setIsTranslating] = useState(false);
   const [errors, setErrors] = useState<{
     targetEn?: string;
   }>({});
@@ -87,6 +88,52 @@ export default function CardEditor({
       textareaEnRef.current.focus();
     }
   }, [autoFocus]);
+
+  const handleRetranslate = async () => {
+    if (!targetEn.trim()) {
+      setMessageDialog({
+        isOpen: true,
+        title: "翻訳エラー",
+        message: "英語を入力してください。",
+      });
+      return;
+    }
+
+    setIsTranslating(true);
+    try {
+      const response = await fetch("/api/translate", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ text: targetEn.trim() }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        setMessageDialog({
+          isOpen: true,
+          title: "翻訳エラー",
+          message: errorData.message || "翻訳に失敗しました。",
+        });
+        return;
+      }
+
+      const data = await response.json();
+      if (data.translatedText) {
+        setPromptJp(data.translatedText);
+      }
+    } catch (error) {
+      console.error("Translation error:", error);
+      setMessageDialog({
+        isOpen: true,
+        title: "翻訳エラー",
+        message: "翻訳処理中にエラーが発生しました。",
+      });
+    } finally {
+      setIsTranslating(false);
+    }
+  };
 
   const handleSave = async () => {
     if (!targetEn.trim()) {
@@ -183,15 +230,26 @@ export default function CardEditor({
 
         {/* 日本語 */}
         <div>
-          <label className="block text-sm font-semibold mb-2">
-            日本語
-            <AudioPlaybackButton
-              text={promptJp}
-              language="jp"
-              size="sm"
-              className="ml-2"
-            />
-          </label>
+          <div className="flex items-center justify-between mb-2">
+            <label className="block text-sm font-semibold">
+              日本語
+              <AudioPlaybackButton
+                text={promptJp}
+                language="jp"
+                size="sm"
+                className="ml-2"
+              />
+            </label>
+            {targetEn.trim() && (
+              <button
+                onClick={handleRetranslate}
+                disabled={isTranslating}
+                className="text-xs bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-400 text-white font-semibold py-1 px-3 rounded-lg transition-colors"
+              >
+                {isTranslating ? "翻訳中..." : "🔄 再翻訳"}
+              </button>
+            )}
+          </div>
           <div className="relative">
             <textarea
               ref={textareaJpRef}
