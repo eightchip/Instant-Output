@@ -170,8 +170,6 @@ export default function CardSelectPage() {
     return <LoadingSpinner fullScreen text="カードを読み込み中..." />;
   }
 
-  const filteredCards = getFilteredCards();
-
   return (
     <div className="flex min-h-screen flex-col bg-gray-50">
       <main className="flex-1 px-4 py-8 max-w-4xl mx-auto w-full">
