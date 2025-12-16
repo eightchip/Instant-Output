@@ -370,8 +370,8 @@ export default function LessonDetailPage() {
               return (
                 <>
                   {displayedItems.map((card) => (
-              <div
-                key={card.id}
+                    <div
+                      key={card.id}
                 className={`card-base p-4 hover-lift animate-fade-in ${
                   isBatchMode && selectedCards.has(card.id)
                     ? "ring-2 ring-blue-500 bg-blue-50"
