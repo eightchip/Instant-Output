@@ -36,8 +36,36 @@ export default function LessonDetailPage() {
     onConfirm: () => {},
   });
   const [reviews, setReviews] = useState<Map<string, Review>>(new Map());
+  const [sortBy, setSortBy] = useState<"order" | "created" | "alphabetical">("order");
+  const [draggedCardId, setDraggedCardId] = useState<string | null>(null);
+  const [dragOverCardId, setDragOverCardId] = useState<string | null>(null);
 
-  const { displayedItems, sentinelRef } = useInfiniteScroll(cards, {
+  // ソート済みカード
+  const sortedCards = [...cards].sort((a, b) => {
+    if (sortBy === "order") {
+      if (a.order !== undefined && b.order !== undefined) {
+        return a.order - b.order;
+      }
+      if (a.order !== undefined) return -1;
+      if (b.order !== undefined) return 1;
+      if (a.createdAt && b.createdAt) {
+        return a.createdAt.getTime() - b.createdAt.getTime();
+      }
+      return 0;
+    } else if (sortBy === "created") {
+      if (a.createdAt && b.createdAt) {
+        return b.createdAt.getTime() - a.createdAt.getTime(); // 新しい順
+      }
+      if (a.createdAt) return -1;
+      if (b.createdAt) return 1;
+      return 0;
+    } else {
+      // alphabetical
+      return a.target_en.localeCompare(b.target_en);
+    }
+  });
+
+  const { displayedItems, sentinelRef } = useInfiniteScroll(sortedCards, {
     initialCount: 20,
     increment: 20,
   });
@@ -73,6 +101,48 @@ export default function LessonDetailPage() {
       console.error("Failed to load data:", error);
     } finally {
       setIsLoading(false);
+    }
+  }
+
+  async function handleCardReorder(draggedId: string, targetId: string) {
+    try {
+      await storage.init();
+      
+      // 現在のカード順序を取得
+      const currentCards = [...cards];
+      const draggedIndex = currentCards.findIndex(c => c.id === draggedId);
+      const targetIndex = currentCards.findIndex(c => c.id === targetId);
+      
+      if (draggedIndex === -1 || targetIndex === -1) return;
+      
+      // カードを移動
+      const [movedCard] = currentCards.splice(draggedIndex, 1);
+      currentCards.splice(targetIndex, 0, movedCard);
+      
+      // 新しいorderを設定
+      const updates: Promise<void>[] = [];
+      for (let i = 0; i < currentCards.length; i++) {
+        const card = currentCards[i];
+        if (card.order !== i) {
+          updates.push(storage.updateCard(card.id, { order: i }));
+        }
+      }
+      
+      await Promise.all(updates);
+      await loadData();
+      
+      setMessageDialog({
+        isOpen: true,
+        title: "並び替え完了",
+        message: "カードの順序を更新しました。",
+      });
+    } catch (error) {
+      console.error("Failed to reorder cards:", error);
+      setMessageDialog({
+        isOpen: true,
+        title: "エラー",
+        message: "カードの並び替えに失敗しました。",
+      });
     }
   }
 
@@ -259,37 +329,53 @@ export default function LessonDetailPage() {
           </div>
         </div>
 
-        <div className="mb-4 flex items-center justify-between">
-          <div className="flex gap-2">
-            <button
-              onClick={() => router.push(`/cards/new?lessonId=${lessonId}`)}
-              className="btn-primary"
-            >
-              + カードを追加
-            </button>
-            {cards.length > 0 && (
+        <div className="mb-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex gap-2">
               <button
-                onClick={() => {
-                  setIsBatchMode(!isBatchMode);
-                  setSelectedCards(new Set());
-                }}
-                className={`font-bold py-2 px-4 rounded-lg ${
-                  isBatchMode
-                    ? "bg-gray-600 hover:bg-gray-700 text-white"
-                    : "bg-gray-200 hover:bg-gray-300 text-gray-700"
-                }`}
+                onClick={() => router.push(`/cards/new?lessonId=${lessonId}`)}
+                className="btn-primary"
               >
-                {isBatchMode ? "一括操作を終了" : "一括操作"}
+                + カードを追加
               </button>
-            )}
-          </div>
-          <div className="text-sm text-gray-600">
-            カード数: {cards.length}
-            {isBatchMode && selectedCards.size > 0 && (
-              <span className="ml-2 text-blue-600 font-semibold">
-                ({selectedCards.size}件選択中)
-              </span>
-            )}
+              {cards.length > 0 && (
+                <>
+                  <button
+                    onClick={() => {
+                      setIsBatchMode(!isBatchMode);
+                      setSelectedCards(new Set());
+                    }}
+                    className={`font-bold py-2 px-4 rounded-lg transition-all ${
+                      isBatchMode
+                        ? "bg-gray-600 hover:bg-gray-700 text-white shadow-md"
+                        : "bg-gray-200 hover:bg-gray-300 text-gray-700"
+                    }`}
+                  >
+                    {isBatchMode ? "一括操作を終了" : "一括操作"}
+                  </button>
+                  <div className="flex items-center gap-2 px-3 py-2 bg-white rounded-lg border border-gray-200">
+                    <span className="text-sm font-semibold text-gray-700">並び替え:</span>
+                    <select
+                      value={sortBy}
+                      onChange={(e) => setSortBy(e.target.value as "order" | "created" | "alphabetical")}
+                      className="text-sm border-0 bg-transparent focus:outline-none cursor-pointer"
+                    >
+                      <option value="order">登録順</option>
+                      <option value="created">作成日時</option>
+                      <option value="alphabetical">アルファベット順</option>
+                    </select>
+                  </div>
+                </>
+              )}
+            </div>
+            <div className="text-sm text-gray-600">
+              カード数: {cards.length}
+              {isBatchMode && selectedCards.size > 0 && (
+                <span className="ml-2 text-blue-600 font-semibold">
+                  ({selectedCards.size}件選択中)
+                </span>
+              )}
+            </div>
           </div>
         </div>
 
