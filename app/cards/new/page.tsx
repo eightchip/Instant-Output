@@ -258,7 +258,9 @@ function NewCardContent() {
     <div className="flex min-h-screen flex-col bg-gray-50">
       <main className="flex-1 px-4 py-8 max-w-2xl mx-auto w-full">
         <div className="flex items-center justify-between mb-6">
-          <h1 className="text-3xl font-bold">カードを追加</h1>
+          <h1 className="text-3xl font-black bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+            ➕ カードを追加
+          </h1>
           <button
             onClick={() => router.back()}
             className="text-gray-600 hover:text-gray-800"
