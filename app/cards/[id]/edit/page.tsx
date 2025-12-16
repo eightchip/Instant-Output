@@ -9,6 +9,7 @@ import MessageDialog from "@/components/MessageDialog";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import VoiceInputButton from "@/components/VoiceInputButton";
 import LoadingSpinner from "@/components/LoadingSpinner";
+import CardEditor from "@/components/CardEditor";
 
 export default function EditCardPage() {
   const router = useRouter();

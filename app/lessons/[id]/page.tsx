@@ -8,6 +8,7 @@ import MessageDialog from "@/components/MessageDialog";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import AudioPlaybackButton from "@/components/AudioPlaybackButton";
+import CardEditor from "@/components/CardEditor";
 
 export default function LessonDetailPage() {
   const router = useRouter();
@@ -20,6 +21,7 @@ export default function LessonDetailPage() {
   const [isBatchMode, setIsBatchMode] = useState(false);
   const [allLessons, setAllLessons] = useState<Lesson[]>([]);
   const [showMoveDialog, setShowMoveDialog] = useState(false);
+  const [editingCardId, setEditingCardId] = useState<string | null>(null);
   const [messageDialog, setMessageDialog] = useState<{ isOpen: boolean; title: string; message: string }>({
     isOpen: false,
     title: "",
@@ -465,46 +467,70 @@ export default function LessonDetailPage() {
                     </button>
                   )}
                 </div>
-                {!isBatchMode && (
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => router.push(`/cards/${card.id}/edit`)}
-                      className="flex-1 btn-primary text-sm"
-                    >
-                      編集
-                    </button>
-                    <button
-                      onClick={() => {
-                        setConfirmDialog({
-                          isOpen: true,
-                          title: "カードを削除",
-                          message: "このカードを削除しますか？\nこの操作は取り消せません。",
-                          onConfirm: async () => {
-                            setConfirmDialog({ isOpen: false, title: "", message: "", onConfirm: () => {} });
-                            try {
-                              await storage.init();
-                              const review = await storage.getReview(card.id);
-                              if (review) {
-                                await storage.deleteReview(card.id);
+                {!isBatchMode && editingCardId === card.id ? (
+                  <CardEditor
+                    card={card}
+                    onSave={async (updatedCard) => {
+                      await storage.init();
+                      await storage.saveCard(updatedCard);
+                      await loadData();
+                      setEditingCardId(null);
+                    }}
+                    onCancel={() => setEditingCardId(null)}
+                    onDelete={async (cardId) => {
+                      await storage.init();
+                      const review = await storage.getReview(cardId);
+                      if (review) {
+                        await storage.deleteReview(cardId);
+                      }
+                      await storage.deleteCard(cardId);
+                      await loadData();
+                      setEditingCardId(null);
+                    }}
+                    showDelete={true}
+                  />
+                ) : (
+                  !isBatchMode && (
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => setEditingCardId(card.id)}
+                        className="flex-1 btn-primary text-sm"
+                      >
+                        編集
+                      </button>
+                      <button
+                        onClick={() => {
+                          setConfirmDialog({
+                            isOpen: true,
+                            title: "カードを削除",
+                            message: "このカードを削除しますか？\nこの操作は取り消せません。",
+                            onConfirm: async () => {
+                              setConfirmDialog({ isOpen: false, title: "", message: "", onConfirm: () => {} });
+                              try {
+                                await storage.init();
+                                const review = await storage.getReview(card.id);
+                                if (review) {
+                                  await storage.deleteReview(card.id);
+                                }
+                                await storage.deleteCard(card.id);
+                                await loadData();
+                              } catch (error) {
+                                console.error("Failed to delete card:", error);
+                                setMessageDialog({
+                                  isOpen: true,
+                                  title: "削除エラー",
+                                  message: "カードの削除に失敗しました。",
+                                });
                               }
-                              await storage.deleteCard(card.id);
-                              await loadData();
-                            } catch (error) {
-                              console.error("Failed to delete card:", error);
-                              setMessageDialog({
-                                isOpen: true,
-                                title: "削除エラー",
-                                message: "カードの削除に失敗しました。",
-                              });
-                            }
-                          },
-                        });
-                      }}
-                      className="bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-4 rounded-lg text-sm"
-                    >
-                      削除
-                    </button>
-                  </div>
+                            },
+                          });
+                        }}
+                        className="bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-4 rounded-lg text-sm"
+                      >
+                        削除
+                      </button>
+                    </div>
+                  )
                 )}
               </div>
             ))}

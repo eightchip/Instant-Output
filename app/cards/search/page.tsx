@@ -10,6 +10,7 @@ import { useBatchCardSelection } from "@/hooks/useBatchCardSelection";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import AudioPlaybackButton from "@/components/AudioPlaybackButton";
+import CardEditor from "@/components/CardEditor";
 
 type FilterType = {
   lessonId?: string;
@@ -37,6 +38,7 @@ export default function CardSearchPage() {
     message: "",
   });
   const [isBatchMode, setIsBatchMode] = useState(false);
+  const [editingCardId, setEditingCardId] = useState<string | null>(null);
 
   const {
     selectedCards,
@@ -392,44 +394,68 @@ export default function CardSearchPage() {
                     {highlightText(card.target_en, searchQuery)}
                   </p>
                 </div>
-                {!isBatchMode && (
-                  <div className="mt-2 flex items-center justify-between">
-                    <button
-                      onClick={async (e) => {
-                        e.stopPropagation();
-                        try {
-                          await storage.init();
-                          await storage.updateCard(card.id, { isFavorite: !card.isFavorite });
-                          await loadData();
-                        } catch (error) {
-                          console.error("Failed to toggle favorite:", error);
-                          setMessageDialog({
-                            isOpen: true,
-                            title: "更新エラー",
-                            message: "お気に入りの更新に失敗しました。",
-                          });
-                        }
-                      }}
-                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold transition-all duration-200 ${
-                        card.isFavorite
-                          ? "bg-gradient-to-r from-yellow-400 to-yellow-500 text-white shadow-md hover:shadow-lg hover:scale-105"
-                          : "bg-gray-100 text-gray-600 hover:bg-gray-200 hover:scale-105"
-                      }`}
-                      title={card.isFavorite ? "お気に入りを解除" : "お気に入りに追加"}
-                    >
-                      <span>★</span>
-                      <span>お気に入り</span>
-                    </button>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        router.push(`/cards/${card.id}/edit`);
-                      }}
-                      className="text-sm text-blue-600 hover:text-blue-800"
-                    >
-                      編集
-                    </button>
-                  </div>
+                {!isBatchMode && editingCardId === card.id ? (
+                  <CardEditor
+                    card={card}
+                    onSave={async (updatedCard) => {
+                      await storage.init();
+                      await storage.saveCard(updatedCard);
+                      await loadData();
+                      setEditingCardId(null);
+                    }}
+                    onCancel={() => setEditingCardId(null)}
+                    onDelete={async (cardId) => {
+                      await storage.init();
+                      const review = await storage.getReview(cardId);
+                      if (review) {
+                        await storage.deleteReview(cardId);
+                      }
+                      await storage.deleteCard(cardId);
+                      await loadData();
+                      setEditingCardId(null);
+                    }}
+                    showDelete={true}
+                  />
+                ) : (
+                  !isBatchMode && (
+                    <div className="mt-2 flex items-center justify-between">
+                      <button
+                        onClick={async (e) => {
+                          e.stopPropagation();
+                          try {
+                            await storage.init();
+                            await storage.updateCard(card.id, { isFavorite: !card.isFavorite });
+                            await loadData();
+                          } catch (error) {
+                            console.error("Failed to toggle favorite:", error);
+                            setMessageDialog({
+                              isOpen: true,
+                              title: "更新エラー",
+                              message: "お気に入りの更新に失敗しました。",
+                            });
+                          }
+                        }}
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold transition-all duration-200 ${
+                          card.isFavorite
+                            ? "bg-gradient-to-r from-yellow-400 to-yellow-500 text-white shadow-md hover:shadow-lg hover:scale-105"
+                            : "bg-gray-100 text-gray-600 hover:bg-gray-200 hover:scale-105"
+                        }`}
+                        title={card.isFavorite ? "お気に入りを解除" : "お気に入りに追加"}
+                      >
+                        <span>★</span>
+                        <span>お気に入り</span>
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setEditingCardId(card.id);
+                        }}
+                        className="text-sm text-blue-600 hover:text-blue-800"
+                      >
+                        編集
+                      </button>
+                    </div>
+                  )
                 )}
               </div>
             ))}
