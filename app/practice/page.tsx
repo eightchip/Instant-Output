@@ -47,6 +47,7 @@ function PracticeContent() {
   });
   const [showResultSummary, setShowResultSummary] = useState(false);
   const [sessionResults, setSessionResults] = useState<ReviewResult[]>([]);
+  const [showShortcuts, setShowShortcuts] = useState(false);
 
   // タイピング練習モード用
   const [typingStartTime, setTypingStartTime] = useState<number | null>(null);
