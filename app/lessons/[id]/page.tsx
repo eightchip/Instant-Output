@@ -360,7 +360,7 @@ export default function LessonDetailPage() {
                       onChange={(e) => setSortBy(e.target.value as "order" | "created" | "alphabetical")}
                       className="text-sm border-0 bg-transparent focus:outline-none cursor-pointer"
                     >
-                      <option value="order">登録順</option>
+                      <option value="order">登録順（ドラッグ可）</option>
                       <option value="created">作成日時</option>
                       <option value="alphabetical">アルファベット順</option>
                     </select>
