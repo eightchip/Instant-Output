@@ -124,6 +124,12 @@ export default function CardSelectPage() {
     );
   }
 
+  const filteredCards = getFilteredCards();
+  const { displayedItems, sentinelRef } = useInfiniteScroll(filteredCards, {
+    initialCount: 20,
+    increment: 20,
+  });
+
   function handleStartPractice() {
     if (selectedCards.size === 0) {
       setMessageDialog({
