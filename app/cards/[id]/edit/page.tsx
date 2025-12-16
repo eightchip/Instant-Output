@@ -410,7 +410,48 @@ export default function EditCardPage() {
           </button>
         </div>
 
-        <div className="bg-white rounded-lg shadow-lg p-6 space-y-6">
+        {card && (
+          <CardEditor
+            card={card}
+            onSave={async (updatedCard) => {
+              await storage.init();
+              // importantWordsとtagsも保存
+              const cardToSave: Card = {
+                ...updatedCard,
+                importantWords: card.importantWords,
+                tags: card.tags,
+              };
+              await storage.saveCard(cardToSave);
+              setMessageDialog({
+                isOpen: true,
+                title: "更新完了",
+                message: "カードを更新しました！",
+              });
+              setTimeout(() => {
+                router.back();
+              }, 1000);
+            }}
+            onCancel={() => router.back()}
+            onDelete={async (cardId) => {
+              await storage.init();
+              const review = await storage.getReview(cardId);
+              if (review) {
+                await storage.deleteReview(cardId);
+              }
+              await storage.deleteCard(cardId);
+              setMessageDialog({
+                isOpen: true,
+                title: "削除完了",
+                message: "カードを削除しました。",
+              });
+              setTimeout(() => {
+                router.back();
+              }, 1000);
+            }}
+            showDelete={true}
+            autoFocus={true}
+          />
+        )}
           {/* お気に入り */}
           <div className="flex items-center gap-3">
             <button
