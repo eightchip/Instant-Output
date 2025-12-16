@@ -203,32 +203,12 @@ export default function Home() {
             <p className="text-center text-gray-600 mb-4 text-sm">
               {todayCards.length}問のカードが準備できています
             </p>
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                onClick={() => router.push("/practice/mode-select")}
-                className="bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-800 font-semibold py-3 px-4 rounded-lg transition-all duration-200 hover:scale-105 hover:shadow-md"
-              >
-                学習モードを選択
-              </button>
-              <button
-                onClick={() => router.push("/practice/select")}
-                className="bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-800 font-semibold py-3 px-4 rounded-lg transition-all duration-200 hover:scale-105 hover:shadow-md"
-              >
-                カードを選択
-              </button>
-              <button
-                onClick={() => router.push("/practice?mode=favorite&count=10")}
-                className="bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-800 font-semibold py-3 px-4 rounded-lg transition-all duration-200 hover:scale-105 hover:shadow-md"
-              >
-                ⭐ お気に入り
-              </button>
-              <button
-                onClick={() => router.push("/practice?mode=weak&count=10")}
-                className="bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-800 font-semibold py-3 px-4 rounded-lg transition-all duration-200 hover:scale-105 hover:shadow-md"
-              >
-                💪 苦手克服
-              </button>
-            </div>
+            <button
+              onClick={() => router.push("/practice/settings")}
+              className="w-full bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-800 font-semibold py-3 px-4 rounded-lg transition-all duration-200 hover:scale-105 hover:shadow-md"
+            >
+              学習設定（モード・問題数を変更）
+            </button>
           </div>
         </div>
 
