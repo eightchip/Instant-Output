@@ -51,16 +51,24 @@ export default function LessonDetailPage() {
   async function loadData() {
     try {
       await storage.init();
-      const [lessonData, cardsData, lessonsData] = await Promise.all([
+      const [lessonData, cardsData, lessonsData, allReviews] = await Promise.all([
         storage.getLesson(lessonId),
         storage.getCardsByLesson(lessonId),
         storage.getAllLessons(),
+        storage.getAllReviews(),
       ]);
       setLesson(lessonData);
       // テンプレートカードを除外
       const userCards = (cardsData || []).filter(card => card.source_type !== "template");
       setCards(userCards);
       setAllLessons(lessonsData);
+      
+      // 復習情報をマップに変換
+      const reviewsMap = new Map<string, Review>();
+      for (const review of allReviews) {
+        reviewsMap.set(review.cardId, review);
+      }
+      setReviews(reviewsMap);
     } catch (error) {
       console.error("Failed to load data:", error);
     } finally {
