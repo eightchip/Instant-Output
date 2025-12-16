@@ -448,6 +448,184 @@ export default function VocabularyPage() {
           )}
         </div>
       </main>
+
+      {/* 単語詳細モーダル */}
+      {selectedWord && (() => {
+        const wordData = vocabulary.get(selectedWord);
+        if (!wordData) return null;
+        
+        const wordCards = wordData.isIdiom
+          ? cards.filter(card => {
+              const lowerText = card.target_en.toLowerCase();
+              const lowerWord = selectedWord.toLowerCase();
+              return lowerText.includes(lowerWord);
+            })
+          : cards.filter(card => getImportantWords(card).includes(selectedWord.toLowerCase()));
+        
+        // レッスンIDを取得してレッスン名をマッピング
+        const lessonMap = new Map<string, Lesson>();
+        for (const lesson of lessons) {
+          lessonMap.set(lesson.id, lesson);
+        }
+        
+        const lessonIds = new Set(wordCards.map(card => card.lessonId).filter(Boolean));
+        const wordLessons = Array.from(lessonIds).map(id => lessonMap.get(id)).filter(Boolean) as Lesson[];
+        
+        const mastery = getWordMastery(selectedWord, wordData.isIdiom);
+        
+        return (
+          <div 
+            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+            onClick={() => setSelectedWord(null)}
+          >
+            <div 
+              className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="p-6">
+                <div className="flex items-center justify-between mb-6">
+                  <div className="flex items-center gap-3">
+                    <h2 className="text-3xl font-black text-blue-900">{selectedWord}</h2>
+                    {wordData.isIdiom && (
+                      <span className="px-3 py-1 bg-purple-100 text-purple-700 text-sm font-semibold rounded">
+                        イディオム
+                      </span>
+                    )}
+                    {tts.isAvailable() && (
+                      <AudioPlaybackButton
+                        text={selectedWord}
+                        language="en"
+                        size="md"
+                      />
+                    )}
+                  </div>
+                  <button
+                    onClick={() => setSelectedWord(null)}
+                    className="text-gray-500 hover:text-gray-700 text-2xl font-bold"
+                  >
+                    ×
+                  </button>
+                </div>
+
+                {/* 統計情報 */}
+                <div className="grid grid-cols-3 gap-4 mb-6">
+                  <div className="bg-blue-50 rounded-xl p-4 border-2 border-blue-200">
+                    <div className="text-sm text-blue-700 mb-1">出現回数</div>
+                    <div className="text-2xl font-bold text-blue-900">{wordData.count}回</div>
+                  </div>
+                  <div className="bg-indigo-50 rounded-xl p-4 border-2 border-indigo-200">
+                    <div className="text-sm text-indigo-700 mb-1">難易度</div>
+                    <div className="text-2xl font-bold text-indigo-900">{Math.round(wordData.difficulty)}</div>
+                  </div>
+                  <div className={`rounded-xl p-4 border-2 ${
+                    mastery.rate >= 70 
+                      ? "bg-green-50 border-green-200" 
+                      : mastery.rate >= 50 
+                      ? "bg-yellow-50 border-yellow-200" 
+                      : mastery.total > 0
+                      ? "bg-orange-50 border-orange-200"
+                      : "bg-gray-50 border-gray-200"
+                  }`}>
+                    <div className={`text-sm mb-1 ${
+                      mastery.rate >= 70 
+                        ? "text-green-700" 
+                        : mastery.rate >= 50 
+                        ? "text-yellow-700" 
+                        : mastery.total > 0
+                        ? "text-orange-700"
+                        : "text-gray-700"
+                    }`}>
+                      習得率
+                    </div>
+                    <div className={`text-2xl font-bold ${
+                      mastery.rate >= 70 
+                        ? "text-green-900" 
+                        : mastery.rate >= 50 
+                        ? "text-yellow-900" 
+                        : mastery.total > 0
+                        ? "text-orange-900"
+                        : "text-gray-900"
+                    }`}>
+                      {mastery.total > 0 ? `${Math.round(mastery.rate)}%` : "未学習"}
+                    </div>
+                    {mastery.total > 0 && (
+                      <div className="text-xs text-gray-600 mt-1">
+                        {mastery.correct}/{mastery.total}回正解
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* レッスン一覧 */}
+                {wordLessons.length > 0 && (
+                  <div className="mb-6">
+                    <h3 className="text-lg font-bold text-gray-800 mb-3">含まれるレッスン</h3>
+                    <div className="flex flex-wrap gap-2">
+                      {wordLessons.map(lesson => (
+                        <button
+                          key={lesson.id}
+                          onClick={() => {
+                            setSelectedWord(null);
+                            router.push(`/lessons/${lesson.id}`);
+                          }}
+                          className="px-4 py-2 bg-indigo-100 hover:bg-indigo-200 text-indigo-700 font-semibold rounded-lg transition-all"
+                        >
+                          {lesson.title}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* 使用例文 */}
+                <div>
+                  <h3 className="text-lg font-bold text-gray-800 mb-3">
+                    使用例文 ({wordCards.length}件)
+                  </h3>
+                  <div className="space-y-3 max-h-96 overflow-y-auto">
+                    {wordCards.map(card => {
+                      const review = reviews.get(card.id);
+                      return (
+                        <div 
+                          key={card.id}
+                          className="bg-gray-50 rounded-lg p-4 border-2 border-gray-200 hover:border-indigo-300 transition-all"
+                        >
+                          <div className="flex items-start justify-between mb-2">
+                            <div className="flex-1">
+                              <div className="font-semibold text-gray-800 mb-1">
+                                "{card.target_en}"
+                              </div>
+                              <div className="text-gray-600 text-sm">
+                                {card.prompt_jp}
+                              </div>
+                            </div>
+                            {review && (
+                              <span className={`px-2 py-1 text-xs font-semibold rounded ${
+                                review.lastResult === "OK" 
+                                  ? "bg-green-100 text-green-700" 
+                                  : review.lastResult === "MAYBE" 
+                                  ? "bg-yellow-100 text-yellow-700" 
+                                  : "bg-red-100 text-red-700"
+                              }`}>
+                                {review.lastResult}
+                              </span>
+                            )}
+                          </div>
+                          {card.lessonId && lessonMap.has(card.lessonId) && (
+                            <div className="text-xs text-gray-500 mt-2">
+                              レッスン: {lessonMap.get(card.lessonId)?.title}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }
