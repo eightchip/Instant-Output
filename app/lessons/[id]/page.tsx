@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { storage } from "@/lib/storage";
-import { Lesson, Card } from "@/types/models";
+import { Lesson, Card, Review } from "@/types/models";
 import MessageDialog from "@/components/MessageDialog";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import LoadingSpinner from "@/components/LoadingSpinner";
@@ -35,6 +35,7 @@ export default function LessonDetailPage() {
     message: "",
     onConfirm: () => {},
   });
+  const [reviews, setReviews] = useState<Map<string, Review>>(new Map());
 
   const { displayedItems, sentinelRef } = useInfiniteScroll(cards, {
     initialCount: 20,
