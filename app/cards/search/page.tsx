@@ -42,6 +42,11 @@ export default function CardSearchPage() {
   const [isBatchMode, setIsBatchMode] = useState(false);
   const [editingCardId, setEditingCardId] = useState<string | null>(null);
 
+  const { displayedItems, sentinelRef } = useInfiniteScroll(filteredCards, {
+    initialCount: 20,
+    increment: 20,
+  });
+
   const {
     selectedCards,
     isDeleting,
@@ -331,14 +336,7 @@ export default function CardSearchPage() {
           </div>
         ) : (
           <div className="space-y-3">
-            {(() => {
-              const { displayedItems, sentinelRef } = useInfiniteScroll(filteredCards, {
-                initialCount: 20,
-                increment: 20,
-              });
-              return (
-                <>
-                  {displayedItems.map((card) => (
+            {displayedItems.map((card) => (
                     <div
                 key={card.id}
                 className={`card-base p-4 hover-lift animate-fade-in ${
@@ -466,12 +464,9 @@ export default function CardSearchPage() {
                     </div>
                   )
                 )}
-                    </div>
-                  ))}
-                  <InfiniteScrollSentinel sentinelRef={sentinelRef} />
-                </>
-              );
-            })()}
+              </div>
+            ))}
+            <InfiniteScrollSentinel sentinelRef={sentinelRef} />
           </div>
         )}
       </main>

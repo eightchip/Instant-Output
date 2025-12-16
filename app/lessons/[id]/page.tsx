@@ -363,14 +363,7 @@ export default function LessonDetailPage() {
           </div>
         ) : (
           <div className="space-y-3">
-            {(() => {
-              const { displayedItems, sentinelRef } = useInfiniteScroll(cards, {
-                initialCount: 20,
-                increment: 20,
-              });
-              return (
-                <>
-                  {displayedItems.map((card) => (
+            {displayedItems.map((card) => (
                     <div
                       key={card.id}
                 className={`card-base p-4 hover-lift animate-fade-in ${
@@ -541,12 +534,9 @@ export default function LessonDetailPage() {
                     </div>
                   )
                 )}
-                    </div>
-                  ))}
-                  <InfiniteScrollSentinel sentinelRef={sentinelRef} />
-                </>
-              );
-            })()}
+              </div>
+            ))}
+            <InfiniteScrollSentinel sentinelRef={sentinelRef} />
           </div>
         )}
       </main>

@@ -112,6 +112,12 @@ export default function CardSelectPage() {
   }
 
 
+  const filteredCards = getFilteredCards();
+  const { displayedItems, sentinelRef } = useInfiniteScroll(filteredCards, {
+    initialCount: 20,
+    increment: 20,
+  });
+
   function getFilteredCards(): Card[] {
     if (!searchQuery.trim()) {
       return cards;
@@ -312,14 +318,11 @@ export default function CardSelectPage() {
                     >
                       📷 スクリーンショットから追加
                     </button>
-                  </div>
-                </div>
-              );
-            }
-            
-            return (
-              <>
-                {displayedItems.map((card) => {
+              </div>
+            </div>
+          ) : (
+            <>
+              {displayedItems.map((card) => {
               if (editingCardId === card.id) {
                 return (
                   <CardEditor
@@ -414,12 +417,11 @@ export default function CardSelectPage() {
                     </div>
                   </div>
                 </div>
-                );
+              );
               })}
-                <InfiniteScrollSentinel sentinelRef={sentinelRef} />
-              </>
-            );
-          })()}
+              <InfiniteScrollSentinel sentinelRef={sentinelRef} />
+            </>
+          )}
         </div>
       </main>
       <MessageDialog
