@@ -130,16 +130,18 @@ export function cleanOcrText(text: string): string {
   cleaned = cleaned.replace(/\n+/g, " ");
 
   // よくあるOCRエラーを修正
-  // | -> I の修正をより包括的に
-  // 1. 空白で囲まれた | を I に
-  cleaned = cleaned.replace(/\s+\|\s+/g, " I ");
-  // 2. 文の先頭の | を I に（空白の後、または行頭）
-  cleaned = cleaned.replace(/(^|\s)\|(\s|$)/g, "$1I$2");
-  // 3. 単語の先頭の | を I に（空白の後の |）
+  // | -> I の修正をより包括的に（文脈を考慮）
+  // 1. 空白の後の | の後に小文字が続く場合（例: "| call", "| think"）→ "I call", "I think"
   cleaned = cleaned.replace(/\s\|([a-z])/gi, " I$1");
-  // 4. 単語の末尾の | を I に（| の後の空白）
+  // 2. 文の先頭の | の後に小文字が続く場合（例: "| call"）→ "I call"
+  cleaned = cleaned.replace(/^\|([a-z])/gi, "I$1");
+  // 3. 空白で囲まれた | を I に（例: "what | call" → "what I call"）
+  cleaned = cleaned.replace(/\s+\|\s+/g, " I ");
+  // 4. 文の先頭の | を I に（空白の後、または行頭）
+  cleaned = cleaned.replace(/(^|\s)\|(\s|$)/g, "$1I$2");
+  // 5. 単語の末尾の | を I に（| の後の空白）
   cleaned = cleaned.replace(/([a-z])\|\s/gi, "$1I ");
-  // 5. 単独の | を I に（前後に空白がない場合も含む）
+  // 6. 残りの単独の | を I に（前後に空白がない場合も含む）
   cleaned = cleaned.replace(/\|/g, "I");
 
   // その他のよくあるOCRエラー

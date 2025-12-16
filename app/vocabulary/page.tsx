@@ -27,7 +27,8 @@ export default function VocabularyPage() {
       // テンプレートカードを除外
       const userCards = allCards.filter(card => card.source_type !== "template");
       setCards(userCards);
-      const vocab = generateVocabularyList(userCards);
+      // LLMを使ってイディオムを判別（管理者パスワードが設定されている場合のみ）
+      const vocab = await generateVocabularyList(userCards, true);
       setVocabulary(vocab);
     } catch (error) {
       console.error("Failed to load data:", error);

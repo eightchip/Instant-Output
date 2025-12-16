@@ -99,9 +99,17 @@ export function getImportantWords(card: Card): string[] {
 
 /**
  * すべてのカードから語彙リストを生成（難易度を考慮）
+ * @param cards カードの配列
+ * @param useLLMForIdioms LLMを使ってイディオムを判別するかどうか（デフォルト: false）
  */
-export function generateVocabularyList(cards: Card[]): Map<string, { count: number; difficulty: number; importance: number; isIdiom: boolean }> {
+export async function generateVocabularyList(
+  cards: Card[],
+  useLLMForIdioms: boolean = false
+): Promise<Map<string, { count: number; difficulty: number; importance: number; isIdiom: boolean }>> {
   const vocabulary = new Map<string, { count: number; difficulty: number; importance: number; isIdiom: boolean }>();
+  
+  // 2語以上のフレーズを収集（イディオム候補）
+  const phraseCandidates = new Set<string>();
   
   for (const card of cards) {
     // 重要単語を取得
@@ -109,45 +117,92 @@ export function generateVocabularyList(cards: Card[]): Map<string, { count: numb
     for (const word of words) {
       const existing = vocabulary.get(word);
       const difficulty = calculateWordDifficulty(word);
-      const isIdiom = word.includes(" ") || detectIdioms(card.target_en).includes(word);
+      // 2語以上のフレーズはイディオム候補として収集
+      const isMultiWord = word.includes(" ");
+      if (isMultiWord) {
+        phraseCandidates.add(word);
+      }
       
       if (existing) {
         vocabulary.set(word, {
           count: existing.count + 1,
-          difficulty: Math.max(existing.difficulty, difficulty), // より高い難易度を保持
+          difficulty: Math.max(existing.difficulty, difficulty),
           importance: 0, // 後で計算
-          isIdiom: existing.isIdiom || isIdiom,
+          isIdiom: existing.isIdiom || (isMultiWord && !useLLMForIdioms), // LLM未使用時は暫定的にtrue
         });
       } else {
         vocabulary.set(word, {
           count: 1,
           difficulty,
-          importance: 0, // 後で計算
-          isIdiom,
+          importance: 0,
+          isIdiom: isMultiWord && !useLLMForIdioms, // LLM未使用時は暫定的にtrue
         });
       }
     }
     
-    // イディオムも追加
-    const idioms = detectIdioms(card.target_en);
-    for (const idiom of idioms) {
-      const existing = vocabulary.get(idiom);
-      const difficulty = calculateWordDifficulty(idiom) + 10; // イディオムは難易度を高く設定
+    // パターンマッチングで検出されたイディオムも候補に追加
+    const detectedIdioms = detectIdioms(card.target_en);
+    for (const idiom of detectedIdioms) {
+      if (idiom.includes(" ")) {
+        phraseCandidates.add(idiom);
+      }
+    }
+  }
+  
+  // LLMを使ってイディオムを判別
+  const idiomResults = new Map<string, boolean>();
+  if (useLLMForIdioms && phraseCandidates.size > 0) {
+    try {
+      const phrases = Array.from(phraseCandidates);
+      const response = await fetch("/api/check-idiom", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ phrases }),
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        for (const [phrase, isIdiom] of Object.entries(data.results || {})) {
+          idiomResults.set(phrase, isIdiom === true);
+        }
+      }
+    } catch (error) {
+      console.error("Failed to check idioms with LLM:", error);
+    }
+  }
+  
+  // イディオム候補を語彙リストに追加
+  for (const phrase of phraseCandidates) {
+    const isIdiom = useLLMForIdioms 
+      ? (idiomResults.get(phrase) || false)
+      : true; // LLM未使用時は暫定的にtrue
+    
+    if (isIdiom) {
+      const existing = vocabulary.get(phrase);
+      const difficulty = calculateWordDifficulty(phrase) + 10; // イディオムは難易度を高く設定
       
       if (existing) {
-        vocabulary.set(idiom, {
+        vocabulary.set(phrase, {
           count: existing.count + 1,
           difficulty: Math.max(existing.difficulty, difficulty),
           importance: 0,
           isIdiom: true,
         });
       } else {
-        vocabulary.set(idiom, {
+        vocabulary.set(phrase, {
           count: 1,
           difficulty,
           importance: 0,
           isIdiom: true,
         });
+      }
+    } else {
+      // イディオムでない場合は、isIdiomフラグをfalseに更新
+      const existing = vocabulary.get(phrase);
+      if (existing) {
+        existing.isIdiom = false;
       }
     }
   }

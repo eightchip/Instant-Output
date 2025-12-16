@@ -156,11 +156,14 @@ This is for educational purposes. Please process the image and return the JSON o
       cards = parsedData.sentences;
     }
 
+    // OCRエラー修正（| -> I）を適用
+    const { cleanOcrText } = await import("@/lib/text-processing");
+    
     // データの検証とクリーニング
     cards = cards
       .filter((card) => card.en && card.jp && card.en.trim().length > 0 && card.jp.trim().length > 0)
       .map((card) => ({
-        en: card.en.trim(),
+        en: cleanOcrText(card.en.trim()), // OCRエラー修正を適用
         jp: card.jp.trim(),
       }));
 

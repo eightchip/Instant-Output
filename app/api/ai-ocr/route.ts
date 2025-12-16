@@ -113,6 +113,10 @@ This is the third sentence.`,
       extractedText = extractedText.substring(0, exampleIndex).trim();
     }
 
+    // OCRエラー修正（| -> I）を適用
+    const { cleanOcrText } = await import("@/lib/text-processing");
+    extractedText = cleanOcrText(extractedText);
+
     // 文単位に整理（改行で分割し、空行を除去）
     const sentences = extractedText
       .split("\n")
