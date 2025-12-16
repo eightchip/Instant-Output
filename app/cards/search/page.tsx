@@ -562,7 +562,8 @@ export default function CardSearchPage() {
                   )
                 )}
               </div>
-            ))}
+              );
+            })}
             <InfiniteScrollSentinel sentinelRef={sentinelRef} />
           </div>
         )}

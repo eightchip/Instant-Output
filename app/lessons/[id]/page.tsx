@@ -708,7 +708,8 @@ export default function LessonDetailPage() {
                   )
                 )}
               </div>
-            ))}
+              );
+            })}
             <InfiniteScrollSentinel sentinelRef={sentinelRef} />
           </div>
         )}
