@@ -204,7 +204,7 @@ export default function CardEditor({
             <div className="absolute bottom-2 right-2">
               <VoiceInputButton
                 language="jp"
-                onResult={(text) => {
+                onInsert={(text) => {
                   setPromptJp((prev) => prev + (prev ? " " : "") + text);
                 }}
                 size="sm"
@@ -239,7 +239,7 @@ export default function CardEditor({
             <div className="absolute bottom-2 right-2">
               <VoiceInputButton
                 language="en"
-                onResult={(text) => {
+                onInsert={(text) => {
                   setTargetEn((prev) => prev + (prev ? " " : "") + text);
                 }}
                 size="sm"
