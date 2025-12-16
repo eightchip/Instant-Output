@@ -36,6 +36,7 @@ export default function VocabularyPage() {
     learnedOnly: null,
   });
   const [showFilters, setShowFilters] = useState(false);
+  const [selectedWord, setSelectedWord] = useState<string | null>(null);
 
   useEffect(() => {
     loadData();
