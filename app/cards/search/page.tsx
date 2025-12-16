@@ -330,7 +330,7 @@ export default function CardSearchPage() {
         ) : (
           <div className="space-y-3">
             {(() => {
-              const { displayedItems, Sentinel } = useInfiniteScroll(filteredCards, {
+              const { displayedItems, sentinelRef } = useInfiniteScroll(filteredCards, {
                 initialCount: 20,
                 increment: 20,
               });
@@ -466,7 +466,7 @@ export default function CardSearchPage() {
                 )}
                     </div>
                   ))}
-                  <Sentinel />
+                  <InfiniteScrollSentinel sentinelRef={sentinelRef} />
                 </>
               );
             })()}

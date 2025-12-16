@@ -61,15 +61,11 @@ export function useInfiniteScroll<T>(
     };
   }, [hasMore, loadMore, threshold]);
 
-  const Sentinel = () => (
-    <div ref={sentinelRef} className="h-4 w-full" />
-  );
-
   return {
     displayedItems,
     hasMore,
     loadMore,
-    Sentinel,
+    sentinelRef,
   };
 }
 

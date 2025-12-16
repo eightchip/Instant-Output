@@ -10,6 +10,7 @@ import LoadingSpinner from "@/components/LoadingSpinner";
 import AudioPlaybackButton from "@/components/AudioPlaybackButton";
 import CardEditor from "@/components/CardEditor";
 import { useInfiniteScroll } from "@/hooks/useInfiniteScroll";
+import InfiniteScrollSentinel from "@/components/InfiniteScrollSentinel";
 
 export default function LessonDetailPage() {
   const router = useRouter();
@@ -363,7 +364,7 @@ export default function LessonDetailPage() {
         ) : (
           <div className="space-y-3">
             {(() => {
-              const { displayedItems, Sentinel } = useInfiniteScroll(cards, {
+              const { displayedItems, sentinelRef } = useInfiniteScroll(cards, {
                 initialCount: 20,
                 increment: 20,
               });
@@ -542,7 +543,7 @@ export default function LessonDetailPage() {
                 )}
                     </div>
                   ))}
-                  <Sentinel />
+                  <InfiniteScrollSentinel sentinelRef={sentinelRef} />
                 </>
               );
             })()}
