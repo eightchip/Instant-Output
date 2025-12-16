@@ -371,100 +371,75 @@ export default function Home() {
                   </svg>
                 </button>
               </div>
-              <div className="p-4 space-y-3">
-                {/* 追加系 */}
-                <div className="space-y-2">
-                  <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2">
-                    カード追加
-                  </h3>
-                  <MenuButton
-                    icon="➕"
-                    title="カードを追加"
-                    description="日本語と英語を手動で入力してカードを作成。音声入力にも対応しています。"
-                    color="orange"
-                    onClick={() => {
-                      router.push("/cards/new");
-                      setShowMobileMenu(false);
-                    }}
-                  />
-                  <MenuButton
-                    icon="📷"
-                    title="スクリーンショットから追加"
-                    description="画像からOCRで英語テキストを抽出してカードを作成。複数画像の一括処理にも対応。日本語は後から追加できます。"
-                    color="orange"
-                    onClick={() => {
-                      router.push("/cards/screenshot");
-                      setShowMobileMenu(false);
-                    }}
-                  />
+              <div className="p-4 space-y-2">
+                {/* よく使う機能 */}
+                <MenuButton
+                  icon="📷"
+                  title="カードを追加"
+                  description="画像から追加・手動入力"
+                  color="orange"
+                  onClick={() => {
+                    router.push("/cards/screenshot");
+                    setShowMobileMenu(false);
+                  }}
+                />
+                <MenuButton
+                  icon="🔍"
+                  title="カード検索"
+                  description="カードを検索・編集"
+                  color="blue"
+                  onClick={() => {
+                    router.push("/cards/search");
+                    setShowMobileMenu(false);
+                  }}
+                />
+                <MenuButton
+                  icon="📖"
+                  title="レッスン管理"
+                  description="レッスンとカードを管理"
+                  color="green"
+                  onClick={() => {
+                    router.push("/lessons");
+                    setShowMobileMenu(false);
+                  }}
+                />
+                <MenuButton
+                  icon="📚"
+                  title="コース管理"
+                  description="コースを管理"
+                  color="green"
+                  onClick={() => {
+                    router.push("/courses");
+                    setShowMobileMenu(false);
+                  }}
+                />
+                
+                {/* その他 */}
+                <div className="pt-2 mt-2 border-t border-gray-200">
                   <MenuButton
                     icon="🤖"
-                    title="AI-OCRでカード化（管理者専用）"
-                    description="ChatGPT APIを使用して画像から英文を抽出し、自動的に文単位で分割して日本語に翻訳します。管理者パスワードが必要です。"
-                    color="orange"
+                    title="AI-OCR（管理者専用）"
+                    description="画像から自動でカード化"
+                    color="purple"
                     onClick={() => {
                       router.push("/cards/ai-card");
-                      setShowMobileMenu(false);
-                    }}
-                  />
-                </div>
-
-                {/* 管理系 */}
-                <div className="space-y-2">
-                  <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2">
-                    管理
-                  </h3>
-                  <MenuButton
-                    icon="📚"
-                    title="コース管理"
-                    description="コースの作成・編集・削除ができます。コースにレッスンを紐付けて学習を体系化しましょう。"
-                    color="green"
-                    onClick={() => {
-                      router.push("/courses");
-                      setShowMobileMenu(false);
-                    }}
-                  />
-                  <MenuButton
-                    icon="📖"
-                    title="レッスン管理"
-                    description="レッスンの作成・編集・削除ができます。レッスンにカードを紐付けて整理しましょう。"
-                    color="green"
-                    onClick={() => {
-                      router.push("/lessons");
-                      setShowMobileMenu(false);
-                    }}
-                  />
-                  <MenuButton
-                    icon="🔍"
-                    title="カード検索"
-                    description="日本語・英語でカードを検索。レッスンやタイプでフィルタリングも可能。検索文字がハイライト表示されます。"
-                    color="green"
-                    onClick={() => {
-                      router.push("/cards/search");
                       setShowMobileMenu(false);
                     }}
                   />
                   <MenuButton
                     icon="📚"
                     title="語彙リスト"
-                    description="すべてのカードから重要な単語を抽出してリスト化。出現回数順に表示され、音声読み上げも可能です。"
-                    color="green"
+                    description="重要単語を確認"
+                    color="indigo"
                     onClick={() => {
                       router.push("/vocabulary");
                       setShowMobileMenu(false);
                     }}
                   />
-                </div>
-
-                {/* 学習・統計系 */}
-                <div className="space-y-2">
-                  <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2">
-                    学習・統計
-                  </h3>
                   <MenuButton
                     icon="📊"
                     title="学習統計"
-                    description="学習の進捗、正答率、連続学習日数などを確認できます。グラフで学習の推移も見られます。"
+                    description="学習の進捗を確認"
                     color="blue"
                     onClick={() => {
                       router.push("/statistics");
@@ -474,24 +449,17 @@ export default function Home() {
                   <MenuButton
                     icon="🔄"
                     title="復習管理"
-                    description="復習スケジュールをカレンダーで確認。期限超過カードや今週の復習予定を一目で把握できます。"
+                    description="復習スケジュール"
                     color="purple"
                     onClick={() => {
                       router.push("/reviews");
                       setShowMobileMenu(false);
                     }}
                   />
-                </div>
-
-                {/* 設定系 */}
-                <div className="space-y-2">
-                  <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2">
-                    設定
-                  </h3>
                   <MenuButton
                     icon="⚙️"
-                    title="設定（エクスポート/インポート）"
-                    description="データのバックアップ（エクスポート）や復元（インポート）ができます。SRS設定も変更可能です。"
+                    title="設定"
+                    description="エクスポート・インポート"
                     color="gray"
                     onClick={() => {
                       router.push("/settings");
@@ -505,93 +473,71 @@ export default function Home() {
         )}
 
         {/* 管理メニュー（デスクトップ） */}
-        <div className={`mt-8 space-y-3 hidden md:block`}>
-          {/* 追加系 */}
-          <div className="space-y-2">
-            <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2">
-              カード追加
-            </h3>
-            <MenuButton
-              icon="➕"
-              title="カードを追加"
-              description="スクリーンショットからOCRで英語テキストを抽出、または手動で日本語と英語を入力してカードを作成。音声入力にも対応しています。"
-              color="orange"
-              onClick={() => router.push("/cards/screenshot")}
-            />
+        <div className={`mt-8 space-y-2 hidden md:block`}>
+          {/* よく使う機能 */}
+          <MenuButton
+            icon="📷"
+            title="カードを追加"
+            description="画像から追加・手動入力"
+            color="orange"
+            onClick={() => router.push("/cards/screenshot")}
+          />
+          <MenuButton
+            icon="🔍"
+            title="カード検索"
+            description="カードを検索・編集"
+            color="blue"
+            onClick={() => router.push("/cards/search")}
+          />
+          <MenuButton
+            icon="📖"
+            title="レッスン管理"
+            description="レッスンとカードを管理"
+            color="green"
+            onClick={() => router.push("/lessons")}
+          />
+          <MenuButton
+            icon="📚"
+            title="コース管理"
+            description="コースを管理"
+            color="green"
+            onClick={() => router.push("/courses")}
+          />
+          
+          {/* その他 */}
+          <div className="pt-2 mt-2 border-t border-gray-200 space-y-2">
             <MenuButton
               icon="🤖"
-              title="AI-OCRでカード化（管理者専用）"
-              description="ChatGPT APIを使用して画像から英文を抽出し、自動的に文単位で分割して日本語に翻訳します。管理者パスワードが必要です。"
-              color="orange"
+              title="AI-OCR（管理者専用）"
+              description="画像から自動でカード化"
+              color="purple"
               onClick={() => router.push("/cards/ai-card")}
-            />
-          </div>
-
-          {/* 管理系 */}
-          <div className="space-y-2">
-            <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2">
-              管理
-            </h3>
-            <MenuButton
-              icon="📚"
-              title="コース管理"
-              description="コースの作成・編集・削除ができます。コースにレッスンを紐付けて学習を体系化しましょう。"
-              color="green"
-              onClick={() => router.push("/courses")}
-            />
-            <MenuButton
-              icon="📖"
-              title="レッスン管理"
-              description="レッスンの作成・編集・削除ができます。レッスンにカードを紐付けて整理しましょう。"
-              color="green"
-              onClick={() => router.push("/lessons")}
-            />
-            <MenuButton
-              icon="🔍"
-              title="カード検索"
-              description="日本語・英語でカードを検索。レッスンやタイプでフィルタリングも可能。検索文字がハイライト表示されます。"
-              color="green"
-              onClick={() => router.push("/cards/search")}
             />
             <MenuButton
               icon="📚"
               title="語彙リスト"
-              description="すべてのカードから重要な単語を抽出してリスト化。出現回数順に表示され、音声読み上げも可能です。"
-              color="green"
+              description="重要単語を確認"
+              color="indigo"
               onClick={() => router.push("/vocabulary")}
             />
-          </div>
-
-          {/* 学習・統計系 */}
-          <div className="space-y-2">
-            <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2">
-              学習・統計
-            </h3>
             <MenuButton
               icon="📊"
               title="学習統計"
-              description="学習の進捗、正答率、連続学習日数などを確認できます。グラフで学習の推移も見られます。"
+              description="学習の進捗を確認"
               color="blue"
               onClick={() => router.push("/statistics")}
             />
             <MenuButton
               icon="🔄"
               title="復習管理"
-              description="復習スケジュールをカレンダーで確認。期限超過カードや今週の復習予定を一目で把握できます。"
+              description="復習スケジュール"
               color="purple"
               onClick={() => router.push("/reviews")}
             />
-          </div>
-
-          {/* 設定系 */}
-          <div className="space-y-2">
-            <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2">
-              設定
-            </h3>
             <MenuButton
               icon="⚙️"
-              title="設定（エクスポート/インポート）"
-              description="データのバックアップ（エクスポート）や復元（インポート）ができます。SRS設定も変更可能です。"
+              title="設定"
+              description="エクスポート・インポート"
               color="gray"
               onClick={() => router.push("/settings")}
             />

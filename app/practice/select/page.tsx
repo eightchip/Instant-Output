@@ -279,7 +279,14 @@ export default function CardSelectPage() {
 
         {/* カード一覧 */}
         <div className="space-y-3">
-          {filteredCards.length === 0 ? (
+          {(() => {
+            const { displayedItems, Sentinel } = useInfiniteScroll(filteredCards, {
+              initialCount: 20,
+              increment: 20,
+            });
+            
+            if (displayedItems.length === 0) {
+              return (
             <div className="bg-white rounded-lg shadow p-8 text-center">
               <div className="text-6xl mb-4">{searchQuery ? "🔍" : "📚"}</div>
               <h3 className="text-xl font-bold text-gray-800 mb-2">
@@ -401,9 +408,12 @@ export default function CardSelectPage() {
                     </div>
                   </div>
                 </div>
-              );
-            })
-          )}
+                );
+              })}
+                <Sentinel />
+              </>
+            );
+          })()}
         </div>
       </main>
       <MessageDialog
