@@ -1304,25 +1304,27 @@ export default function ScreenshotCardPage() {
             )}
           </div>
 
-          {/* 日本語入力 */}
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <label className="block text-sm font-semibold">
-                日本語（任意）
-              </label>
-              <VoiceInputButton
-                language="jp"
-                onInsert={(text) => setPromptJp((prev) => prev + (prev ? " " : "") + text)}
+          {/* 日本語入力（スクリーンショットモードのみ、分割ビューが表示されていない場合） */}
+          {inputMode === "screenshot" && !showSplitView && (
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <label className="block text-sm font-semibold">
+                  日本語（任意）
+                </label>
+                <VoiceInputButton
+                  language="jp"
+                  onInsert={(text) => setPromptJp((prev) => prev + (prev ? " " : "") + text)}
+                />
+              </div>
+              <textarea
+                value={promptJp}
+                onChange={(e) => setPromptJp(e.target.value)}
+                placeholder="日本語文を入力（後で追加も可能）..."
+                className="w-full border border-gray-300 rounded-lg px-4 py-3 min-h-[80px]"
+                rows={2}
               />
             </div>
-            <textarea
-              value={promptJp}
-              onChange={(e) => setPromptJp(e.target.value)}
-              placeholder="日本語文を入力（後で追加も可能）..."
-              className="w-full border border-gray-300 rounded-lg px-4 py-3 min-h-[80px]"
-              rows={2}
-            />
-          </div>
+          )}
 
           {/* 文章分割ビュー */}
           {showSplitView && splitSentences.length > 0 && (
