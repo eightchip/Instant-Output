@@ -45,6 +45,8 @@ function PracticeContent() {
     title: "",
     message: "",
   });
+  const [showResultSummary, setShowResultSummary] = useState(false);
+  const [sessionResults, setSessionResults] = useState<ReviewResult[]>([]);
 
   // タイピング練習モード用
   const [typingStartTime, setTypingStartTime] = useState<number | null>(null);
@@ -240,27 +242,8 @@ function PracticeContent() {
     } else {
       // 完了 - 学習履歴を保存
       await saveStudySession(newResults, true);
-      const modeMessages: Record<PracticeMode, string> = {
-        normal: "今日の学習が完了しました！",
-        typing: "タイピング練習が完了しました！",
-        shuffle: "シャッフルモードの学習が完了しました！",
-        focus: "集中モードの学習が完了しました！",
-        review_only: "復習が完了しました！",
-        custom: "学習が完了しました！",
-        favorite: "お気に入りモードの学習が完了しました！",
-        weak: "苦手克服モードの学習が完了しました！",
-        random: "ランダムモードの学習が完了しました！",
-        speed: "スピードチャレンジが完了しました！",
-        flashcard: "フラッシュカード学習が完了しました！",
-      };
-      setMessageDialog({
-        isOpen: true,
-        title: "学習完了",
-        message: modeMessages[mode] || "学習が完了しました！",
-      });
-      setTimeout(() => {
-        router.push("/");
-      }, 1500);
+      setSessionResults([...newResults]);
+      setShowResultSummary(true);
     }
   }, [currentCard, manualResult, autoGradingResult, mode, typingStartTime, userAnswer, currentIndex, cards.length, results, startTime, router, showAnswer]);
 
