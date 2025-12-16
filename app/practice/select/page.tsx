@@ -8,6 +8,8 @@ import MessageDialog from "@/components/MessageDialog";
 import { useBatchCardSelection } from "@/hooks/useBatchCardSelection";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import LoadingSpinner from "@/components/LoadingSpinner";
+import CardEditor from "@/components/CardEditor";
+import AudioPlaybackButton from "@/components/AudioPlaybackButton";
 
 export default function CardSelectPage() {
   const router = useRouter();
@@ -27,6 +29,7 @@ export default function CardSelectPage() {
     message: "",
   });
   const [isBatchMode, setIsBatchMode] = useState(false);
+  const [editingCardId, setEditingCardId] = useState<string | null>(null);
 
   const {
     selectedCards,
@@ -131,6 +134,20 @@ export default function CardSelectPage() {
 
     const cardIds = Array.from(selectedCards).join(",");
     router.push(`/practice?cards=${cardIds}&mode=custom`);
+  }
+
+  async function handleSaveCard(updatedCard: Card) {
+    await storage.init();
+    await storage.saveCard(updatedCard);
+    await loadData();
+    setEditingCardId(null);
+  }
+
+  async function handleDeleteCard(cardId: string) {
+    await storage.init();
+    await storage.deleteCard(cardId);
+    await loadData();
+    setEditingCardId(null);
   }
 
   if (isLoading) {
@@ -281,62 +298,103 @@ export default function CardSelectPage() {
               </div>
             </div>
           ) : (
-            filteredCards.map((card) => (
-              <div
-                key={card.id}
-                className={`bg-white rounded-lg shadow p-4 hover:shadow-md transition-shadow cursor-pointer ${
-                  selectedCards.has(card.id)
-                    ? "ring-2 ring-blue-500 bg-blue-50"
-                    : ""
-                }`}
-                onClick={() => toggleCardSelection(card.id)}
-              >
-                <div className="flex items-start gap-3">
-                  <input
-                    type="checkbox"
-                    checked={selectedCards.has(card.id)}
-                    onChange={() => toggleCardSelection(card.id)}
-                    onClick={(e) => e.stopPropagation()}
-                    className="w-5 h-5 text-blue-600 rounded mt-1"
+            filteredCards.map((card) => {
+              if (editingCardId === card.id) {
+                return (
+                  <CardEditor
+                    key={card.id}
+                    card={card}
+                    onSave={handleSaveCard}
+                    onCancel={() => setEditingCardId(null)}
+                    onDelete={handleDeleteCard}
+                    showDelete={true}
                   />
-                  <div className="flex-1">
-                    {/* 画像サムネイル */}
-                    {card.imageData && (
+                );
+              }
+
+              return (
+                <div
+                  key={card.id}
+                  className={`bg-white rounded-lg shadow p-4 hover:shadow-md transition-shadow ${
+                    selectedCards.has(card.id)
+                      ? "ring-2 ring-blue-500 bg-blue-50"
+                      : ""
+                  }`}
+                >
+                  <div className="flex items-start gap-3">
+                    <input
+                      type="checkbox"
+                      checked={selectedCards.has(card.id)}
+                      onChange={() => toggleCardSelection(card.id)}
+                      onClick={(e) => e.stopPropagation()}
+                      className="w-5 h-5 text-blue-600 rounded mt-1"
+                      disabled={isBatchMode}
+                    />
+                    <div className="flex-1">
+                      {/* 画像サムネイル */}
+                      {card.imageData && (
+                        <div className="mb-2">
+                          <img
+                            src={card.imageData}
+                            alt="元画像"
+                            className="w-20 h-20 object-cover rounded-lg border border-gray-300 cursor-pointer hover:opacity-80 transition-opacity"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              const modal = document.createElement("div");
+                              modal.className = "fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50";
+                              modal.onclick = () => modal.remove();
+                              const img = document.createElement("img");
+                              img.src = card.imageData!;
+                              img.className = "max-w-full max-h-full object-contain";
+                              img.onclick = (e) => e.stopPropagation();
+                              modal.appendChild(img);
+                              document.body.appendChild(modal);
+                            }}
+                          />
+                        </div>
+                      )}
                       <div className="mb-2">
-                        <img
-                          src={card.imageData}
-                          alt="元画像"
-                          className="w-20 h-20 object-cover rounded-lg border border-gray-300 cursor-pointer hover:opacity-80 transition-opacity"
+                        <div className="flex items-center gap-2 mb-1">
+                          <p className="text-gray-600 text-sm">日本語</p>
+                          <AudioPlaybackButton
+                            text={card.prompt_jp}
+                            language="jp"
+                            size="sm"
+                          />
+                        </div>
+                        <p className="text-lg font-semibold">{card.prompt_jp}</p>
+                      </div>
+                      <div className="mb-2">
+                        <div className="flex items-center gap-2 mb-1">
+                          <p className="text-gray-600 text-sm">英語</p>
+                          <AudioPlaybackButton
+                            text={card.target_en}
+                            language="en"
+                            size="sm"
+                          />
+                        </div>
+                        <p className="text-lg">{card.target_en}</p>
+                      </div>
+                      <div className="flex items-center justify-between mt-2">
+                        <div className="text-xs text-gray-500">
+                          タイプ: {card.source_type}
+                          {card.isFavorite && <span className="ml-2">⭐</span>}
+                        </div>
+                        <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            const modal = document.createElement("div");
-                            modal.className = "fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50";
-                            modal.onclick = () => modal.remove();
-                            const img = document.createElement("img");
-                            img.src = card.imageData!;
-                            img.className = "max-w-full max-h-full object-contain";
-                            img.onclick = (e) => e.stopPropagation();
-                            modal.appendChild(img);
-                            document.body.appendChild(modal);
+                            setEditingCardId(card.id);
                           }}
-                        />
+                          className="text-sm text-blue-600 hover:text-blue-800 font-semibold"
+                        >
+                          編集
+                        </button>
                       </div>
-                    )}
-                    <div className="mb-2">
-                      <p className="text-gray-600 text-sm mb-1">日本語</p>
-                      <p className="text-lg font-semibold">{card.prompt_jp}</p>
-                    </div>
-                    <div>
-                      <p className="text-gray-600 text-sm mb-1">英語</p>
-                      <p className="text-lg">{card.target_en}</p>
-                    </div>
-                    <div className="mt-2 text-xs text-gray-500">
-                      タイプ: {card.source_type}
                     </div>
                   </div>
                 </div>
-              </div>
-            ))
+              );
+            })
           )}
         </div>
       </main>

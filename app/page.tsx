@@ -343,20 +343,12 @@ export default function Home() {
             <p className="text-gray-700 mb-4 text-lg">
               まだカードが登録されていません。
             </p>
-            <div className="flex flex-col gap-3">
-              <button
-                onClick={() => router.push("/cards/screenshot")}
-                className="bg-slate-600 hover:bg-slate-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors"
-              >
-                スクリーンショットから追加
-              </button>
-              <button
-                onClick={() => router.push("/cards/new")}
-                className="bg-slate-500 hover:bg-slate-600 text-white font-semibold py-3 px-6 rounded-lg transition-colors"
-              >
-                カードを手動で追加
-              </button>
-            </div>
+            <button
+              onClick={() => router.push("/cards/screenshot")}
+              className="bg-slate-600 hover:bg-slate-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors"
+            >
+              カードを追加（スクリーンショット・手動入力）
+            </button>
           </div>
         )}
 
@@ -522,14 +514,7 @@ export default function Home() {
             <MenuButton
               icon="➕"
               title="カードを追加"
-              description="日本語と英語を手動で入力してカードを作成。音声入力にも対応しています。"
-              color="orange"
-              onClick={() => router.push("/cards/new")}
-            />
-            <MenuButton
-              icon="📷"
-              title="スクリーンショットから追加"
-              description="画像からOCRで英語テキストを抽出してカードを作成。複数画像の一括処理にも対応。日本語は後から追加できます。"
+              description="スクリーンショットからOCRで英語テキストを抽出、または手動で日本語と英語を入力してカードを作成。音声入力にも対応しています。"
               color="orange"
               onClick={() => router.push("/cards/screenshot")}
             />
