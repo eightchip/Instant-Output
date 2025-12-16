@@ -287,33 +287,37 @@ export default function CardSelectPage() {
             
             if (displayedItems.length === 0) {
               return (
-            <div className="bg-white rounded-lg shadow p-8 text-center">
-              <div className="text-6xl mb-4">{searchQuery ? "🔍" : "📚"}</div>
-              <h3 className="text-xl font-bold text-gray-800 mb-2">
-                {searchQuery ? "検索結果が見つかりませんでした" : "カードがありません"}
-              </h3>
-              <p className="text-gray-600 mb-6">
-                {searchQuery
-                  ? "検索条件を変更するか、新しいカードを作成してください。"
-                  : "カードを追加して、学習を始めましょう。"}
-              </p>
-              <div className="flex flex-col gap-3 max-w-xs mx-auto">
-                <button
-                  onClick={() => router.push("/cards/new")}
-                  className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors shadow-md hover:shadow-lg"
-                >
-                  ➕ カードを追加
-                </button>
-                <button
-                  onClick={() => router.push("/cards/screenshot")}
-                  className="bg-slate-600 hover:bg-slate-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors shadow-md hover:shadow-lg"
-                >
-                  📷 スクリーンショットから追加
-                </button>
-              </div>
-            </div>
-          ) : (
-            filteredCards.map((card) => {
+                <div className="bg-white rounded-lg shadow p-8 text-center">
+                  <div className="text-6xl mb-4">{searchQuery ? "🔍" : "📚"}</div>
+                  <h3 className="text-xl font-bold text-gray-800 mb-2">
+                    {searchQuery ? "検索結果が見つかりませんでした" : "カードがありません"}
+                  </h3>
+                  <p className="text-gray-600 mb-6">
+                    {searchQuery
+                      ? "検索条件を変更するか、新しいカードを作成してください。"
+                      : "カードを追加して、学習を始めましょう。"}
+                  </p>
+                  <div className="flex flex-col gap-3 max-w-xs mx-auto">
+                    <button
+                      onClick={() => router.push("/cards/new")}
+                      className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors shadow-md hover:shadow-lg"
+                    >
+                      ➕ カードを追加
+                    </button>
+                    <button
+                      onClick={() => router.push("/cards/screenshot")}
+                      className="bg-slate-600 hover:bg-slate-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors shadow-md hover:shadow-lg"
+                    >
+                      📷 スクリーンショットから追加
+                    </button>
+                  </div>
+                </div>
+              );
+            }
+            
+            return (
+              <>
+                {displayedItems.map((card) => {
               if (editingCardId === card.id) {
                 return (
                   <CardEditor
