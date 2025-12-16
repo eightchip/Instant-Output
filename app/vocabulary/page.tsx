@@ -3,18 +3,37 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { storage } from "@/lib/storage";
-import { Card } from "@/types/models";
+import { Card, Review } from "@/types/models";
 import { generateVocabularyList, getImportantWords } from "@/lib/vocabulary";
 import { tts } from "@/lib/tts";
 import LoadingSpinner from "@/components/LoadingSpinner";
 
+type FilterType = {
+  idiomOnly: boolean;
+  minDifficulty: number | null;
+  maxDifficulty: number | null;
+  minCount: number | null;
+  maxCount: number | null;
+  learnedOnly: boolean | null; // true: 学習済みのみ, false: 未学習のみ, null: すべて
+};
+
 export default function VocabularyPage() {
   const router = useRouter();
   const [cards, setCards] = useState<Card[]>([]);
+  const [reviews, setReviews] = useState<Map<string, Review>>(new Map());
   const [vocabulary, setVocabulary] = useState<Map<string, { count: number; difficulty: number; importance: number; isIdiom: boolean }>>(new Map());
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState<"importance" | "count" | "difficulty">("importance");
+  const [filters, setFilters] = useState<FilterType>({
+    idiomOnly: false,
+    minDifficulty: null,
+    maxDifficulty: null,
+    minCount: null,
+    maxCount: null,
+    learnedOnly: null,
+  });
+  const [showFilters, setShowFilters] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -23,10 +42,21 @@ export default function VocabularyPage() {
   async function loadData() {
     try {
       await storage.init();
-      const allCards = await storage.getAllCards();
+      const [allCards, allReviews] = await Promise.all([
+        storage.getAllCards(),
+        storage.getAllReviews(),
+      ]);
       // テンプレートカードを除外
       const userCards = allCards.filter(card => card.source_type !== "template");
       setCards(userCards);
+      
+      // 復習情報をマップに変換
+      const reviewsMap = new Map<string, Review>();
+      for (const review of allReviews) {
+        reviewsMap.set(review.cardId, review);
+      }
+      setReviews(reviewsMap);
+      
       // 既知のイディオム辞書を使用（無料）
       const vocab = generateVocabularyList(userCards);
       setVocabulary(vocab);
@@ -37,8 +67,76 @@ export default function VocabularyPage() {
     }
   }
 
+  // 単語が含まれるカードの習得状況を計算
+  function getWordMastery(word: string, isIdiom: boolean): { total: number; correct: number; rate: number; isLearned: boolean } {
+    const wordCards = isIdiom
+      ? cards.filter(card => {
+          const lowerText = card.target_en.toLowerCase();
+          const lowerWord = word.toLowerCase();
+          return lowerText.includes(lowerWord);
+        })
+      : cards.filter(card => getImportantWords(card).includes(word.toLowerCase()));
+    
+    let total = 0;
+    let correct = 0;
+    
+    for (const card of wordCards) {
+      const review = reviews.get(card.id);
+      if (review) {
+        total++;
+        if (review.lastResult === "OK") {
+          correct++;
+        }
+      }
+    }
+    
+    const rate = total > 0 ? (correct / total) * 100 : 0;
+    const isLearned = total > 0 && rate >= 70; // 70%以上で学習済みとみなす
+    
+    return { total, correct, rate, isLearned };
+  }
+
   const sortedVocabulary = Array.from(vocabulary.entries())
-    .filter(([word]) => searchQuery === "" || word.toLowerCase().includes(searchQuery.toLowerCase()))
+    .filter(([word, data]) => {
+      // 検索クエリ
+      if (searchQuery && !word.toLowerCase().includes(searchQuery.toLowerCase())) {
+        return false;
+      }
+      
+      // イディオムのみ
+      if (filters.idiomOnly && !data.isIdiom) {
+        return false;
+      }
+      
+      // 難易度フィルタ
+      if (filters.minDifficulty !== null && data.difficulty < filters.minDifficulty) {
+        return false;
+      }
+      if (filters.maxDifficulty !== null && data.difficulty > filters.maxDifficulty) {
+        return false;
+      }
+      
+      // 出現回数フィルタ
+      if (filters.minCount !== null && data.count < filters.minCount) {
+        return false;
+      }
+      if (filters.maxCount !== null && data.count > filters.maxCount) {
+        return false;
+      }
+      
+      // 学習済み/未学習フィルタ
+      if (filters.learnedOnly !== null) {
+        const mastery = getWordMastery(word, data.isIdiom);
+        if (filters.learnedOnly && !mastery.isLearned) {
+          return false;
+        }
+        if (!filters.learnedOnly && mastery.isLearned) {
+          return false;
+        }
+      }
+      
+      return true;
+    })
     .sort((a, b) => {
       if (sortBy === "importance") {
         return b[1].importance - a[1].importance; // 重要度順
@@ -78,41 +176,165 @@ export default function VocabularyPage() {
               className="w-full border-2 border-gray-200 rounded-lg px-4 py-3 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition-all bg-white"
             />
           </div>
-          <div className="flex items-center gap-4 mb-4">
-            <span className="text-sm font-semibold text-gray-700">並び替え:</span>
+          
+          {/* フィルター表示/非表示トグル */}
+          <div className="mb-4 flex items-center justify-between">
             <button
-              onClick={() => setSortBy("importance")}
-              className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all shadow-md ${
-                sortBy === "importance"
-                  ? "bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg scale-105"
-                  : "bg-white text-gray-700 hover:bg-gray-50 hover:shadow-lg"
-              }`}
+              onClick={() => setShowFilters(!showFilters)}
+              className="px-4 py-2 bg-indigo-100 hover:bg-indigo-200 text-indigo-700 font-semibold rounded-lg transition-all text-sm"
             >
-              重要度順
+              {showFilters ? "▼ フィルターを隠す" : "▶ フィルターを表示"}
             </button>
-            <button
-              onClick={() => setSortBy("difficulty")}
-              className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all shadow-md ${
-                sortBy === "difficulty"
-                  ? "bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg scale-105"
-                  : "bg-white text-gray-700 hover:bg-gray-50 hover:shadow-lg"
-              }`}
-            >
-              難易度順
-            </button>
-            <button
-              onClick={() => setSortBy("count")}
-              className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all shadow-md ${
-                sortBy === "count"
-                  ? "bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg scale-105"
-                  : "bg-white text-gray-700 hover:bg-gray-50 hover:shadow-lg"
-              }`}
-            >
-              出現回数順
-            </button>
+            <div className="flex items-center gap-4">
+              <span className="text-sm font-semibold text-gray-700">並び替え:</span>
+              <button
+                onClick={() => setSortBy("importance")}
+                className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all shadow-md ${
+                  sortBy === "importance"
+                    ? "bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg scale-105"
+                    : "bg-white text-gray-700 hover:bg-gray-50 hover:shadow-lg"
+                }`}
+              >
+                重要度順
+              </button>
+              <button
+                onClick={() => setSortBy("difficulty")}
+                className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all shadow-md ${
+                  sortBy === "difficulty"
+                    ? "bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg scale-105"
+                    : "bg-white text-gray-700 hover:bg-gray-50 hover:shadow-lg"
+                }`}
+              >
+                難易度順
+              </button>
+              <button
+                onClick={() => setSortBy("count")}
+                className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all shadow-md ${
+                  sortBy === "count"
+                    ? "bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg scale-105"
+                    : "bg-white text-gray-700 hover:bg-gray-50 hover:shadow-lg"
+                }`}
+              >
+                出現回数順
+              </button>
+            </div>
           </div>
+
+          {/* フィルター設定 */}
+          {showFilters && (
+            <div className="mb-4 p-4 bg-gray-50 rounded-lg border-2 border-gray-200 space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* イディオムのみ */}
+                <div>
+                  <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2">
+                    <input
+                      type="checkbox"
+                      checked={filters.idiomOnly}
+                      onChange={(e) => setFilters({ ...filters, idiomOnly: e.target.checked })}
+                      className="w-4 h-4 text-indigo-600 rounded"
+                    />
+                    イディオムのみ表示
+                  </label>
+                </div>
+
+                {/* 学習済み/未学習 */}
+                <div>
+                  <label className="text-sm font-semibold text-gray-700 mb-2 block">学習状況:</label>
+                  <select
+                    value={filters.learnedOnly === null ? "all" : filters.learnedOnly ? "learned" : "unlearned"}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      setFilters({
+                        ...filters,
+                        learnedOnly: value === "all" ? null : value === "learned",
+                      });
+                    }}
+                    className="w-full border-2 border-gray-200 rounded-lg px-3 py-2 text-sm bg-white"
+                  >
+                    <option value="all">すべて</option>
+                    <option value="learned">学習済みのみ</option>
+                    <option value="unlearned">未学習のみ</option>
+                  </select>
+                </div>
+
+                {/* 難易度範囲 */}
+                <div>
+                  <label className="text-sm font-semibold text-gray-700 mb-2 block">難易度範囲:</label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="number"
+                      placeholder="最小"
+                      value={filters.minDifficulty ?? ""}
+                      onChange={(e) => setFilters({
+                        ...filters,
+                        minDifficulty: e.target.value ? parseInt(e.target.value, 10) : null,
+                      })}
+                      className="w-full border-2 border-gray-200 rounded-lg px-3 py-2 text-sm bg-white"
+                    />
+                    <span className="text-gray-500">〜</span>
+                    <input
+                      type="number"
+                      placeholder="最大"
+                      value={filters.maxDifficulty ?? ""}
+                      onChange={(e) => setFilters({
+                        ...filters,
+                        maxDifficulty: e.target.value ? parseInt(e.target.value, 10) : null,
+                      })}
+                      className="w-full border-2 border-gray-200 rounded-lg px-3 py-2 text-sm bg-white"
+                    />
+                  </div>
+                </div>
+
+                {/* 出現回数範囲 */}
+                <div>
+                  <label className="text-sm font-semibold text-gray-700 mb-2 block">出現回数範囲:</label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="number"
+                      placeholder="最小"
+                      min="1"
+                      value={filters.minCount ?? ""}
+                      onChange={(e) => setFilters({
+                        ...filters,
+                        minCount: e.target.value ? parseInt(e.target.value, 10) : null,
+                      })}
+                      className="w-full border-2 border-gray-200 rounded-lg px-3 py-2 text-sm bg-white"
+                    />
+                    <span className="text-gray-500">〜</span>
+                    <input
+                      type="number"
+                      placeholder="最大"
+                      min="1"
+                      value={filters.maxCount ?? ""}
+                      onChange={(e) => setFilters({
+                        ...filters,
+                        maxCount: e.target.value ? parseInt(e.target.value, 10) : null,
+                      })}
+                      className="w-full border-2 border-gray-200 rounded-lg px-3 py-2 text-sm bg-white"
+                    />
+                  </div>
+                </div>
+              </div>
+              
+              {/* フィルターリセット */}
+              <button
+                onClick={() => setFilters({
+                  idiomOnly: false,
+                  minDifficulty: null,
+                  maxDifficulty: null,
+                  minCount: null,
+                  maxCount: null,
+                  learnedOnly: null,
+                })}
+                className="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold rounded-lg transition-all text-sm"
+              >
+                フィルターをリセット
+              </button>
+            </div>
+          )}
+
           <p className="text-sm text-gray-600">
-            全{cards.length}枚のカードから {vocabulary.size}個の単語を抽出しました
+            全{cards.length}枚のカードから {vocabulary.size}個の単語を抽出（表示: {sortedVocabulary.length}個）
           </p>
         </div>
 
@@ -122,22 +344,33 @@ export default function VocabularyPage() {
               <p className="text-gray-600">該当する単語がありません。</p>
             </div>
           ) : (
-            sortedVocabulary.map(([word, data]) => (
+            sortedVocabulary.map(([word, data]) => {
+              const mastery = getWordMastery(word, data.isIdiom);
+              const masteryColor = mastery.rate >= 70 ? "text-green-600" : mastery.rate >= 50 ? "text-yellow-600" : mastery.total > 0 ? "text-orange-600" : "text-gray-400";
+              
+              return (
               <div
                 key={word}
                 className={`bg-white/90 backdrop-blur-sm rounded-xl shadow-lg p-5 hover:shadow-xl transition-all duration-300 border-2 ${
                   data.isIdiom 
                     ? "border-l-4 border-purple-500 bg-gradient-to-r from-purple-50/50 to-white" 
+                    : mastery.isLearned
+                    ? "border-l-4 border-green-500 bg-gradient-to-r from-green-50/50 to-white"
                     : "border-transparent hover:border-indigo-200"
                 }`}
               >
                 <div className="flex items-center justify-between">
                   <div className="flex-1">
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-3 flex-wrap">
                       <span className="text-xl font-bold text-blue-900">{word}</span>
                       {data.isIdiom && (
                         <span className="px-2 py-1 bg-purple-100 text-purple-700 text-xs font-semibold rounded">
                           イディオム
+                        </span>
+                      )}
+                      {mastery.total > 0 && (
+                        <span className={`px-2 py-1 text-xs font-semibold rounded ${masteryColor} bg-opacity-20`} style={{ backgroundColor: masteryColor.replace('text-', 'bg-').replace('-600', '-100') }}>
+                          習得率: {Math.round(mastery.rate)}% ({mastery.correct}/{mastery.total})
                         </span>
                       )}
                       <span className="text-sm text-gray-500">
