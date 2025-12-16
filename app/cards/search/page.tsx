@@ -41,6 +41,8 @@ export default function CardSearchPage() {
   });
   const [isBatchMode, setIsBatchMode] = useState(false);
   const [editingCardId, setEditingCardId] = useState<string | null>(null);
+  const [draggedCardId, setDraggedCardId] = useState<string | null>(null);
+  const [dragOverCardId, setDragOverCardId] = useState<string | null>(null);
 
   const { displayedItems, sentinelRef } = useInfiniteScroll(filteredCards, {
     initialCount: 20,
@@ -338,31 +340,75 @@ export default function CardSearchPage() {
           </div>
         ) : (
           <div className="space-y-3">
-            {displayedItems.map((card) => (
+            {displayedItems.map((card, index) => {
+              const isDraggable = canReorder && !isBatchMode && card.lessonId === filters.lessonId;
+              return (
                     <div
                 key={card.id}
+                draggable={isDraggable}
+                onDragStart={(e) => {
+                  if (isDraggable) {
+                    setDraggedCardId(card.id);
+                    e.dataTransfer.effectAllowed = "move";
+                    e.dataTransfer.setData("text/plain", card.id);
+                  }
+                }}
+                onDragOver={(e) => {
+                  if (isDraggable && draggedCardId && draggedCardId !== card.id && card.lessonId === filters.lessonId) {
+                    e.preventDefault();
+                    e.dataTransfer.dropEffect = "move";
+                    setDragOverCardId(card.id);
+                  }
+                }}
+                onDragLeave={() => {
+                  setDragOverCardId(null);
+                }}
+                onDrop={async (e) => {
+                  e.preventDefault();
+                  if (draggedCardId && dragOverCardId && draggedCardId !== dragOverCardId && card.lessonId === filters.lessonId) {
+                    await handleCardReorder(draggedCardId, dragOverCardId);
+                  }
+                  setDraggedCardId(null);
+                  setDragOverCardId(null);
+                }}
                 className={`bg-white/90 backdrop-blur-sm rounded-xl shadow-lg p-5 hover:shadow-xl transition-all duration-300 border-2 ${
                   isBatchMode && selectedCards.has(card.id)
                     ? "ring-2 ring-blue-500 bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-300"
+                    : dragOverCardId === card.id
+                    ? "ring-2 ring-purple-400 bg-purple-50 border-purple-300"
+                    : draggedCardId === card.id
+                    ? "opacity-50 scale-95"
                     : "border-transparent hover:border-blue-200"
-                } ${isBatchMode ? "cursor-pointer" : ""}`}
+                } ${isBatchMode ? "cursor-pointer" : isDraggable ? "cursor-move" : ""}`}
                 onClick={() => {
                   if (isBatchMode) {
                     toggleCardSelection(card.id);
                   }
                 }}
               >
-                {isBatchMode && (
-                  <div className="mb-3">
-                    <input
-                      type="checkbox"
-                      checked={selectedCards.has(card.id)}
-                      onChange={() => toggleCardSelection(card.id)}
-                      onClick={(e) => e.stopPropagation()}
-                      className="w-5 h-5 text-blue-600 rounded"
-                    />
+                <div className="flex items-start justify-between mb-3">
+                  <div className="flex items-center gap-3">
+                    {isBatchMode && (
+                      <input
+                        type="checkbox"
+                        checked={selectedCards.has(card.id)}
+                        onChange={() => toggleCardSelection(card.id)}
+                        onClick={(e) => e.stopPropagation()}
+                        className="w-5 h-5 text-blue-600 rounded"
+                      />
+                    )}
+                    {isDraggable && (
+                      <div 
+                        className="flex items-center gap-1 text-gray-400 hover:text-gray-600 transition-colors"
+                        title="ドラッグして並び替え（順序は保存されます）"
+                      >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8h16M4 16h16" />
+                        </svg>
+                      </div>
+                    )}
                   </div>
-                )}
+                </div>
                 {/* 画像サムネイル */}
                 {card.imageData && (
                   <div className="mb-3">

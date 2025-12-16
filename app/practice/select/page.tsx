@@ -32,6 +32,8 @@ export default function CardSelectPage() {
   });
   const [isBatchMode, setIsBatchMode] = useState(false);
   const [editingCardId, setEditingCardId] = useState<string | null>(null);
+  const [draggedCardId, setDraggedCardId] = useState<string | null>(null);
+  const [dragOverCardId, setDragOverCardId] = useState<string | null>(null);
 
   const {
     selectedCards,
@@ -327,16 +329,57 @@ export default function CardSelectPage() {
                 );
               }
 
+              const isDraggable = canReorder && !isBatchMode;
               return (
                 <div
                   key={card.id}
+                  draggable={isDraggable}
+                  onDragStart={(e) => {
+                    if (isDraggable) {
+                      setDraggedCardId(card.id);
+                      e.dataTransfer.effectAllowed = "move";
+                      e.dataTransfer.setData("text/plain", card.id);
+                    }
+                  }}
+                  onDragOver={(e) => {
+                    if (isDraggable && draggedCardId && draggedCardId !== card.id) {
+                      e.preventDefault();
+                      e.dataTransfer.dropEffect = "move";
+                      setDragOverCardId(card.id);
+                    }
+                  }}
+                  onDragLeave={() => {
+                    setDragOverCardId(null);
+                  }}
+                  onDrop={async (e) => {
+                    e.preventDefault();
+                    if (draggedCardId && dragOverCardId && draggedCardId !== dragOverCardId) {
+                      await handleCardReorder(draggedCardId, dragOverCardId);
+                    }
+                    setDraggedCardId(null);
+                    setDragOverCardId(null);
+                  }}
                   className={`bg-white rounded-lg shadow p-4 hover:shadow-md transition-shadow ${
                     selectedCards.has(card.id)
                       ? "ring-2 ring-blue-500 bg-blue-50"
+                      : dragOverCardId === card.id
+                      ? "ring-2 ring-purple-400 bg-purple-50 border-purple-300"
+                      : draggedCardId === card.id
+                      ? "opacity-50 scale-95"
                       : ""
-                  }`}
+                  } ${isDraggable ? "cursor-move" : ""}`}
                 >
                   <div className="flex items-start gap-3">
+                    {isDraggable && (
+                      <div 
+                        className="flex items-center gap-1 text-gray-400 hover:text-gray-600 transition-colors mt-1"
+                        title="ドラッグして並び替え（順序は保存されます）"
+                      >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8h16M4 16h16" />
+                        </svg>
+                      </div>
+                    )}
                     <input
                       type="checkbox"
                       checked={selectedCards.has(card.id)}
