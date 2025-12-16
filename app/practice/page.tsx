@@ -759,16 +759,43 @@ function PracticeContent() {
               {/* 採点ボタン（フラッシュカードモード以外） */}
               {(mode as string) !== "flashcard" && (
                 <>
+                  <div className="mb-2 flex items-center justify-between">
+                    <div className="text-xs text-gray-500">キーボード: 1=OK, 2=MAYBE, 3=NG</div>
+                    <button
+                      onClick={() => setShowShortcuts(!showShortcuts)}
+                      className="text-xs text-blue-600 hover:text-blue-800 underline"
+                    >
+                      {showShortcuts ? "ヒントを隠す" : "すべてのショートカット"}
+                    </button>
+                  </div>
+                  {showShortcuts && (
+                    <div className="mb-3 bg-blue-50 border-2 border-blue-200 rounded-lg p-3 text-xs text-gray-700">
+                      <div className="font-semibold text-blue-900 mb-2">⌨️ キーボードショートカット</div>
+                      <div className="space-y-1">
+                        <div><kbd className="px-2 py-1 bg-white rounded border border-gray-300">Enter</kbd> 答えを見る</div>
+                        <div><kbd className="px-2 py-1 bg-white rounded border border-gray-300">Space</kbd> 答えの表示/非表示</div>
+                        <div><kbd className="px-2 py-1 bg-white rounded border border-gray-300">1</kbd> OK</div>
+                        <div><kbd className="px-2 py-1 bg-white rounded border border-gray-300">2</kbd> MAYBE</div>
+                        <div><kbd className="px-2 py-1 bg-white rounded border border-gray-300">3</kbd> NG</div>
+                        <div><kbd className="px-2 py-1 bg-white rounded border border-gray-300">→</kbd> 次へ（採点確定）</div>
+                        <div><kbd className="px-2 py-1 bg-white rounded border border-gray-300">←</kbd> 前へ（やり直し）</div>
+                      </div>
+                    </div>
+                  )}
                   <div className="grid grid-cols-3 gap-3">
                     <button
                       onClick={() => handleResultSelect("OK")}
-                      className={`font-bold py-3 px-4 rounded-lg transition-all ${
+                      className={`font-bold py-3 px-4 rounded-lg transition-all relative ${
                         (manualResult || autoGradingResult?.result) === "OK"
                           ? "bg-green-700 ring-2 ring-green-400"
                           : "bg-green-600 hover:bg-green-700"
                       } text-white`}
+                      title="キーボード: 1"
                     >
-                      OK
+                      <div className="flex items-center justify-center gap-2">
+                        <span>OK</span>
+                        <kbd className="text-xs bg-white/20 px-1.5 py-0.5 rounded">1</kbd>
+                      </div>
                     </button>
                     <button
                       onClick={() => handleResultSelect("MAYBE")}
@@ -777,8 +804,12 @@ function PracticeContent() {
                           ? "bg-yellow-700 ring-2 ring-yellow-400"
                           : "bg-yellow-600 hover:bg-yellow-700"
                       } text-white`}
+                      title="キーボード: 2"
                     >
-                      MAYBE
+                      <div className="flex items-center justify-center gap-2">
+                        <span>MAYBE</span>
+                        <kbd className="text-xs bg-white/20 px-1.5 py-0.5 rounded">2</kbd>
+                      </div>
                     </button>
                     <button
                       onClick={() => handleResultSelect("NG")}
@@ -787,8 +818,12 @@ function PracticeContent() {
                           ? "bg-red-700 ring-2 ring-red-400"
                           : "bg-red-600 hover:bg-red-700"
                       } text-white`}
+                      title="キーボード: 3"
                     >
-                      NG
+                      <div className="flex items-center justify-center gap-2">
+                        <span>NG</span>
+                        <kbd className="text-xs bg-white/20 px-1.5 py-0.5 rounded">3</kbd>
+                      </div>
                     </button>
                   </div>
                   
