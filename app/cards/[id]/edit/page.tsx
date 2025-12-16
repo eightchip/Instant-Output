@@ -452,8 +452,7 @@ export default function EditCardPage() {
             autoFocus={true}
           />
         )}
-          {/* お気に入り */}
-          <div className="flex items-center gap-3">
+      </main>
             <button
               onClick={async () => {
                 if (!card) return;
