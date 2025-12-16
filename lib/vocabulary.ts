@@ -15,12 +15,46 @@ const STOP_WORDS = new Set([
   "its", "our", "their", "mine", "yours", "hers", "ours", "theirs"
 ]);
 
-// イディオムのパターン（2語以上の連続した表現）
+// 既知の英語イディオム辞書（一般的なイディオムのリスト）
+const KNOWN_IDIOMS = new Set([
+  // 動詞 + 前置詞/副詞
+  "break down", "break in", "break out", "break up", "bring about", "bring up", "bring in",
+  "come across", "come along", "come back", "come down", "come in", "come out", "come over", "come up",
+  "get along", "get away", "get back", "get by", "get in", "get off", "get on", "get out", "get over", "get through", "get up",
+  "give away", "give back", "give in", "give up", "give out",
+  "go ahead", "go along", "go away", "go back", "go by", "go down", "go in", "go on", "go out", "go over", "go through", "go up",
+  "keep away", "keep back", "keep down", "keep off", "keep on", "keep out", "keep up",
+  "look after", "look at", "look back", "look down", "look for", "look forward", "look in", "look into", "look on", "look out", "look over", "look through", "look up",
+  "make for", "make out", "make up", "make off",
+  "put away", "put back", "put down", "put in", "put off", "put on", "put out", "put through", "put up",
+  "take after", "take away", "take back", "take down", "take in", "take off", "take on", "take out", "take over", "take up",
+  "turn around", "turn away", "turn back", "turn down", "turn in", "turn off", "turn on", "turn out", "turn over", "turn up",
+  // その他の一般的なイディオム
+  "piece of cake", "break the ice", "hit the nail on the head", "once in a blue moon", "the ball is in your court",
+  "see eye to eye", "hear it on the grapevine", "when pigs fly", "costs an arm and a leg", "a dime a dozen",
+  "beat around the bush", "cut to the chase", "hit the books", "let the cat out of the bag", "make a long story short",
+  "on cloud nine", "once in a blue moon", "play it by ear", "pull someone's leg", "speak of the devil",
+  "the best of both worlds", "the elephant in the room", "under the weather", "wrap your head around something",
+  "a blessing in disguise", "better late than never", "call it a day", "cut corners", "get out of hand",
+  "go the extra mile", "hang in there", "it's not rocket science", "kill two birds with one stone", "last straw",
+  "let someone off the hook", "miss the boat", "no pain no gain", "on the ball", "pull yourself together",
+  "so far so good", "the early bird", "through thick and thin", "time flies", "we'll cross that bridge when we come to it",
+  "your guess is as good as mine", "a picture paints a thousand words", "actions speak louder than words",
+  "add insult to injury", "barking up the wrong tree", "blessing in disguise", "can't judge a book by its cover",
+  "don't count your chickens before they hatch", "don't give up your day job", "every cloud has a silver lining",
+  "get a taste of your own medicine", "give someone the cold shoulder", "go on a wild goose chase",
+  "good things come to those who wait", "have bigger fish to fry", "hit the sack", "it takes two to tango",
+  "jump on the bandwagon", "keep something at bay", "let sleeping dogs lie", "make a mountain out of a molehill",
+  "on thin ice", "play devil's advocate", "put all your eggs in one basket", "rain on someone's parade",
+  "saving for a rainy day", "the ball is in your court", "the whole nine yards", "there are other fish in the sea",
+  "there's a method to his madness", "throw caution to the wind", "you can't have your cake and eat it too",
+  "you can't make an omelet without breaking a few eggs",
+]);
+
+// イディオムのパターン（フォールバック用、2語以上の連続した表現）
 const IDIOM_PATTERNS = [
   /\b(break|bring|come|get|give|go|keep|look|make|put|take|turn)\s+\w+\b/gi,
   /\b\w+\s+(away|back|down|in|off|on|out|over|through|up)\b/gi,
-  /\b(once|twice|three times|four times)\s+\w+\b/gi,
-  /\b\w+\s+(and|or)\s+\w+\b/gi,
 ];
 
 /**
@@ -35,20 +69,40 @@ export function extractWords(text: string): string[] {
 }
 
 /**
- * イディオムを検出
+ * イディオムを検出（既知のイディオム辞書を使用）
  */
 export function detectIdioms(text: string): string[] {
   const idioms: string[] = [];
   const lowerText = text.toLowerCase();
   
-  for (const pattern of IDIOM_PATTERNS) {
-    const matches = lowerText.match(pattern);
-    if (matches) {
-      idioms.push(...matches.map(m => m.trim()));
+  // 既知のイディオム辞書と照合
+  for (const idiom of KNOWN_IDIOMS) {
+    const lowerIdiom = idiom.toLowerCase();
+    // テキスト内にイディオムが含まれているかチェック
+    if (lowerText.includes(lowerIdiom)) {
+      idioms.push(idiom);
+    }
+  }
+  
+  // フォールバック: パターンマッチング（既知のイディオムが見つからない場合のみ）
+  if (idioms.length === 0) {
+    for (const pattern of IDIOM_PATTERNS) {
+      const matches = lowerText.match(pattern);
+      if (matches) {
+        idioms.push(...matches.map(m => m.trim()));
+      }
     }
   }
   
   return [...new Set(idioms)]; // 重複を除去
+}
+
+/**
+ * フレーズが既知のイディオムかどうかを判定
+ */
+export function isKnownIdiom(phrase: string): boolean {
+  const lowerPhrase = phrase.toLowerCase().trim();
+  return KNOWN_IDIOMS.has(lowerPhrase);
 }
 
 /**
@@ -100,16 +154,9 @@ export function getImportantWords(card: Card): string[] {
 /**
  * すべてのカードから語彙リストを生成（難易度を考慮）
  * @param cards カードの配列
- * @param useLLMForIdioms LLMを使ってイディオムを判別するかどうか（デフォルト: false）
  */
-export async function generateVocabularyList(
-  cards: Card[],
-  useLLMForIdioms: boolean = false
-): Promise<Map<string, { count: number; difficulty: number; importance: number; isIdiom: boolean }>> {
+export function generateVocabularyList(cards: Card[]): Map<string, { count: number; difficulty: number; importance: number; isIdiom: boolean }> {
   const vocabulary = new Map<string, { count: number; difficulty: number; importance: number; isIdiom: boolean }>();
-  
-  // 2語以上のフレーズを収集（イディオム候補）
-  const phraseCandidates = new Set<string>();
   
   for (const card of cards) {
     // 重要単語を取得
@@ -117,92 +164,46 @@ export async function generateVocabularyList(
     for (const word of words) {
       const existing = vocabulary.get(word);
       const difficulty = calculateWordDifficulty(word);
-      // 2語以上のフレーズはイディオム候補として収集
-      const isMultiWord = word.includes(" ");
-      if (isMultiWord) {
-        phraseCandidates.add(word);
-      }
+      // 既知のイディオム辞書で判定
+      const isIdiom = isKnownIdiom(word);
       
       if (existing) {
         vocabulary.set(word, {
           count: existing.count + 1,
           difficulty: Math.max(existing.difficulty, difficulty),
           importance: 0, // 後で計算
-          isIdiom: existing.isIdiom || (isMultiWord && !useLLMForIdioms), // LLM未使用時は暫定的にtrue
+          isIdiom: existing.isIdiom || isIdiom,
         });
       } else {
         vocabulary.set(word, {
           count: 1,
           difficulty,
           importance: 0,
-          isIdiom: isMultiWord && !useLLMForIdioms, // LLM未使用時は暫定的にtrue
+          isIdiom,
         });
       }
     }
     
-    // パターンマッチングで検出されたイディオムも候補に追加
+    // 検出されたイディオムも追加
     const detectedIdioms = detectIdioms(card.target_en);
     for (const idiom of detectedIdioms) {
-      if (idiom.includes(" ")) {
-        phraseCandidates.add(idiom);
-      }
-    }
-  }
-  
-  // LLMを使ってイディオムを判別
-  const idiomResults = new Map<string, boolean>();
-  if (useLLMForIdioms && phraseCandidates.size > 0) {
-    try {
-      const phrases = Array.from(phraseCandidates);
-      const response = await fetch("/api/check-idiom", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ phrases }),
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
-        for (const [phrase, isIdiom] of Object.entries(data.results || {})) {
-          idiomResults.set(phrase, isIdiom === true);
-        }
-      }
-    } catch (error) {
-      console.error("Failed to check idioms with LLM:", error);
-    }
-  }
-  
-  // イディオム候補を語彙リストに追加
-  for (const phrase of phraseCandidates) {
-    const isIdiom = useLLMForIdioms 
-      ? (idiomResults.get(phrase) || false)
-      : true; // LLM未使用時は暫定的にtrue
-    
-    if (isIdiom) {
-      const existing = vocabulary.get(phrase);
-      const difficulty = calculateWordDifficulty(phrase) + 10; // イディオムは難易度を高く設定
+      const existing = vocabulary.get(idiom);
+      const difficulty = calculateWordDifficulty(idiom) + 10; // イディオムは難易度を高く設定
       
       if (existing) {
-        vocabulary.set(phrase, {
+        vocabulary.set(idiom, {
           count: existing.count + 1,
           difficulty: Math.max(existing.difficulty, difficulty),
           importance: 0,
           isIdiom: true,
         });
       } else {
-        vocabulary.set(phrase, {
+        vocabulary.set(idiom, {
           count: 1,
           difficulty,
           importance: 0,
           isIdiom: true,
         });
-      }
-    } else {
-      // イディオムでない場合は、isIdiomフラグをfalseに更新
-      const existing = vocabulary.get(phrase);
-      if (existing) {
-        existing.isIdiom = false;
       }
     }
   }
