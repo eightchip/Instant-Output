@@ -152,6 +152,55 @@ export default function CardSearchPage() {
     setFilters({});
   }
 
+  // 同じレッスン内のカードのみ並び替え可能
+  const canReorder = filters.lessonId !== undefined && filters.lessonId !== "";
+
+  async function handleCardReorder(draggedId: string, targetId: string) {
+    if (!canReorder || !filters.lessonId) return;
+    
+    try {
+      await storage.init();
+      
+      // 同じレッスンのカードのみ取得
+      const lessonCards = await storage.getCardsByLesson(filters.lessonId);
+      const userCards = lessonCards.filter(card => card.source_type !== "template");
+      
+      const draggedIndex = userCards.findIndex(c => c.id === draggedId);
+      const targetIndex = userCards.findIndex(c => c.id === targetId);
+      
+      if (draggedIndex === -1 || targetIndex === -1) return;
+      
+      // カードを移動
+      const [movedCard] = userCards.splice(draggedIndex, 1);
+      userCards.splice(targetIndex, 0, movedCard);
+      
+      // 新しいorderを設定
+      const updates: Promise<void>[] = [];
+      for (let i = 0; i < userCards.length; i++) {
+        const card = userCards[i];
+        if (card.order !== i) {
+          updates.push(storage.updateCard(card.id, { order: i }));
+        }
+      }
+      
+      await Promise.all(updates);
+      await loadData();
+      
+      setMessageDialog({
+        isOpen: true,
+        title: "並び替え完了",
+        message: "カードの順序を更新しました。",
+      });
+    } catch (error) {
+      console.error("Failed to reorder cards:", error);
+      setMessageDialog({
+        isOpen: true,
+        title: "エラー",
+        message: "カードの並び替えに失敗しました。",
+      });
+    }
+  }
+
   if (isLoading) {
     return <LoadingSpinner fullScreen text="カードを検索中..." />;
   }
