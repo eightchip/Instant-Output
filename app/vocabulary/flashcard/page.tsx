@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { storage } from "@/lib/storage";
 import { Card, Review } from "@/types/models";
@@ -12,7 +12,7 @@ import MessageDialog from "@/components/MessageDialog";
 
 type FlashcardResult = "know" | "dont-know" | null;
 
-export default function VocabularyFlashcardPage() {
+function VocabularyFlashcardContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const wordFilter = searchParams.get("words")?.split(",") || [];
