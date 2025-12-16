@@ -460,7 +460,7 @@ export default function VocabularyPage() {
                   </div>
                 </div>
               </div>
-            });
+            );
             })
           )}
         </div>
