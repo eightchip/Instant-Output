@@ -430,7 +430,7 @@ export default function Home() {
                     icon="📚"
                     title="語彙リスト"
                     description="重要単語を確認"
-                    color="indigo"
+                    color="blue"
                     onClick={() => {
                       router.push("/vocabulary");
                       setShowMobileMenu(false);
