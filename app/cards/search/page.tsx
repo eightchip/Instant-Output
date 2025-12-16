@@ -337,7 +337,7 @@ export default function CardSearchPage() {
               return (
                 <>
                   {displayedItems.map((card) => (
-              <div
+                    <div
                 key={card.id}
                 className={`card-base p-4 hover-lift animate-fade-in ${
                   isBatchMode && selectedCards.has(card.id)
@@ -464,8 +464,8 @@ export default function CardSearchPage() {
                     </div>
                   )
                 )}
-              </div>
-                  })}
+                    </div>
+                  ))}
                   <Sentinel />
                 </>
               );

@@ -362,7 +362,14 @@ export default function LessonDetailPage() {
           </div>
         ) : (
           <div className="space-y-3">
-            {cards.map((card) => (
+            {(() => {
+              const { displayedItems, Sentinel } = useInfiniteScroll(cards, {
+                initialCount: 20,
+                increment: 20,
+              });
+              return (
+                <>
+                  {displayedItems.map((card) => (
               <div
                 key={card.id}
                 className={`card-base p-4 hover-lift animate-fade-in ${
@@ -533,7 +540,7 @@ export default function LessonDetailPage() {
                     </div>
                   )
                 )}
-              </div>
+                    </div>
                   ))}
                   <Sentinel />
                 </>
