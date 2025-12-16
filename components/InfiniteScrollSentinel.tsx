@@ -3,7 +3,7 @@
 import { RefObject } from "react";
 
 interface InfiniteScrollSentinelProps {
-  sentinelRef: RefObject<HTMLDivElement>;
+  sentinelRef: RefObject<HTMLDivElement | null>;
 }
 
 export default function InfiniteScrollSentinel({ sentinelRef }: InfiniteScrollSentinelProps) {
