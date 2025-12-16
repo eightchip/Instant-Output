@@ -104,7 +104,7 @@ export default function LessonsPage() {
                   }
                 }}
                 placeholder="レッスン名を入力..."
-                className={`w-full border rounded-lg px-4 py-2 ${
+                className={`w-full border-2 border-gray-200 rounded-lg px-4 py-3 focus:border-green-500 focus:ring-2 focus:ring-green-200 transition-all bg-white ${
                   errors.title
                     ? "border-red-500 bg-red-50"
                     : "border-gray-300"
@@ -171,7 +171,7 @@ export default function LessonsPage() {
             {lessons.map((lesson) => (
               <div
                 key={lesson.id}
-                className="bg-white rounded-lg shadow p-4 hover:shadow-md transition-shadow"
+                className="bg-white/90 backdrop-blur-sm rounded-xl shadow-lg p-5 hover:shadow-xl transition-all duration-300 border-2 border-transparent hover:border-green-200"
               >
                 <div className="flex items-center justify-between">
                   <div className="flex-1">

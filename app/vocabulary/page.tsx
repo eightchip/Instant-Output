@@ -53,19 +53,21 @@ export default function VocabularyPage() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-gray-50">
+    <div className="flex min-h-screen flex-col bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50">
       <main className="flex-1 px-4 py-8 max-w-2xl mx-auto w-full">
         <div className="flex items-center justify-between mb-6">
-          <h1 className="text-3xl font-bold">語彙リスト</h1>
+          <h1 className="text-3xl font-black bg-gradient-to-r from-indigo-600 to-pink-600 bg-clip-text text-transparent">
+            📚 語彙リスト
+          </h1>
           <button
             onClick={() => router.push("/")}
-            className="text-gray-600 hover:text-gray-800"
+            className="px-4 py-2 bg-white hover:bg-gray-100 text-gray-700 font-semibold rounded-lg shadow-md hover:shadow-lg transition-all"
           >
             ← ホーム
           </button>
         </div>
 
-        <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
+        <div className="bg-white/90 backdrop-blur-sm rounded-xl shadow-xl border border-white/20 p-6 mb-6">
           <div className="mb-4">
             <input
               type="text"
@@ -115,7 +117,7 @@ export default function VocabularyPage() {
 
         <div className="space-y-2">
           {sortedVocabulary.length === 0 ? (
-            <div className="bg-white rounded-lg shadow p-6 text-center">
+            <div className="bg-white/90 backdrop-blur-sm rounded-xl shadow-lg p-8 text-center">
               <p className="text-gray-600">該当する単語がありません。</p>
             </div>
           ) : (
