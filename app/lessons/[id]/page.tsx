@@ -417,6 +417,30 @@ export default function LessonDetailPage() {
                     />
                   </div>
                 )}
+                {/* 学習進捗表示 */}
+                {reviews.has(card.id) && (() => {
+                  const review = reviews.get(card.id)!;
+                  const now = new Date();
+                  const isOverdue = review.dueDate <= now;
+                  const daysUntilDue = Math.ceil((review.dueDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+                  const resultColors = {
+                    OK: "bg-green-100 text-green-700 border-green-300",
+                    MAYBE: "bg-yellow-100 text-yellow-700 border-yellow-300",
+                    NG: "bg-red-100 text-red-700 border-red-300",
+                  };
+                  return (
+                    <div className={`mb-3 px-3 py-2 rounded-lg border-2 ${resultColors[review.lastResult]}`}>
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="font-semibold">
+                          前回: {review.lastResult === "OK" ? "✓ 正解" : review.lastResult === "MAYBE" ? "△ 部分正解" : "✗ 不正解"}
+                        </span>
+                        <span className={isOverdue ? "font-bold text-red-600" : ""}>
+                          {isOverdue ? `期限超過 ${Math.abs(daysUntilDue)}日` : `次回まで ${daysUntilDue}日`}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })()}
                 <div className="mb-2">
                   <p className="text-gray-600 text-sm mb-1">日本語</p>
                   <p className="text-lg font-semibold">{card.prompt_jp}</p>
