@@ -368,9 +368,26 @@ export default function VocabularyPage() {
                           イディオム
                         </span>
                       )}
-                      {mastery.total > 0 && (
-                        <span className={`px-2 py-1 text-xs font-semibold rounded ${masteryColor} bg-opacity-20`} style={{ backgroundColor: masteryColor.replace('text-', 'bg-').replace('-600', '-100') }}>
-                          習得率: {Math.round(mastery.rate)}% ({mastery.correct}/{mastery.total})
+                      {mastery.total > 0 ? (
+                        <div className="flex items-center gap-2">
+                          <span className={`px-2 py-1 text-xs font-semibold rounded ${
+                            mastery.rate >= 70 
+                              ? "bg-green-100 text-green-700" 
+                              : mastery.rate >= 50 
+                              ? "bg-yellow-100 text-yellow-700" 
+                              : "bg-orange-100 text-orange-700"
+                          }`}>
+                            習得率: {Math.round(mastery.rate)}% ({mastery.correct}/{mastery.total})
+                          </span>
+                          {mastery.isLearned && (
+                            <span className="px-2 py-1 bg-green-100 text-green-700 text-xs font-semibold rounded">
+                              ✓ 習得済み
+                            </span>
+                          )}
+                        </div>
+                      ) : (
+                        <span className="px-2 py-1 bg-gray-100 text-gray-500 text-xs font-semibold rounded">
+                          未学習
                         </span>
                       )}
                       <span className="text-sm text-gray-500">
