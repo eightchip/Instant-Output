@@ -310,3 +310,11 @@ function VocabularyFlashcardContent() {
   );
 }
 
+export default function VocabularyFlashcardPage() {
+  return (
+    <Suspense fallback={<LoadingSpinner fullScreen text="読み込み中..." />}>
+      <VocabularyFlashcardContent />
+    </Suspense>
+  );
+}
+

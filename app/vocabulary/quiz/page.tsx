@@ -362,3 +362,11 @@ function VocabularyQuizContent() {
   );
 }
 
+export default function VocabularyQuizPage() {
+  return (
+    <Suspense fallback={<LoadingSpinner fullScreen text="読み込み中..." />}>
+      <VocabularyQuizContent />
+    </Suspense>
+  );
+}
+
