@@ -139,14 +139,22 @@ export default function CardSelectPage() {
   async function handleSaveCard(updatedCard: Card) {
     await storage.init();
     await storage.saveCard(updatedCard);
-    await loadData();
+    if (selectedLessonId) {
+      await loadCards(selectedLessonId);
+    } else {
+      await loadAllCards();
+    }
     setEditingCardId(null);
   }
 
   async function handleDeleteCard(cardId: string) {
     await storage.init();
     await storage.deleteCard(cardId);
-    await loadData();
+    if (selectedLessonId) {
+      await loadCards(selectedLessonId);
+    } else {
+      await loadAllCards();
+    }
     setEditingCardId(null);
   }
 
