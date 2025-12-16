@@ -463,25 +463,74 @@ export default function LessonDetailPage() {
           </div>
         ) : (
           <div className="space-y-3">
-            {displayedItems.map((card) => (
+            {displayedItems.map((card, index) => {
+              const isDraggable = !isBatchMode && sortBy === "order";
+              return (
                     <div
                       key={card.id}
-                className={`card-base p-4 hover-lift animate-fade-in ${
-                  isBatchMode && selectedCards.has(card.id)
-                    ? "ring-2 ring-blue-500 bg-blue-50"
-                    : ""
-                }`}
+                      draggable={isDraggable}
+                      onDragStart={(e) => {
+                        if (isDraggable) {
+                          setDraggedCardId(card.id);
+                          e.dataTransfer.effectAllowed = "move";
+                          e.dataTransfer.setData("text/plain", card.id);
+                        }
+                      }}
+                      onDragOver={(e) => {
+                        if (isDraggable && draggedCardId && draggedCardId !== card.id) {
+                          e.preventDefault();
+                          e.dataTransfer.dropEffect = "move";
+                          setDragOverCardId(card.id);
+                        }
+                      }}
+                      onDragLeave={() => {
+                        setDragOverCardId(null);
+                      }}
+                      onDrop={async (e) => {
+                        e.preventDefault();
+                        if (draggedCardId && dragOverCardId && draggedCardId !== dragOverCardId) {
+                          await handleCardReorder(draggedCardId, dragOverCardId);
+                        }
+                        setDraggedCardId(null);
+                        setDragOverCardId(null);
+                      }}
+                      className={`card-base p-4 hover-lift animate-fade-in ${
+                        isBatchMode && selectedCards.has(card.id)
+                          ? "ring-2 ring-blue-500 bg-blue-50"
+                          : dragOverCardId === card.id
+                          ? "ring-2 ring-purple-400 bg-purple-50 border-purple-300"
+                          : draggedCardId === card.id
+                          ? "opacity-50 scale-95"
+                          : ""
+                      } ${isDraggable ? "cursor-move" : ""}`}
               >
-                {isBatchMode && (
-                  <div className="mb-3">
-                    <input
-                      type="checkbox"
-                      checked={selectedCards.has(card.id)}
-                      onChange={() => toggleCardSelection(card.id)}
-                      className="w-5 h-5 text-blue-600 rounded"
-                    />
+                <div className="flex items-start justify-between mb-3">
+                  <div className="flex items-center gap-3">
+                    {isBatchMode && (
+                      <input
+                        type="checkbox"
+                        checked={selectedCards.has(card.id)}
+                        onChange={() => toggleCardSelection(card.id)}
+                        className="w-5 h-5 text-blue-600 rounded"
+                      />
+                    )}
+                    {isDraggable && (
+                      <div 
+                        className="flex items-center gap-1 text-gray-400 hover:text-gray-600 transition-colors"
+                        title="ドラッグして並び替え（順序は保存されます）"
+                      >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8h16M4 16h16" />
+                        </svg>
+                      </div>
+                    )}
+                    {sortBy === "order" && (
+                      <div className="text-xs text-gray-500 font-semibold bg-gray-100 px-2 py-1 rounded">
+                        #{index + 1}
+                      </div>
+                    )}
                   </div>
-                )}
+                </div>
                 {/* 画像サムネイル */}
                 {card.imageData && (
                   <div className="mb-3">
