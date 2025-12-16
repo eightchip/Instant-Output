@@ -243,7 +243,7 @@ export default function VocabularyQuizPage() {
                     <AudioPlaybackButton
                       text={currentWord}
                       language="en"
-                      size="lg"
+                      size="md"
                     />
                   )}
                 </div>

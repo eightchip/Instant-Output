@@ -223,7 +223,7 @@ export default function VocabularyFlashcardPage() {
                     <AudioPlaybackButton
                       text={currentWord}
                       language="en"
-                      size="lg"
+                      size="md"
                     />
                   </div>
                 )}
