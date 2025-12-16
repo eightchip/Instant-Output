@@ -75,13 +75,15 @@ export default function LessonsPage() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-gray-50">
+    <div className="flex min-h-screen flex-col bg-gradient-to-br from-green-50 via-emerald-50 to-teal-50">
       <main className="flex-1 px-4 py-8 max-w-2xl mx-auto w-full">
         <div className="flex items-center justify-between mb-6">
-          <h1 className="text-3xl font-bold">レッスン管理</h1>
+          <h1 className="text-3xl font-black bg-gradient-to-r from-green-600 to-teal-600 bg-clip-text text-transparent">
+            📖 レッスン管理
+          </h1>
           <button
             onClick={() => router.push("/")}
-            className="text-gray-600 hover:text-gray-800"
+            className="px-4 py-2 bg-white hover:bg-gray-100 text-gray-700 font-semibold rounded-lg shadow-md hover:shadow-lg transition-all"
           >
             ← ホーム
           </button>
@@ -89,7 +91,7 @@ export default function LessonsPage() {
 
         {/* 新規レッスン作成フォーム */}
         {showNewForm ? (
-          <div className="bg-white rounded-lg shadow p-4 mb-6">
+          <div className="bg-white/90 backdrop-blur-sm rounded-xl shadow-xl border border-white/20 p-6 mb-6">
             <h2 className="text-lg font-semibold mb-4">新しいレッスンを作成</h2>
             <div className="space-y-3">
               <input

@@ -11,9 +11,10 @@ import LoadingSpinner from "@/components/LoadingSpinner";
 export default function VocabularyPage() {
   const router = useRouter();
   const [cards, setCards] = useState<Card[]>([]);
-  const [vocabulary, setVocabulary] = useState<Map<string, number>>(new Map());
+  const [vocabulary, setVocabulary] = useState<Map<string, { count: number; difficulty: number; importance: number; isIdiom: boolean }>>(new Map());
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
+  const [sortBy, setSortBy] = useState<"importance" | "count" | "difficulty">("importance");
 
   useEffect(() => {
     loadData();
@@ -36,8 +37,16 @@ export default function VocabularyPage() {
   }
 
   const sortedVocabulary = Array.from(vocabulary.entries())
-    .sort((a, b) => b[1] - a[1]) // 出現回数でソート
-    .filter(([word]) => searchQuery === "" || word.toLowerCase().includes(searchQuery.toLowerCase()));
+    .filter(([word]) => searchQuery === "" || word.toLowerCase().includes(searchQuery.toLowerCase()))
+    .sort((a, b) => {
+      if (sortBy === "importance") {
+        return b[1].importance - a[1].importance; // 重要度順
+      } else if (sortBy === "count") {
+        return b[1].count - a[1].count; // 出現回数順
+      } else {
+        return b[1].difficulty - a[1].difficulty; // 難易度順
+      }
+    });
 
   if (isLoading) {
     return <LoadingSpinner fullScreen text="語彙リストを生成中..." />;
@@ -63,8 +72,41 @@ export default function VocabularyPage() {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="単語を検索..."
-              className="w-full border border-gray-300 rounded-lg px-4 py-2"
+              className="w-full border-2 border-gray-200 rounded-lg px-4 py-3 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition-all bg-white"
             />
+          </div>
+          <div className="flex items-center gap-4 mb-4">
+            <span className="text-sm font-semibold text-gray-700">並び替え:</span>
+            <button
+              onClick={() => setSortBy("importance")}
+              className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all shadow-md ${
+                sortBy === "importance"
+                  ? "bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg scale-105"
+                  : "bg-white text-gray-700 hover:bg-gray-50 hover:shadow-lg"
+              }`}
+            >
+              重要度順
+            </button>
+            <button
+              onClick={() => setSortBy("difficulty")}
+              className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all shadow-md ${
+                sortBy === "difficulty"
+                  ? "bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg scale-105"
+                  : "bg-white text-gray-700 hover:bg-gray-50 hover:shadow-lg"
+              }`}
+            >
+              難易度順
+            </button>
+            <button
+              onClick={() => setSortBy("count")}
+              className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all shadow-md ${
+                sortBy === "count"
+                  ? "bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg scale-105"
+                  : "bg-white text-gray-700 hover:bg-gray-50 hover:shadow-lg"
+              }`}
+            >
+              出現回数順
+            </button>
           </div>
           <p className="text-sm text-gray-600">
             全{cards.length}枚のカードから {vocabulary.size}個の単語を抽出しました
@@ -77,17 +119,29 @@ export default function VocabularyPage() {
               <p className="text-gray-600">該当する単語がありません。</p>
             </div>
           ) : (
-            sortedVocabulary.map(([word, count]) => (
+            sortedVocabulary.map(([word, data]) => (
               <div
                 key={word}
-                className="bg-white rounded-lg shadow p-4 hover:shadow-md transition-shadow"
+                className={`bg-white/90 backdrop-blur-sm rounded-xl shadow-lg p-5 hover:shadow-xl transition-all duration-300 border-2 ${
+                  data.isIdiom 
+                    ? "border-l-4 border-purple-500 bg-gradient-to-r from-purple-50/50 to-white" 
+                    : "border-transparent hover:border-indigo-200"
+                }`}
               >
                 <div className="flex items-center justify-between">
                   <div className="flex-1">
                     <div className="flex items-center gap-3">
                       <span className="text-xl font-bold text-blue-900">{word}</span>
+                      {data.isIdiom && (
+                        <span className="px-2 py-1 bg-purple-100 text-purple-700 text-xs font-semibold rounded">
+                          イディオム
+                        </span>
+                      )}
                       <span className="text-sm text-gray-500">
-                        {count}回出現
+                        {data.count}回出現
+                      </span>
+                      <span className="text-xs text-gray-400">
+                        難易度: {Math.round(data.difficulty)}
                       </span>
                     </div>
                     <div className="mt-2 text-sm text-gray-600">

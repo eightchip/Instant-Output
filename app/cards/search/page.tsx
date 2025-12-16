@@ -155,19 +155,21 @@ export default function CardSearchPage() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-gray-50">
+    <div className="flex min-h-screen flex-col bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
       <main className="flex-1 px-4 py-8 max-w-2xl mx-auto w-full">
         <div className="flex items-center justify-between mb-6">
-          <h1 className="text-3xl font-bold">カード検索</h1>
+          <h1 className="text-3xl font-black bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+            🔍 カード検索
+          </h1>
           <button
             onClick={() => router.push("/")}
-            className="text-gray-600 hover:text-gray-800"
+            className="px-4 py-2 bg-white hover:bg-gray-100 text-gray-700 font-semibold rounded-lg shadow-md hover:shadow-lg transition-all"
           >
             ← ホーム
           </button>
         </div>
 
-        <div className="bg-white rounded-lg shadow-lg p-6 space-y-4 mb-6">
+        <div className="bg-white/90 backdrop-blur-sm rounded-xl shadow-xl border border-white/20 p-6 space-y-4 mb-6">
           {/* 検索バー */}
           <div>
             <label className="block text-sm font-semibold mb-2">
@@ -178,7 +180,7 @@ export default function CardSearchPage() {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="検索..."
-              className="w-full border border-gray-300 rounded-lg px-4 py-2"
+              className="w-full border-2 border-gray-200 rounded-lg px-4 py-3 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all bg-white"
             />
           </div>
 
@@ -339,10 +341,10 @@ export default function CardSearchPage() {
             {displayedItems.map((card) => (
                     <div
                 key={card.id}
-                className={`card-base p-4 hover-lift animate-fade-in ${
+                className={`bg-white/90 backdrop-blur-sm rounded-xl shadow-lg p-5 hover:shadow-xl transition-all duration-300 border-2 ${
                   isBatchMode && selectedCards.has(card.id)
-                    ? "ring-2 ring-blue-500 bg-blue-50"
-                    : ""
+                    ? "ring-2 ring-blue-500 bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-300"
+                    : "border-transparent hover:border-blue-200"
                 } ${isBatchMode ? "cursor-pointer" : ""}`}
                 onClick={() => {
                   if (isBatchMode) {

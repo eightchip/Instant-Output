@@ -130,8 +130,23 @@ export function cleanOcrText(text: string): string {
   cleaned = cleaned.replace(/\n+/g, " ");
 
   // よくあるOCRエラーを修正
-  // 0 -> O, 1 -> I, | -> I など（文脈に依存するため、基本的なもののみ）
-  cleaned = cleaned.replace(/\s+\|\s+/g, " I "); // | を I に（文脈依存）
+  // | -> I の修正をより包括的に
+  // 1. 空白で囲まれた | を I に
+  cleaned = cleaned.replace(/\s+\|\s+/g, " I ");
+  // 2. 文の先頭の | を I に（空白の後、または行頭）
+  cleaned = cleaned.replace(/(^|\s)\|(\s|$)/g, "$1I$2");
+  // 3. 単語の先頭の | を I に（空白の後の |）
+  cleaned = cleaned.replace(/\s\|([a-z])/gi, " I$1");
+  // 4. 単語の末尾の | を I に（| の後の空白）
+  cleaned = cleaned.replace(/([a-z])\|\s/gi, "$1I ");
+  // 5. 単独の | を I に（前後に空白がない場合も含む）
+  cleaned = cleaned.replace(/\|/g, "I");
+
+  // その他のよくあるOCRエラー
+  // 0 -> O（文脈依存のため、基本的なもののみ）
+  cleaned = cleaned.replace(/\b0\b/g, "O");
+  // 1 -> I（単独の場合）
+  cleaned = cleaned.replace(/\b1\b/g, "I");
 
   // 先頭・末尾の空白を削除
   cleaned = cleaned.trim();
