@@ -36,6 +36,11 @@ export default function LessonDetailPage() {
     onConfirm: () => {},
   });
 
+  const { displayedItems, sentinelRef } = useInfiniteScroll(cards, {
+    initialCount: 20,
+    increment: 20,
+  });
+
   useEffect(() => {
     if (lessonId) {
       loadData();
