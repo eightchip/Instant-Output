@@ -433,18 +433,35 @@ export default function VocabularyPage() {
                       })()}
                     </div>
                   </div>
-                  {tts.isAvailable() && (
+                  <div className="flex items-center gap-2">
+                    {tts.isAvailable() && (
+                      <button
+                        onClick={() => tts.speak(word, "en", 1)}
+                        className="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-semibold"
+                        title="音声読み上げ"
+                      >
+                        🔊
+                      </button>
+                    )}
                     <button
-                      onClick={() => tts.speak(word, "en", 1)}
-                      className="ml-4 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-semibold"
-                      title="音声読み上げ"
+                      onClick={() => router.push(`/vocabulary/quiz?words=${encodeURIComponent(word)}&mode=en-to-jp`)}
+                      className="px-3 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-semibold"
+                      title="この単語でクイズ"
                     >
-                      🔊
+                      📝 クイズ
                     </button>
-                  )}
+                    <button
+                      onClick={() => router.push(`/vocabulary/flashcard?words=${encodeURIComponent(word)}`)}
+                      className="px-3 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-sm font-semibold"
+                      title="この単語でフラッシュカード"
+                    >
+                      🃏 暗記
+                    </button>
+                  </div>
                 </div>
               </div>
-            ))
+            });
+            })
           )}
         </div>
       </main>
