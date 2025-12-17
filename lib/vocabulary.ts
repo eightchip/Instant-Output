@@ -245,46 +245,31 @@ export function splitIntoWords(text: string): Array<{ word: string; isPunctuatio
   return result;
 }
 
-// VocabularyWordのキャッシュ（メモリ内）
-let vocabularyWordsCache: Map<string, VocabularyWord> | null = null;
-let cacheTimestamp: number = 0;
-const CACHE_TTL = 60000; // 1分間キャッシュ
-
-/**
- * VocabularyWordのキャッシュを取得（必要に応じて更新）
- */
-async function getVocabularyWordsCache(): Promise<Map<string, VocabularyWord>> {
-  const now = Date.now();
-  if (vocabularyWordsCache && (now - cacheTimestamp) < CACHE_TTL) {
-    return vocabularyWordsCache;
-  }
-  
-  const allVocabWords = await storage.getAllVocabularyWords();
-  vocabularyWordsCache = new Map<string, VocabularyWord>();
-  for (const vocabWord of allVocabWords) {
-    vocabularyWordsCache.set(vocabWord.word.toLowerCase(), vocabWord);
-  }
-  cacheTimestamp = now;
-  return vocabularyWordsCache;
-}
-
-/**
- * キャッシュを無効化
- */
-export function invalidateVocabularyWordsCache(): void {
-  vocabularyWordsCache = null;
-  cacheTimestamp = 0;
-}
-
 /**
  * 単語の意味を取得（ユーザーが編集した意味があればそれを、なければカードから抽出）
+ * @param word 単語
+ * @param cards カードの配列
+ * @param isIdiom イディオムかどうか
+ * @param vocabularyWordMap 既に読み込まれたVocabularyWordのMap（オプション、パフォーマンス向上のため）
  */
-export async function getWordMeaning(word: string, cards: Card[], isIdiom: boolean): Promise<string> {
-  // まず、保存された意味を確認（キャッシュから）
-  const cache = await getVocabularyWordsCache();
-  const vocabWord = cache.get(word.toLowerCase());
-  if (vocabWord && vocabWord.meaning) {
-    return vocabWord.meaning;
+export async function getWordMeaning(
+  word: string, 
+  cards: Card[], 
+  isIdiom: boolean,
+  vocabularyWordMap?: Map<string, VocabularyWord>
+): Promise<string> {
+  // まず、保存された意味を確認（既に読み込まれたMapがあればそれを使う）
+  if (vocabularyWordMap) {
+    const vocabWord = vocabularyWordMap.get(word.toLowerCase());
+    if (vocabWord && vocabWord.meaning) {
+      return vocabWord.meaning;
+    }
+  } else {
+    // Mapが提供されていない場合のみ、個別に取得（軽量）
+    const vocabWord = await storage.getVocabularyWord(word);
+    if (vocabWord && vocabWord.meaning) {
+      return vocabWord.meaning;
+    }
   }
   
   // 保存された意味がない場合、カードから抽出を試みる
@@ -317,8 +302,6 @@ export async function saveWordMeaning(word: string, meaning: string, notes?: str
     updatedAt: new Date(),
   };
   await storage.saveVocabularyWord(vocabWord);
-  // キャッシュを無効化
-  invalidateVocabularyWordsCache();
 }
 
 /**
@@ -336,8 +319,6 @@ export async function updateWordLearnedStatus(word: string, isLearned: boolean):
   vocabWord.isLearned = isLearned;
   vocabWord.updatedAt = new Date();
   await storage.saveVocabularyWord(vocabWord);
-  // キャッシュを無効化
-  invalidateVocabularyWordsCache();
 }
 
 /**
@@ -355,7 +336,5 @@ export async function updateWordWantToLearnStatus(word: string, isWantToLearn: b
   vocabWord.isWantToLearn = isWantToLearn;
   vocabWord.updatedAt = new Date();
   await storage.saveVocabularyWord(vocabWord);
-  // キャッシュを無効化
-  invalidateVocabularyWordsCache();
 }
 

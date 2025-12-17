@@ -37,7 +37,7 @@ function VocabularyWordEditorModal({
         setCurrentMeaning(vocabWord.meaning);
         setIsLoading(false);
       } else if (wordData) {
-        const meaning = await getWordMeaning(word, cards, wordData.isIdiom);
+        const meaning = await getWordMeaning(word, cards, wordData.isIdiom, vocabularyWords);
         setCurrentMeaning(meaning);
         setIsLoading(false);
       } else {
