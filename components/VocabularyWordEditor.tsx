@@ -191,7 +191,17 @@ export default function VocabularyWordEditor({
       // 更新されたデータを取得
       const updated = await storage.getVocabularyWord(trimmedWord);
       if (updated) {
+        console.log("VocabularyWordEditor handleSave - updated from storage:", {
+          word: updated.word,
+          hasHighlighted: !!updated.highlightedMeaning,
+          highlightedValue: updated.highlightedMeaning,
+          hasExample: !!updated.exampleSentence,
+          exampleValue: updated.exampleSentence,
+          fullUpdated: updated,
+        });
         await onSave(updated);
+      } else {
+        console.error("VocabularyWordEditor handleSave - updated is null");
       }
 
       setMessageDialog({
