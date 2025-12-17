@@ -67,6 +67,19 @@ export default function VocabularyWordEditor({
     setIsLearned(initialIsLearned);
     setIsWantToLearn(initialIsWantToLearn);
   }, [word, initialMeaning, initialHighlightedMeaning, initialExampleSentence, initialNotes, initialIsLearned, initialIsWantToLearn]);
+  
+  // デバッグ用：保存されたデータを確認
+  useEffect(() => {
+    console.log("VocabularyWordEditor props updated:", {
+      word,
+      initialMeaning,
+      initialHighlightedMeaning,
+      initialExampleSentence,
+      initialIsLearned,
+      initialIsWantToLearn,
+      initialNotes,
+    });
+  }, [word, initialMeaning, initialHighlightedMeaning, initialExampleSentence, initialIsLearned, initialIsWantToLearn, initialNotes]);
 
   useEffect(() => {
     // テキストエリアの高さを自動調整

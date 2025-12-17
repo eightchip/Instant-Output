@@ -31,9 +31,10 @@ function VocabularyWordEditorModal({
   const [isLoading, setIsLoading] = useState(true);
   
   // vocabWordをuseMemoで計算して、変更を確実に検知
+  // vocabularyWordsのサイズも依存配列に含めて、Mapが更新されたことを検知
   const vocabWord = useMemo(() => {
     return vocabularyWords.get(word.toLowerCase());
-  }, [vocabularyWords, word]);
+  }, [vocabularyWords, word, vocabularyWords.size]);
   
   const wordData = vocabulary.get(word);
 
@@ -41,6 +42,13 @@ function VocabularyWordEditorModal({
     async function loadMeaning() {
       setIsLoading(true);
       try {
+        console.log("VocabularyWordEditorModal loadMeaning:", {
+          word,
+          vocabWord,
+          hasHighlighted: !!vocabWord?.highlightedMeaning,
+          hasExample: !!vocabWord?.exampleSentence,
+        });
+        
         // 保存された例文があればそれを使う
         if (vocabWord?.exampleSentence) {
           setExampleSentence(vocabWord.exampleSentence);
@@ -127,6 +135,7 @@ function VocabularyWordEditorModal({
             </button>
           </div>
           <VocabularyWordEditor
+            key={`${word}-${vocabWord?.updatedAt?.getTime() || 0}`}
             word={word}
             initialMeaning={currentMeaning}
             initialHighlightedMeaning={vocabWord?.highlightedMeaning || ""}
@@ -135,6 +144,12 @@ function VocabularyWordEditorModal({
             initialIsWantToLearn={vocabWord?.isWantToLearn || false}
             initialNotes={vocabWord?.notes || ""}
             onSave={async (updated) => {
+              // 保存後にvocabularyWordsを直接更新
+              setVocabularyWords(prev => {
+                const next = new Map(prev);
+                next.set(updated.word.toLowerCase(), updated);
+                return next;
+              });
               await onSave();
               onClose();
             }}
@@ -846,6 +861,7 @@ export default function VocabularyPage() {
 
       {/* 編集モーダル */}
       {editingWord && <VocabularyWordEditorModal
+        key={editingWord}
         word={editingWord}
         vocabularyWords={vocabularyWords}
         vocabulary={vocabulary}
