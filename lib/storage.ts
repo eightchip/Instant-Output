@@ -764,11 +764,28 @@ class StorageService {
         updatedAt: vocabWord.updatedAt instanceof Date ? vocabWord.updatedAt.toISOString() : vocabWord.updatedAt || new Date().toISOString(),
       };
       // オプショナルプロパティを明示的に含める（undefinedの場合は含めない）
+      // デバッグログ：vocabWordの状態を確認
+      console.log("storage.saveVocabularyWord - vocabWord received:", {
+        word: vocabWord.word,
+        hasHighlightedMeaning: vocabWord.highlightedMeaning !== undefined,
+        highlightedMeaning: vocabWord.highlightedMeaning,
+        hasExampleSentence: vocabWord.exampleSentence !== undefined,
+        exampleSentence: vocabWord.exampleSentence,
+        hasNotes: vocabWord.notes !== undefined,
+        notes: vocabWord.notes,
+      });
+      
       if (vocabWord.highlightedMeaning !== undefined) {
         vocabData.highlightedMeaning = vocabWord.highlightedMeaning;
+        console.log("storage.saveVocabularyWord - added highlightedMeaning:", vocabWord.highlightedMeaning);
+      } else {
+        console.log("storage.saveVocabularyWord - highlightedMeaning is undefined, skipping");
       }
       if (vocabWord.exampleSentence !== undefined) {
         vocabData.exampleSentence = vocabWord.exampleSentence;
+        console.log("storage.saveVocabularyWord - added exampleSentence:", vocabWord.exampleSentence);
+      } else {
+        console.log("storage.saveVocabularyWord - exampleSentence is undefined, skipping");
       }
       if (vocabWord.notes !== undefined) {
         vocabData.notes = vocabWord.notes;
