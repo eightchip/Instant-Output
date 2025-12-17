@@ -32,6 +32,7 @@ export default function VocabularyWordEditor({
   onCancel,
   autoFocus = false,
 }: VocabularyWordEditorProps) {
+  const [wordValue, setWordValue] = useState(word);
   const [meaning, setMeaning] = useState(initialMeaning);
   const [highlightedMeaning, setHighlightedMeaning] = useState(initialHighlightedMeaning || "");
   const [exampleSentence, setExampleSentence] = useState(initialExampleSentence || "");
@@ -41,6 +42,7 @@ export default function VocabularyWordEditor({
   const [isSaving, setIsSaving] = useState(false);
   const [selectedText, setSelectedText] = useState("");
   const [errors, setErrors] = useState<{
+    word?: string;
     meaning?: string;
   }>({});
   const [messageDialog, setMessageDialog] = useState<{
@@ -57,13 +59,14 @@ export default function VocabularyWordEditor({
   const textareaNotesRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
+    setWordValue(word);
     setMeaning(initialMeaning);
     setHighlightedMeaning(initialHighlightedMeaning || "");
     setExampleSentence(initialExampleSentence || "");
     setNotes(initialNotes);
     setIsLearned(initialIsLearned);
     setIsWantToLearn(initialIsWantToLearn);
-  }, [initialMeaning, initialHighlightedMeaning, initialExampleSentence, initialNotes, initialIsLearned, initialIsWantToLearn]);
+  }, [word, initialMeaning, initialHighlightedMeaning, initialExampleSentence, initialNotes, initialIsLearned, initialIsWantToLearn]);
 
   useEffect(() => {
     // テキストエリアの高さを自動調整
@@ -98,6 +101,14 @@ export default function VocabularyWordEditor({
     }
   };
 
+  // モバイル対応: touchイベントでも選択を検出
+  const handleTouchEnd = () => {
+    // 少し遅延させて選択範囲を取得（モバイルブラウザの処理を待つ）
+    setTimeout(() => {
+      handleTextSelection();
+    }, 100);
+  };
+
   const handleSaveHighlight = () => {
     if (selectedText.trim()) {
       setHighlightedMeaning(selectedText.trim());
@@ -114,7 +125,15 @@ export default function VocabularyWordEditor({
   };
 
   const handleSave = async () => {
-    if (!meaning.trim()) {
+    const trimmedWord = wordValue.trim().toLowerCase();
+    const trimmedMeaning = meaning.trim();
+
+    if (!trimmedWord) {
+      setErrors({ word: "単語を入力してください" });
+      return;
+    }
+
+    if (!trimmedMeaning) {
       setErrors({ meaning: "意味を入力してください" });
       return;
     }
@@ -123,21 +142,28 @@ export default function VocabularyWordEditor({
     setIsSaving(true);
 
     try {
+      const wordChanged = trimmedWord !== word.toLowerCase();
+      
+      // 単語が変更された場合、古い単語のデータを削除
+      if (wordChanged) {
+        await storage.deleteVocabularyWord(word);
+      }
+
       // 意味を保存（ハイライトと例文も含む）
       await saveWordMeaning(
-        word, 
-        meaning.trim(), 
+        trimmedWord, 
+        trimmedMeaning, 
         notes.trim() || undefined,
         highlightedMeaning.trim() || undefined,
         exampleSentence.trim() || undefined
       );
       
       // フラグを更新
-      await updateWordLearnedStatus(word, isLearned);
-      await updateWordWantToLearnStatus(word, isWantToLearn);
+      await updateWordLearnedStatus(trimmedWord, isLearned);
+      await updateWordWantToLearnStatus(trimmedWord, isWantToLearn);
 
       // 更新されたデータを取得
-      const updated = await storage.getVocabularyWord(word);
+      const updated = await storage.getVocabularyWord(trimmedWord);
       if (updated) {
         await onSave(updated);
       }
@@ -167,15 +193,22 @@ export default function VocabularyWordEditor({
           <label className="block text-sm font-semibold mb-2">
             単語
             <AudioPlaybackButton
-              text={word}
+              text={wordValue}
               language="en"
               size="sm"
               className="ml-2"
             />
+            {errors.word && (
+              <span className="text-red-600 text-sm ml-2">{errors.word}</span>
+            )}
           </label>
-          <div className="text-xl font-bold text-blue-900 p-3 bg-gray-50 rounded-lg">
-            {word}
-          </div>
+          <input
+            type="text"
+            value={wordValue}
+            onChange={(e) => setWordValue(e.target.value)}
+            placeholder="単語を入力..."
+            className="w-full text-xl font-bold text-blue-900 p-3 bg-gray-50 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none"
+          />
         </div>
 
         {/* 英文全体 */}
@@ -201,6 +234,8 @@ export default function VocabularyWordEditor({
             value={meaning}
             onChange={(e) => setMeaning(e.target.value)}
             onSelect={handleTextSelection}
+            onTouchEnd={handleTouchEnd}
+            onMouseUp={handleTextSelection}
             placeholder="意味を入力..."
             className="w-full border border-gray-300 rounded-lg px-4 py-3 bg-white text-gray-900 resize-none overflow-hidden"
             rows={4}

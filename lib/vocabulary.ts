@@ -4,14 +4,19 @@ import { Card, VocabularyWord } from "@/types/models";
 import { storage } from "./storage";
 
 // 基本的な単語（stop words）のリスト
+// 簡単な動詞（be動詞、have動詞、do動詞、助動詞）のみを含める
+// その他の動詞は単語リストに含める
 const STOP_WORDS = new Set([
   "the", "a", "an", "and", "or", "but", "in", "on", "at", "to", "for", "of", "with", "by",
   "from", "up", "about", "into", "through", "during", "including", "against", "among",
-  "throughout", "despite", "towards", "upon", "concerning", "to", "of", "in", "for",
-  "on", "at", "by", "with", "about", "into", "through", "during", "including",
-  "is", "are", "was", "were", "be", "been", "being", "have", "has", "had", "having",
-  "do", "does", "did", "doing", "will", "would", "should", "could", "may", "might",
-  "can", "must", "shall", "this", "that", "these", "those", "i", "you", "he", "she",
+  "throughout", "despite", "towards", "upon", "concerning",
+  // 簡単な動詞のみ（be動詞、have動詞、do動詞、助動詞）
+  "is", "are", "was", "were", "be", "been", "being",
+  "have", "has", "had", "having",
+  "do", "does", "did", "doing",
+  "will", "would", "should", "could", "may", "might", "can", "must", "shall",
+  // 代名詞・指示詞
+  "this", "that", "these", "those", "i", "you", "he", "she",
   "it", "we", "they", "me", "him", "her", "us", "them", "my", "your", "his", "her",
   "its", "our", "their", "mine", "yours", "hers", "ours", "theirs"
 ]);
