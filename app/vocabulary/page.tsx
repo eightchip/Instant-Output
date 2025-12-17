@@ -33,19 +33,26 @@ function VocabularyWordEditorModal({
 
   useEffect(() => {
     async function loadMeaning() {
-      if (vocabWord?.meaning) {
-        setCurrentMeaning(vocabWord.meaning);
-        setIsLoading(false);
-      } else if (wordData) {
-        const meaning = await getWordMeaning(word, cards, wordData.isIdiom, vocabularyWords);
-        setCurrentMeaning(meaning);
-        setIsLoading(false);
-      } else {
+      setIsLoading(true);
+      try {
+        if (vocabWord?.meaning) {
+          setCurrentMeaning(vocabWord.meaning);
+        } else if (wordData) {
+          const meaning = await getWordMeaning(word, cards, wordData.isIdiom, vocabularyWords);
+          setCurrentMeaning(meaning);
+        } else {
+          setCurrentMeaning("");
+        }
+      } catch (error) {
+        console.error("Failed to load meaning:", error);
+        setCurrentMeaning("");
+      } finally {
         setIsLoading(false);
       }
     }
     loadMeaning();
-  }, [word, vocabWord, wordData, cards]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [word, vocabWord?.meaning, wordData, vocabularyWords]);
 
   if (isLoading || !wordData) {
     return (
@@ -586,7 +593,11 @@ export default function VocabularyPage() {
                   </div>
                   <div className="flex items-center gap-2">
                     <button
-                      onClick={() => setEditingWord(word)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        console.log("Edit button clicked for word:", word);
+                        setEditingWord(word);
+                      }}
                       className="px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-semibold"
                       title="編集"
                     >
@@ -789,8 +800,18 @@ export default function VocabularyPage() {
                           {card.lessonId && lessonMap.has(card.lessonId) && (
                             <div className="text-xs text-gray-500 mt-2">
                               レッスン: {lessonMap.get(card.lessonId)?.title}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
-      )}
+        );
+      })()}
 
       {/* 編集モーダル */}
       {editingWord && <VocabularyWordEditorModal
@@ -804,16 +825,6 @@ export default function VocabularyPage() {
           await loadData();
         }}
       />}
-    </div>
-  );
-})}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        );
-      })()}
     </div>
   );
 }
