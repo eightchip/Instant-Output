@@ -16,13 +16,22 @@ export interface ReviewCardInfo {
 export async function getReviewCardsWithPriority(): Promise<ReviewCardInfo[]> {
   await storage.init();
   const dueReviews = await storage.getDueReviews();
-  const allReviews = await storage.getAllReviews();
   const now = new Date();
+
+  // カードIDのリストを作成
+  const cardIds = dueReviews.map(review => review.cardId);
+  
+  // 全てのカードを一括取得
+  const allCards = await storage.getAllCards();
+  const cardMap = new Map<string, Card>();
+  for (const card of allCards) {
+    cardMap.set(card.id, card);
+  }
 
   const reviewCardInfos: ReviewCardInfo[] = [];
 
   for (const review of dueReviews) {
-    const card = await storage.getCard(review.cardId);
+    const card = cardMap.get(review.cardId);
     if (!card) continue;
 
     // 期限超過日数を計算

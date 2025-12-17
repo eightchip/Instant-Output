@@ -31,28 +31,27 @@ export default function Home() {
       try {
         await storage.init();
 
-        // 今日のカードを取得
-        const cards = await getTodayCards(5);
-        setTodayCards(cards);
+        // 必須データを並列で取得
+        const [cards, reviews, courses, allSessions] = await Promise.all([
+          getTodayCards(5),
+          storage.getDueReviews(),
+          storage.getAllCourses(),
+          storage.getAllStudySessions(),
+        ]);
 
-        // 未消化の復習を取得
-        const reviews = await storage.getDueReviews();
+        setTodayCards(cards);
         setDueReviews(reviews);
 
-        // 復習カードの詳細情報を取得（優先順位付き）
-        const reviewCardsInfo = await getReviewCardsWithPriority();
-        setReviewCardsWithPriority(reviewCardsInfo);
-
-        // アクティブなコースを取得（最初のコースを仮に使用）
-        const courses = await storage.getAllCourses();
+        // アクティブなコースを設定
         if (courses.length > 0) {
           setActiveCourse(courses[0]);
         }
 
-        // 統計データを取得（ストリーク表示用）
-        const allSessions = await storage.getAllStudySessions();
+        // 統計データを計算
         const stats = calculateStatistics(allSessions);
         setStatistics(stats);
+
+        // 復習カードの詳細情報は遅延読み込み（「詳細を見る」をクリックした時に読み込む）
       } catch (error) {
         console.error("Failed to load data:", error);
       } finally {
@@ -268,7 +267,18 @@ export default function Home() {
                 復習が必要: {dueReviews.length}問
               </h2>
               <button
-                onClick={() => setShowReviewDetails(!showReviewDetails)}
+                onClick={async () => {
+                  if (!showReviewDetails && reviewCardsWithPriority.length === 0) {
+                    // 初回表示時に詳細情報を読み込む
+                    try {
+                      const reviewCardsInfo = await getReviewCardsWithPriority();
+                      setReviewCardsWithPriority(reviewCardsInfo);
+                    } catch (error) {
+                      console.error("Failed to load review cards:", error);
+                    }
+                  }
+                  setShowReviewDetails(!showReviewDetails);
+                }}
                 className="text-sm text-yellow-700 hover:text-yellow-900 underline"
               >
                 {showReviewDetails ? "詳細を隠す" : "詳細を見る"}
