@@ -31,10 +31,21 @@ function VocabularyWordEditorModal({
   const [isLoading, setIsLoading] = useState(true);
   
   // vocabWordをuseMemoで計算して、変更を確実に検知
-  // vocabularyWordsのサイズも依存配列に含めて、Mapが更新されたことを検知
+  // vocabWordの各プロパティを依存配列に含めて、変更を確実に検知
   const vocabWord = useMemo(() => {
     return vocabularyWords.get(word.toLowerCase());
-  }, [vocabularyWords, word, vocabularyWords.size]);
+  }, [
+    vocabularyWords, 
+    word,
+    // vocabWordの各プロパティを個別に監視
+    vocabularyWords.get(word.toLowerCase())?.meaning,
+    vocabularyWords.get(word.toLowerCase())?.highlightedMeaning,
+    vocabularyWords.get(word.toLowerCase())?.exampleSentence,
+    vocabularyWords.get(word.toLowerCase())?.isLearned,
+    vocabularyWords.get(word.toLowerCase())?.isWantToLearn,
+    vocabularyWords.get(word.toLowerCase())?.notes,
+    vocabularyWords.get(word.toLowerCase())?.updatedAt?.getTime(),
+  ]);
   
   const wordData = vocabulary.get(word);
 
