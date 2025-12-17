@@ -1031,6 +1031,7 @@ export default function VocabularyPage() {
         onConfirm={async () => {
           if (deleteConfirm.word) {
             const wordToDelete = deleteConfirm.word.toLowerCase();
+            const originalWord = deleteConfirm.word; // nullチェック後の値を保持
             // vocabularyWords Mapから削除
             setVocabularyWords(prev => {
               const next = new Map(prev);
@@ -1040,11 +1041,11 @@ export default function VocabularyPage() {
             // vocabulary Mapから削除
             setVocabulary(prev => {
               const next = new Map(prev);
-              next.delete(deleteConfirm.word);
+              next.delete(originalWord);
               return next;
             });
             // storageからも削除
-            await storage.deleteVocabularyWord(deleteConfirm.word);
+            await storage.deleteVocabularyWord(originalWord);
           }
           setDeleteConfirm({ isOpen: false, word: null });
         }}
