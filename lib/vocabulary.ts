@@ -350,7 +350,17 @@ export async function saveWordMeaning(
   
   // デバッグログ：保存後のデータを確認
   const saved = await storage.getVocabularyWord(word);
-  console.log("saveWordMeaning - saved:", saved);
+  console.log("saveWordMeaning - saved:", {
+    word: saved?.word,
+    meaning: saved?.meaning,
+    highlightedMeaning: saved?.highlightedMeaning,
+    exampleSentence: saved?.exampleSentence,
+    isLearned: saved?.isLearned,
+    isWantToLearn: saved?.isWantToLearn,
+    notes: saved?.notes,
+    updatedAt: saved?.updatedAt,
+    fullObject: saved, // 完全なオブジェクトも確認
+  });
 }
 
 /**
