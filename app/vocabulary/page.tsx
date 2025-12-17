@@ -30,17 +30,20 @@ function VocabularyWordEditorModal({
   const [exampleSentence, setExampleSentence] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   
-  // vocabWordをuseMemoで計算して、変更を確実に検知
-  // vocabularyWordsのMapが更新されたときに再計算されるようにする
-  const vocabWord = useMemo(() => {
-    const result = vocabularyWords.get(word.toLowerCase());
-    console.log("VocabularyWordEditorModal vocabWord useMemo:", {
+  // vocabWordを直接取得（useMemoを使わず、毎回最新の値を取得）
+  // vocabularyWordsのMapが更新されると、この値も自動的に更新される
+  const vocabWord = vocabularyWords.get(word.toLowerCase());
+  
+  // デバッグログ
+  useEffect(() => {
+    console.log("VocabularyWordEditorModal vocabWord changed:", {
       word,
-      result,
+      vocabWord,
+      hasHighlighted: !!vocabWord?.highlightedMeaning,
+      hasExample: !!vocabWord?.exampleSentence,
       mapSize: vocabularyWords.size,
     });
-    return result;
-  }, [vocabularyWords, word]);
+  }, [word, vocabWord, vocabularyWords.size]);
   
   const wordData = vocabulary.get(word);
 
