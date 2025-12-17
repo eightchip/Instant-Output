@@ -743,7 +743,10 @@ export default function VocabularyPage() {
                       🃏 暗記
                     </button>
                     <button
-                      onClick={() => setDeleteConfirm({ isOpen: true, word })}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setDeleteConfirm({ isOpen: true, word });
+                      }}
                       className="px-3 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-semibold"
                       title="この単語を削除"
                     >
@@ -1017,6 +1020,36 @@ export default function VocabularyPage() {
           }
         }}
       />}
+      
+      {/* 削除確認ダイアログ */}
+      <ConfirmDialog
+        isOpen={deleteConfirm.isOpen}
+        title="単語を削除"
+        message={`「${deleteConfirm.word}」を語彙リストから削除しますか？\nこの操作は取り消せません。`}
+        variant="danger"
+        confirmLabel="削除"
+        onConfirm={async () => {
+          if (deleteConfirm.word) {
+            const wordToDelete = deleteConfirm.word.toLowerCase();
+            // vocabularyWords Mapから削除
+            setVocabularyWords(prev => {
+              const next = new Map(prev);
+              next.delete(wordToDelete);
+              return next;
+            });
+            // vocabulary Mapから削除
+            setVocabulary(prev => {
+              const next = new Map(prev);
+              next.delete(deleteConfirm.word);
+              return next;
+            });
+            // storageからも削除
+            await storage.deleteVocabularyWord(deleteConfirm.word);
+          }
+          setDeleteConfirm({ isOpen: false, word: null });
+        }}
+        onCancel={() => setDeleteConfirm({ isOpen: false, word: null })}
+      />
     </div>
   );
 }
