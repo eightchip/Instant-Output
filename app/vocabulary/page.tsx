@@ -34,16 +34,8 @@ function VocabularyWordEditorModal({
   // vocabularyWordsのMapが更新されると、この値も自動的に更新される
   const vocabWord = vocabularyWords.get(word.toLowerCase());
   
-  // デバッグログ
-  useEffect(() => {
-    console.log("VocabularyWordEditorModal vocabWord changed:", {
-      word,
-      vocabWord,
-      hasHighlighted: !!vocabWord?.highlightedMeaning,
-      hasExample: !!vocabWord?.exampleSentence,
-      mapSize: vocabularyWords.size,
-    });
-  }, [word, vocabWord, vocabularyWords.size]);
+  // vocabWordの変更を検知するためのキー（updatedAtのタイムスタンプを使用）
+  const vocabWordKey = vocabWord?.updatedAt?.getTime() || 0;
   
   const wordData = vocabulary.get(word);
 
@@ -54,8 +46,11 @@ function VocabularyWordEditorModal({
         console.log("VocabularyWordEditorModal loadMeaning:", {
           word,
           vocabWord,
+          vocabWordKey,
           hasHighlighted: !!vocabWord?.highlightedMeaning,
           hasExample: !!vocabWord?.exampleSentence,
+          highlightedValue: vocabWord?.highlightedMeaning,
+          exampleValue: vocabWord?.exampleSentence,
         });
         
         // 保存された例文があればそれを使う
@@ -106,7 +101,8 @@ function VocabularyWordEditorModal({
       }
     }
     loadMeaning();
-  }, [word, vocabWord, wordData, cards, vocabularyWords]);
+    // vocabWordKeyを依存配列に含めて、vocabWordが更新されたときに再実行されるようにする
+  }, [word, vocabWordKey, vocabWord?.meaning, vocabWord?.highlightedMeaning, vocabWord?.exampleSentence, wordData, cards, vocabularyWords]);
 
   if (isLoading || !wordData) {
     return (
