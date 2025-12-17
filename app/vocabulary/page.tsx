@@ -872,11 +872,18 @@ export default function VocabularyPage() {
           setVocabularyWords(prev => {
             const next = new Map(prev);
             next.set(updated.word.toLowerCase(), updated);
-            console.log("VocabularyPage setVocabularyWords - new map size:", next.size);
+            console.log("VocabularyPage setVocabularyWords - new map:", {
+              size: next.size,
+              word: updated.word,
+              hasHighlighted: !!updated.highlightedMeaning,
+              hasExample: !!updated.exampleSentence,
+            });
             return next;
           });
-          // データを再読み込み（念のため）
-          await loadData();
+          // 少し待ってからデータを再読み込み（念のため、データベースから最新データを取得）
+          setTimeout(async () => {
+            await loadData();
+          }, 100);
         }}
       />}
     </div>
