@@ -36,24 +36,43 @@ function VocabularyWordEditorModal({
     async function loadMeaning() {
       setIsLoading(true);
       try {
-        // 例文を取得
-        const wordCards = wordData?.isIdiom
-          ? cards.filter(card => {
-              const lowerText = card.target_en.toLowerCase();
-              const lowerWord = word.toLowerCase();
-              return lowerText.includes(lowerWord);
-            })
-          : cards.filter(card => getImportantWords(card).includes(word.toLowerCase()));
-        
-        if (wordCards.length > 0) {
-          setExampleSentence(wordCards[0].target_en);
+        // 保存された例文があればそれを使う
+        if (vocabWord?.exampleSentence) {
+          setExampleSentence(vocabWord.exampleSentence);
+        } else {
+          // 例文を取得
+          const wordCards = wordData?.isIdiom
+            ? cards.filter(card => {
+                const lowerText = card.target_en.toLowerCase();
+                const lowerWord = word.toLowerCase();
+                return lowerText.includes(lowerWord);
+              })
+            : cards.filter(card => getImportantWords(card).includes(word.toLowerCase()));
+          
+          if (wordCards.length > 0) {
+            setExampleSentence(wordCards[0].target_en);
+          } else {
+            setExampleSentence("");
+          }
         }
 
         if (vocabWord?.meaning) {
           setCurrentMeaning(vocabWord.meaning);
-        } else if (wordData && wordCards.length > 0) {
-          const meaning = await getWordMeaning(word, cards, wordData.isIdiom, vocabularyWords);
-          setCurrentMeaning(meaning);
+        } else if (wordData) {
+          const wordCards = wordData.isIdiom
+            ? cards.filter(card => {
+                const lowerText = card.target_en.toLowerCase();
+                const lowerWord = word.toLowerCase();
+                return lowerText.includes(lowerWord);
+              })
+            : cards.filter(card => getImportantWords(card).includes(word.toLowerCase()));
+          
+          if (wordCards.length > 0) {
+            const meaning = await getWordMeaning(word, cards, wordData.isIdiom, vocabularyWords);
+            setCurrentMeaning(meaning);
+          } else {
+            setCurrentMeaning("");
+          }
         } else {
           setCurrentMeaning("");
         }
@@ -66,7 +85,7 @@ function VocabularyWordEditorModal({
     }
     loadMeaning();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [word, vocabWord?.meaning, wordData, vocabularyWords]);
+  }, [word, vocabWord?.meaning, vocabWord?.exampleSentence, vocabWord?.highlightedMeaning, wordData, vocabularyWords]);, [word, vocabWord?.meaning, vocabWord?.highlightedMeaning, vocabWord?.exampleSentence, wordData, vocabularyWords]);
 
   if (isLoading || !wordData) {
     return (

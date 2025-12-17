@@ -149,18 +149,21 @@ export default function VocabularyWordEditor({
         await storage.deleteVocabularyWord(word);
       }
 
-      // 意味を保存（ハイライトと例文も含む）
+      // 意味を保存（ハイライト、例文、フラグも含む）
+      // 空文字列の場合はundefinedに変換
+      const trimmedHighlighted = highlightedMeaning.trim();
+      const trimmedExample = exampleSentence.trim();
+      const trimmedNotes = notes.trim();
+      
       await saveWordMeaning(
         trimmedWord, 
         trimmedMeaning, 
-        notes.trim() || undefined,
-        highlightedMeaning.trim() || undefined,
-        exampleSentence.trim() || undefined
+        trimmedNotes || undefined,
+        trimmedHighlighted || undefined,
+        trimmedExample || undefined,
+        isLearned,
+        isWantToLearn
       );
-      
-      // フラグを更新
-      await updateWordLearnedStatus(trimmedWord, isLearned);
-      await updateWordWantToLearnStatus(trimmedWord, isWantToLearn);
 
       // 更新されたデータを取得
       const updated = await storage.getVocabularyWord(trimmedWord);

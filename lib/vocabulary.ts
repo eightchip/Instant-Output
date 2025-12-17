@@ -296,7 +296,9 @@ export async function saveWordMeaning(
   meaning: string, 
   notes?: string,
   highlightedMeaning?: string,
-  exampleSentence?: string
+  exampleSentence?: string,
+  isLearned?: boolean,
+  isWantToLearn?: boolean
 ): Promise<void> {
   const existing = await storage.getVocabularyWord(word);
   const vocabWord: VocabularyWord = existing || {
@@ -308,14 +310,28 @@ export async function saveWordMeaning(
     updatedAt: new Date(),
   };
   vocabWord.meaning = meaning;
+  
+  // notesの更新（空文字列の場合はundefined）
   if (notes !== undefined) {
-    vocabWord.notes = notes;
+    vocabWord.notes = notes && notes.trim() ? notes.trim() : undefined;
   }
+  
+  // highlightedMeaningの更新（空文字列の場合はundefined、明示的にundefinedが渡された場合も更新）
   if (highlightedMeaning !== undefined) {
-    vocabWord.highlightedMeaning = highlightedMeaning;
+    vocabWord.highlightedMeaning = highlightedMeaning && highlightedMeaning.trim() ? highlightedMeaning.trim() : undefined;
   }
+  
+  // exampleSentenceの更新（空文字列の場合はundefined、明示的にundefinedが渡された場合も更新）
   if (exampleSentence !== undefined) {
-    vocabWord.exampleSentence = exampleSentence;
+    vocabWord.exampleSentence = exampleSentence && exampleSentence.trim() ? exampleSentence.trim() : undefined;
+  }
+  
+  // フラグの更新
+  if (isLearned !== undefined) {
+    vocabWord.isLearned = isLearned;
+  }
+  if (isWantToLearn !== undefined) {
+    vocabWord.isWantToLearn = isWantToLearn;
   }
   vocabWord.updatedAt = new Date();
   await storage.saveVocabularyWord(vocabWord);
