@@ -630,6 +630,35 @@ export default function VocabularyPage() {
                     </div>
                     <div className="mt-2 text-sm text-gray-600 w-full">
                       {(() => {
+                        // 保存された語彙データを取得
+                        const vocabWord = vocabularyWords.get(word.toLowerCase());
+                        
+                        // 保存された例文がある場合はそれを使用
+                        if (vocabWord?.exampleSentence) {
+                          return (
+                            <div className="mb-2 p-2 bg-blue-50 rounded border border-blue-200 w-full">
+                              <div className="font-semibold text-gray-800 mb-1 break-words">
+                                "{vocabWord.exampleSentence}"
+                              </div>
+                              {vocabWord.meaning && (
+                                <div className="text-gray-600 text-xs break-words">
+                                  {vocabWord.highlightedMeaning ? (
+                                    <>
+                                      <span className="bg-yellow-300 px-1 rounded">{vocabWord.highlightedMeaning}</span>
+                                      {vocabWord.meaning !== vocabWord.highlightedMeaning && (
+                                        <span className="text-gray-500">（{vocabWord.meaning}）</span>
+                                      )}
+                                    </>
+                                  ) : (
+                                    vocabWord.meaning
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        }
+                        
+                        // 保存された例文がない場合は、カードから例文を取得
                         // idiomの場合は、idiomが含まれるカードを検索
                         const exampleCards = data.isIdiom
                           ? cards.filter(card => {
@@ -647,13 +676,27 @@ export default function VocabularyPage() {
                           );
                         }
                         
+                        // 保存された意味がある場合は、それを使用してハイライトを表示
+                        const firstCard = exampleCards[0];
+                        const displayMeaning = vocabWord?.meaning || firstCard.prompt_jp;
+                        const highlightedMeaning = vocabWord?.highlightedMeaning;
+                        
                         return exampleCards.slice(0, 3).map(card => (
                           <div key={card.id} className="mb-2 p-2 bg-gray-50 rounded border border-gray-200 w-full">
                             <div className="font-semibold text-gray-800 mb-1 break-words">
                               "{card.target_en}"
                             </div>
                             <div className="text-gray-600 text-xs break-words">
-                              {card.prompt_jp}
+                              {card === firstCard && highlightedMeaning ? (
+                                <>
+                                  <span className="bg-yellow-300 px-1 rounded">{highlightedMeaning}</span>
+                                  {displayMeaning !== highlightedMeaning && (
+                                    <span className="text-gray-500">（{displayMeaning}）</span>
+                                  )}
+                                </>
+                              ) : (
+                                card.prompt_jp
+                              )}
                             </div>
                           </div>
                         ));
