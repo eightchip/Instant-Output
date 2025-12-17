@@ -35,7 +35,8 @@ function VocabularyWordEditorModal({
   const vocabWord = vocabularyWords.get(word.toLowerCase());
   
   // vocabWordの変更を検知するためのキー（updatedAtのタイムスタンプを使用）
-  const vocabWordKey = vocabWord?.updatedAt?.getTime() || 0;
+  // highlightedMeaningとexampleSentenceも含めて、変更を確実に検知
+  const vocabWordKey = `${vocabWord?.updatedAt?.getTime() || 0}-${vocabWord?.highlightedMeaning || ''}-${vocabWord?.exampleSentence || ''}`;
   
   const wordData = vocabulary.get(word);
 
@@ -43,14 +44,15 @@ function VocabularyWordEditorModal({
     async function loadMeaning() {
       setIsLoading(true);
       try {
-        console.log("VocabularyWordEditorModal loadMeaning:", {
+        console.log("VocabularyWordEditorModal loadMeaning - start:", {
           word,
-          vocabWord,
           vocabWordKey,
+          vocabWordExists: !!vocabWord,
           hasHighlighted: !!vocabWord?.highlightedMeaning,
           hasExample: !!vocabWord?.exampleSentence,
           highlightedValue: vocabWord?.highlightedMeaning,
           exampleValue: vocabWord?.exampleSentence,
+          vocabWordFull: vocabWord, // 完全なオブジェクトを確認
         });
         
         // 保存された例文があればそれを使う
@@ -95,12 +97,7 @@ function VocabularyWordEditorModal({
           setCurrentMeaning("");
         }
         
-        console.log("VocabularyWordEditorModal loadMeaning - final state:", {
-          currentMeaning,
-          exampleSentence,
-          vocabWordHighlighted: vocabWord?.highlightedMeaning,
-          vocabWordExample: vocabWord?.exampleSentence,
-        });
+        // ログは非同期処理の外で出力する必要があるため、ここでは出力しない
       } catch (error) {
         console.error("Failed to load meaning:", error);
         setCurrentMeaning("");
@@ -110,7 +107,7 @@ function VocabularyWordEditorModal({
     }
     loadMeaning();
     // vocabWordKeyを依存配列に含めて、vocabWordが更新されたときに再実行されるようにする
-  }, [word, vocabWordKey, vocabWord?.meaning, vocabWord?.highlightedMeaning, vocabWord?.exampleSentence, wordData, cards, vocabularyWords]);
+  }, [word, vocabWordKey, wordData, cards, vocabularyWords]);
 
   if (isLoading || !wordData) {
     return (
