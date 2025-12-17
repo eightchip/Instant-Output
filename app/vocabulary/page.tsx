@@ -85,7 +85,7 @@ function VocabularyWordEditorModal({
     }
     loadMeaning();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [word, vocabWord?.meaning, vocabWord?.exampleSentence, vocabWord?.highlightedMeaning, wordData, vocabularyWords]);, [word, vocabWord?.meaning, vocabWord?.highlightedMeaning, vocabWord?.exampleSentence, wordData, vocabularyWords]);
+  }, [word, vocabWord?.meaning, vocabWord?.highlightedMeaning, vocabWord?.exampleSentence, wordData, vocabularyWords]);
 
   if (isLoading || !wordData) {
     return (
