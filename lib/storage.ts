@@ -841,12 +841,28 @@ class StorageService {
       const request = store.getAll();
       request.onsuccess = () => {
         const results = request.result || [];
-        // ISO文字列をDate型に変換
+        // ISO文字列をDate型に変換し、すべてのプロパティを明示的に含める
         resolve(
-          results.map((vocab: any) => ({
-            ...vocab,
-            updatedAt: vocab.updatedAt ? new Date(vocab.updatedAt) : undefined,
-          }))
+          results.map((vocab: any): VocabularyWord => {
+            const vocabWord: VocabularyWord = {
+              word: vocab.word,
+              meaning: vocab.meaning,
+              isLearned: vocab.isLearned || false,
+              isWantToLearn: vocab.isWantToLearn || false,
+              updatedAt: vocab.updatedAt ? new Date(vocab.updatedAt) : undefined,
+            };
+            // オプショナルプロパティを明示的に含める
+            if (vocab.highlightedMeaning !== undefined) {
+              vocabWord.highlightedMeaning = vocab.highlightedMeaning;
+            }
+            if (vocab.exampleSentence !== undefined) {
+              vocabWord.exampleSentence = vocab.exampleSentence;
+            }
+            if (vocab.notes !== undefined) {
+              vocabWord.notes = vocab.notes;
+            }
+            return vocabWord;
+          })
         );
       };
       request.onerror = () => reject(request.error);
