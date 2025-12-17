@@ -933,45 +933,41 @@ export default function VocabularyPage() {
         cards={cards}
         onClose={() => setEditingWord(null)}
         onSave={async (updated) => {
-          console.log("VocabularyPage onSave - updated:", updated);
+          console.log("VocabularyPage onSave - updated:", {
+            word: updated.word,
+            hasHighlighted: !!updated.highlightedMeaning,
+            highlightedValue: updated.highlightedMeaning,
+            hasExample: !!updated.exampleSentence,
+            exampleValue: updated.exampleSentence,
+            fullUpdated: updated,
+          });
+          // 念のため、ストレージから最新のデータを再取得して確実に含める
+          const latest = await storage.getVocabularyWord(updated.word);
+          const finalUpdated = latest || updated;
+          console.log("VocabularyPage onSave - finalUpdated from storage:", {
+            word: finalUpdated.word,
+            hasHighlighted: !!finalUpdated.highlightedMeaning,
+            highlightedValue: finalUpdated.highlightedMeaning,
+            hasExample: !!finalUpdated.exampleSentence,
+            exampleValue: finalUpdated.exampleSentence,
+            fullFinalUpdated: finalUpdated,
+          });
           // 保存されたデータを直接vocabularyWordsに反映
           setVocabularyWords(prev => {
             const next = new Map(prev);
-            // updatedオブジェクトのすべてのプロパティを確実に含める
-            const fullUpdated: VocabularyWord = {
-              word: updated.word,
-              meaning: updated.meaning,
-              isLearned: updated.isLearned,
-              isWantToLearn: updated.isWantToLearn,
-              updatedAt: updated.updatedAt,
-            };
-            // オプショナルプロパティを明示的に含める
-            if (updated.highlightedMeaning !== undefined) {
-              fullUpdated.highlightedMeaning = updated.highlightedMeaning;
-            }
-            if (updated.exampleSentence !== undefined) {
-              fullUpdated.exampleSentence = updated.exampleSentence;
-            }
-            if (updated.notes !== undefined) {
-              fullUpdated.notes = updated.notes;
-            }
-            next.set(updated.word.toLowerCase(), fullUpdated);
+            // finalUpdatedオブジェクトをそのまま使用（すべてのプロパティが含まれている）
+            next.set(finalUpdated.word.toLowerCase(), finalUpdated);
             console.log("VocabularyPage setVocabularyWords - new map:", {
               size: next.size,
-              word: updated.word,
-              hasHighlighted: !!fullUpdated.highlightedMeaning,
-              highlightedValue: fullUpdated.highlightedMeaning,
-              hasExample: !!fullUpdated.exampleSentence,
-              exampleValue: fullUpdated.exampleSentence,
-              fullUpdated, // 完全なオブジェクトも確認
+              word: finalUpdated.word,
+              hasHighlighted: !!finalUpdated.highlightedMeaning,
+              highlightedValue: finalUpdated.highlightedMeaning,
+              hasExample: !!finalUpdated.exampleSentence,
+              exampleValue: finalUpdated.exampleSentence,
+              fullFinalUpdated: finalUpdated, // 完全なオブジェクトも確認
             });
             return next;
           });
-          // loadData()を呼び出さない（setVocabularyWordsで直接状態を更新するため）
-          // 必要に応じて、保存が完了したことを確認するために少し待つ
-          // setTimeout(async () => {
-          //   await loadData();
-          // }, 100);
         }}
       />}
     </div>
