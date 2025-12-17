@@ -24,7 +24,7 @@ function VocabularyWordEditorModal({
   vocabulary: Map<string, { count: number; difficulty: number; importance: number; isIdiom: boolean }>;
   cards: Card[];
   onClose: () => void;
-  onSave: () => Promise<void>;
+  onSave: (updated: VocabularyWord) => Promise<void>;
 }) {
   const [currentMeaning, setCurrentMeaning] = useState("");
   const [exampleSentence, setExampleSentence] = useState("");
@@ -155,7 +155,7 @@ function VocabularyWordEditorModal({
             initialIsWantToLearn={vocabWord?.isWantToLearn || false}
             initialNotes={vocabWord?.notes || ""}
             onSave={async (updated) => {
-              await onSave();
+              await onSave(updated);
               onClose();
             }}
             onCancel={onClose}
@@ -872,8 +872,14 @@ export default function VocabularyPage() {
         vocabulary={vocabulary}
         cards={cards}
         onClose={() => setEditingWord(null)}
-        onSave={async () => {
-          // データを再読み込みしてvocabularyWordsを更新
+        onSave={async (updated) => {
+          // 保存されたデータを直接vocabularyWordsに反映
+          setVocabularyWords(prev => {
+            const next = new Map(prev);
+            next.set(updated.word.toLowerCase(), updated);
+            return next;
+          });
+          // データを再読み込み
           await loadData();
         }}
       />}
