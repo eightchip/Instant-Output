@@ -73,6 +73,7 @@ function VocabularyWordEditorModal({
           }
         }
 
+        // 保存された意味があればそれを使う
         if (vocabWord?.meaning) {
           setCurrentMeaning(vocabWord.meaning);
         } else if (wordData) {
@@ -93,6 +94,13 @@ function VocabularyWordEditorModal({
         } else {
           setCurrentMeaning("");
         }
+        
+        console.log("VocabularyWordEditorModal loadMeaning - final state:", {
+          currentMeaning,
+          exampleSentence,
+          vocabWordHighlighted: vocabWord?.highlightedMeaning,
+          vocabWordExample: vocabWord?.exampleSentence,
+        });
       } catch (error) {
         console.error("Failed to load meaning:", error);
         setCurrentMeaning("");
@@ -140,15 +148,16 @@ function VocabularyWordEditorModal({
             </button>
           </div>
           <VocabularyWordEditor
-            key={`${word}-${vocabWord?.updatedAt?.getTime() || 0}`}
+            key={`${word}-${vocabWordKey}`}
             word={word}
             initialMeaning={currentMeaning}
-            initialHighlightedMeaning={vocabWord?.highlightedMeaning || ""}
-            initialExampleSentence={vocabWord?.exampleSentence || exampleSentence}
-            initialIsLearned={vocabWord?.isLearned || false}
-            initialIsWantToLearn={vocabWord?.isWantToLearn || false}
-            initialNotes={vocabWord?.notes || ""}
+            initialHighlightedMeaning={vocabWord?.highlightedMeaning ?? ""}
+            initialExampleSentence={vocabWord?.exampleSentence ?? exampleSentence}
+            initialIsLearned={vocabWord?.isLearned ?? false}
+            initialIsWantToLearn={vocabWord?.isWantToLearn ?? false}
+            initialNotes={vocabWord?.notes ?? ""}
             onSave={async (updated) => {
+              console.log("VocabularyWordEditorModal onSave - updated:", updated);
               await onSave(updated);
               onClose();
             }}
