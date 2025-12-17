@@ -581,7 +581,7 @@ export default function VocabularyPage() {
               
               return (
               <div
-                key={word}
+                key={`${word}-${vocabularyWords.get(word.toLowerCase())?.updatedAt?.getTime() || 0}`}
                 className={`bg-white/90 backdrop-blur-sm rounded-xl shadow-lg p-5 hover:shadow-xl transition-all duration-300 border-2 ${
                   data.isIdiom 
                     ? "border-l-4 border-purple-500 bg-gradient-to-r from-purple-50/50 to-white" 
