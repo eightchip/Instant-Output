@@ -386,7 +386,7 @@ export default function CardEditor({
         </div>
 
         {/* ボタン */}
-        <div className="flex gap-3 pt-4 border-t">
+        <div className="flex gap-3 pt-4 border-t flex-wrap">
           <button
             onClick={handleSave}
             disabled={isSaving}
@@ -402,6 +402,18 @@ export default function CardEditor({
               キャンセル
             </button>
           )}
+          <button
+            onClick={() => {
+              setShowAddVocabulary(!showAddVocabulary);
+              if (!showAddVocabulary) {
+                // 語彙追加フォームを開く際に、カードの内容を初期値として設定
+                setVocabExample(targetEn.trim());
+              }
+            }}
+            className="bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-4 rounded-lg transition-colors"
+          >
+            {showAddVocabulary ? "語彙追加を閉じる" : "📚 語彙リストに追加"}
+          </button>
           {showDelete && onDelete && (
             <button
               onClick={handleDelete}
@@ -412,6 +424,83 @@ export default function CardEditor({
             </button>
           )}
         </div>
+        
+        {/* 語彙リスト追加フォーム */}
+        {showAddVocabulary && (
+          <div className="mt-6 p-6 bg-blue-50 rounded-lg border-2 border-blue-200">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">語彙リストに追加</h3>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  単語または表現 <span className="text-red-500">*</span>
+                  {errors.vocabWord && (
+                    <span className="text-red-600 text-sm ml-2">{errors.vocabWord}</span>
+                  )}
+                </label>
+                <input
+                  type="text"
+                  value={vocabWord}
+                  onChange={(e) => setVocabWord(e.target.value)}
+                  placeholder="例: wonderful, break down, etc."
+                  className="w-full border-2 border-gray-300 rounded-lg px-4 py-3 bg-white text-gray-900 focus:border-blue-500 focus:outline-none"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  意味（日本語訳） <span className="text-red-500">*</span>
+                  {errors.vocabMeaning && (
+                    <span className="text-red-600 text-sm ml-2">{errors.vocabMeaning}</span>
+                  )}
+                </label>
+                <textarea
+                  value={vocabMeaning}
+                  onChange={(e) => setVocabMeaning(e.target.value)}
+                  placeholder="意味を入力..."
+                  className="w-full border-2 border-gray-300 rounded-lg px-4 py-3 bg-white text-gray-900 resize-none"
+                  rows={3}
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  例文（英文）
+                </label>
+                <textarea
+                  value={vocabExample}
+                  onChange={(e) => setVocabExample(e.target.value)}
+                  placeholder="例文を入力（未入力の場合はカードの英文を使用）"
+                  className="w-full border-2 border-gray-300 rounded-lg px-4 py-3 bg-white text-gray-900 resize-none"
+                  rows={2}
+                />
+              </div>
+              
+              <div className="flex items-center gap-4">
+                <button
+                  type="button"
+                  onClick={handleAddVocabulary}
+                  disabled={isAddingVocabulary}
+                  className="px-6 py-3 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white font-semibold rounded-lg transition-all shadow-md hover:shadow-lg"
+                >
+                  {isAddingVocabulary ? "追加中..." : "語彙リストに追加"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowAddVocabulary(false);
+                    setVocabWord("");
+                    setVocabMeaning("");
+                    setVocabExample("");
+                    setErrors({});
+                  }}
+                  className="px-6 py-3 bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold rounded-lg transition-all"
+                >
+                  キャンセル
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       <MessageDialog
