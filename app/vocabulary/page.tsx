@@ -155,12 +155,6 @@ function VocabularyWordEditorModal({
             initialIsWantToLearn={vocabWord?.isWantToLearn || false}
             initialNotes={vocabWord?.notes || ""}
             onSave={async (updated) => {
-              // 保存後にvocabularyWordsを直接更新
-              setVocabularyWords(prev => {
-                const next = new Map(prev);
-                next.set(updated.word.toLowerCase(), updated);
-                return next;
-              });
               await onSave();
               onClose();
             }}
@@ -879,7 +873,7 @@ export default function VocabularyPage() {
         cards={cards}
         onClose={() => setEditingWord(null)}
         onSave={async () => {
-          // データを再読み込み
+          // データを再読み込みしてvocabularyWordsを更新
           await loadData();
         }}
       />}
