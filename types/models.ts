@@ -54,7 +54,9 @@ export interface StudySession {
 
 export interface VocabularyWord {
   word: string; // 単語（小文字で正規化）
-  meaning: string; // ユーザーが編集可能な意味
+  meaning: string; // ユーザーが編集可能な意味（全文）
+  highlightedMeaning?: string; // ハイライトされた意味の部分（ユーザーが選択した部分）
+  exampleSentence?: string; // 例文（英文全体）
   isLearned: boolean; // 覚えたフラグ
   isWantToLearn: boolean; // 覚えたいフラグ
   notes?: string; // メモ

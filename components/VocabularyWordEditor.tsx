@@ -10,6 +10,8 @@ import AudioPlaybackButton from "./AudioPlaybackButton";
 interface VocabularyWordEditorProps {
   word: string;
   initialMeaning: string;
+  initialHighlightedMeaning?: string;
+  initialExampleSentence?: string;
   initialIsLearned: boolean;
   initialIsWantToLearn: boolean;
   initialNotes?: string;
@@ -21,6 +23,8 @@ interface VocabularyWordEditorProps {
 export default function VocabularyWordEditor({
   word,
   initialMeaning,
+  initialHighlightedMeaning,
+  initialExampleSentence,
   initialIsLearned,
   initialIsWantToLearn,
   initialNotes = "",
@@ -29,10 +33,13 @@ export default function VocabularyWordEditor({
   autoFocus = false,
 }: VocabularyWordEditorProps) {
   const [meaning, setMeaning] = useState(initialMeaning);
+  const [highlightedMeaning, setHighlightedMeaning] = useState(initialHighlightedMeaning || "");
+  const [exampleSentence, setExampleSentence] = useState(initialExampleSentence || "");
   const [notes, setNotes] = useState(initialNotes);
   const [isLearned, setIsLearned] = useState(initialIsLearned);
   const [isWantToLearn, setIsWantToLearn] = useState(initialIsWantToLearn);
   const [isSaving, setIsSaving] = useState(false);
+  const [selectedText, setSelectedText] = useState("");
   const [errors, setErrors] = useState<{
     meaning?: string;
   }>({});
@@ -51,10 +58,12 @@ export default function VocabularyWordEditor({
 
   useEffect(() => {
     setMeaning(initialMeaning);
+    setHighlightedMeaning(initialHighlightedMeaning || "");
+    setExampleSentence(initialExampleSentence || "");
     setNotes(initialNotes);
     setIsLearned(initialIsLearned);
     setIsWantToLearn(initialIsWantToLearn);
-  }, [initialMeaning, initialNotes, initialIsLearned, initialIsWantToLearn]);
+  }, [initialMeaning, initialHighlightedMeaning, initialExampleSentence, initialNotes, initialIsLearned, initialIsWantToLearn]);
 
   useEffect(() => {
     // テキストエリアの高さを自動調整
@@ -74,6 +83,36 @@ export default function VocabularyWordEditor({
     }
   }, [autoFocus]);
 
+  const handleTextSelection = () => {
+    const textarea = textareaMeaningRef.current;
+    if (!textarea) return;
+    
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    
+    if (start !== end) {
+      const selected = meaning.substring(start, end);
+      setSelectedText(selected);
+    } else {
+      setSelectedText("");
+    }
+  };
+
+  const handleSaveHighlight = () => {
+    if (selectedText.trim()) {
+      setHighlightedMeaning(selectedText.trim());
+      setSelectedText("");
+      // 選択を解除
+      if (textareaMeaningRef.current) {
+        textareaMeaningRef.current.setSelectionRange(0, 0);
+      }
+    }
+  };
+
+  const handleClearHighlight = () => {
+    setHighlightedMeaning("");
+  };
+
   const handleSave = async () => {
     if (!meaning.trim()) {
       setErrors({ meaning: "意味を入力してください" });
@@ -84,8 +123,14 @@ export default function VocabularyWordEditor({
     setIsSaving(true);
 
     try {
-      // 意味を保存
-      await saveWordMeaning(word, meaning.trim(), notes.trim() || undefined);
+      // 意味を保存（ハイライトと例文も含む）
+      await saveWordMeaning(
+        word, 
+        meaning.trim(), 
+        notes.trim() || undefined,
+        highlightedMeaning.trim() || undefined,
+        exampleSentence.trim() || undefined
+      );
       
       // フラグを更新
       await updateWordLearnedStatus(word, isLearned);
@@ -133,10 +178,20 @@ export default function VocabularyWordEditor({
           </div>
         </div>
 
+        {/* 英文全体 */}
+        {exampleSentence && (
+          <div>
+            <label className="block text-sm font-semibold mb-2">英文</label>
+            <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg text-gray-900">
+              {exampleSentence}
+            </div>
+          </div>
+        )}
+
         {/* 意味 */}
         <div>
           <label className="block text-sm font-semibold mb-2">
-            意味
+            意味（該当部分を選択してハイライトできます）
             {errors.meaning && (
               <span className="text-red-600 text-sm ml-2">{errors.meaning}</span>
             )}
@@ -145,10 +200,44 @@ export default function VocabularyWordEditor({
             ref={textareaMeaningRef}
             value={meaning}
             onChange={(e) => setMeaning(e.target.value)}
+            onSelect={handleTextSelection}
             placeholder="意味を入力..."
             className="w-full border border-gray-300 rounded-lg px-4 py-3 bg-white text-gray-900 resize-none overflow-hidden"
-            rows={2}
+            rows={4}
           />
+          
+          {/* 選択テキストとハイライト保存ボタン */}
+          {selectedText && (
+            <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded-lg">
+              <div className="text-sm text-gray-700 mb-2">
+                選択中: <span className="font-semibold">{selectedText}</span>
+              </div>
+              <button
+                onClick={handleSaveHighlight}
+                className="px-3 py-1 bg-yellow-500 hover:bg-yellow-600 text-white text-sm font-semibold rounded"
+              >
+                この部分をハイライトとして保存
+              </button>
+            </div>
+          )}
+
+          {/* 現在のハイライト表示 */}
+          {highlightedMeaning && (
+            <div className="mt-2 p-3 bg-indigo-50 border-2 border-indigo-300 rounded-lg">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-semibold text-indigo-900">ハイライトされた意味:</span>
+                <button
+                  onClick={handleClearHighlight}
+                  className="text-xs text-indigo-600 hover:text-indigo-800 underline"
+                >
+                  クリア
+                </button>
+              </div>
+              <div className="text-base font-semibold text-indigo-900 bg-yellow-200 px-2 py-1 rounded">
+                {highlightedMeaning}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* メモ */}

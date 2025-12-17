@@ -27,6 +27,7 @@ function VocabularyWordEditorModal({
   onSave: () => Promise<void>;
 }) {
   const [currentMeaning, setCurrentMeaning] = useState("");
+  const [exampleSentence, setExampleSentence] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const vocabWord = vocabularyWords.get(word.toLowerCase());
   const wordData = vocabulary.get(word);
@@ -35,9 +36,22 @@ function VocabularyWordEditorModal({
     async function loadMeaning() {
       setIsLoading(true);
       try {
+        // 例文を取得
+        const wordCards = wordData?.isIdiom
+          ? cards.filter(card => {
+              const lowerText = card.target_en.toLowerCase();
+              const lowerWord = word.toLowerCase();
+              return lowerText.includes(lowerWord);
+            })
+          : cards.filter(card => getImportantWords(card).includes(word.toLowerCase()));
+        
+        if (wordCards.length > 0) {
+          setExampleSentence(wordCards[0].target_en);
+        }
+
         if (vocabWord?.meaning) {
           setCurrentMeaning(vocabWord.meaning);
-        } else if (wordData) {
+        } else if (wordData && wordCards.length > 0) {
           const meaning = await getWordMeaning(word, cards, wordData.isIdiom, vocabularyWords);
           setCurrentMeaning(meaning);
         } else {
@@ -92,6 +106,8 @@ function VocabularyWordEditorModal({
           <VocabularyWordEditor
             word={word}
             initialMeaning={currentMeaning}
+            initialHighlightedMeaning={vocabWord?.highlightedMeaning}
+            initialExampleSentence={vocabWord?.exampleSentence || exampleSentence}
             initialIsLearned={vocabWord?.isLearned || false}
             initialIsWantToLearn={vocabWord?.isWantToLearn || false}
             initialNotes={vocabWord?.notes || ""}
@@ -595,7 +611,6 @@ export default function VocabularyPage() {
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        console.log("Edit button clicked for word:", word);
                         setEditingWord(word);
                       }}
                       className="px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-semibold"
@@ -612,13 +627,6 @@ export default function VocabularyPage() {
                         🔊
                       </button>
                     )}
-                    <button
-                      onClick={() => router.push(`/vocabulary/quiz?words=${encodeURIComponent(word)}&mode=en-to-jp`)}
-                      className="px-3 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-semibold"
-                      title="この単語でクイズ"
-                    >
-                      📝 クイズ
-                    </button>
                     <button
                       onClick={() => router.push(`/vocabulary/flashcard?words=${encodeURIComponent(word)}`)}
                       className="px-3 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-sm font-semibold"

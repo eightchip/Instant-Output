@@ -3,7 +3,7 @@
 import { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { storage } from "@/lib/storage";
-import { Card, Review } from "@/types/models";
+import { Card, Review, VocabularyWord } from "@/types/models";
 import { generateVocabularyList, getImportantWords, getWordMeaning } from "@/lib/vocabulary";
 import { tts } from "@/lib/tts";
 import LoadingSpinner from "@/components/LoadingSpinner";
@@ -20,6 +20,7 @@ function VocabularyFlashcardContent() {
   const [cards, setCards] = useState<Card[]>([]);
   const [vocabulary, setVocabulary] = useState<Map<string, { count: number; difficulty: number; importance: number; isIdiom: boolean }>>(new Map());
   const [reviews, setReviews] = useState<Map<string, Review>>(new Map());
+  const [vocabularyWords, setVocabularyWords] = useState<Map<string, VocabularyWord>>(new Map());
   const [isLoading, setIsLoading] = useState(true);
   const [flashcardWords, setFlashcardWords] = useState<string[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -40,9 +41,10 @@ function VocabularyFlashcardContent() {
   async function loadData() {
     try {
       await storage.init();
-      const [allCards, allReviews] = await Promise.all([
+      const [allCards, allReviews, allVocabularyWords] = await Promise.all([
         storage.getAllCards(),
         storage.getAllReviews(),
+        storage.getAllVocabularyWords(),
       ]);
       const userCards = allCards.filter(card => card.source_type !== "template");
       setCards(userCards);
@@ -52,6 +54,12 @@ function VocabularyFlashcardContent() {
         reviewsMap.set(review.cardId, review);
       }
       setReviews(reviewsMap);
+      
+      const vocabWordsMap = new Map<string, VocabularyWord>();
+      for (const vocabWord of allVocabularyWords) {
+        vocabWordsMap.set(vocabWord.word.toLowerCase(), vocabWord);
+      }
+      setVocabularyWords(vocabWordsMap);
       
       const vocab = generateVocabularyList(userCards);
       setVocabulary(vocab);
@@ -117,8 +125,15 @@ function VocabularyFlashcardContent() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentWord]);
 
-  function getWordTranslation(word: string): string {
-    return wordMeanings.get(word) || "";
+  function getWordTranslation(word: string): { full: string; highlighted?: string } {
+    const vocabWord = vocabularyWords.get(word.toLowerCase());
+    const fullMeaning = wordMeanings.get(word) || vocabWord?.meaning || "";
+    const highlighted = vocabWord?.highlightedMeaning;
+    
+    return {
+      full: fullMeaning,
+      highlighted: highlighted,
+    };
   }
 
   function handleFlip() {
@@ -256,7 +271,20 @@ function VocabularyFlashcardContent() {
               <>
                 <div className="mb-6">
                   <p className="text-sm text-gray-600 mb-2">意味</p>
-                  <h2 className="text-4xl font-black text-indigo-900 mb-4">{translation || "（訳が見つかりません）"}</h2>
+                  {translation.highlighted ? (
+                    <div>
+                      <h2 className="text-4xl font-black text-indigo-900 mb-2">
+                        <span className="bg-yellow-300 px-2 py-1 rounded">{translation.highlighted}</span>
+                      </h2>
+                      {translation.full && translation.full !== translation.highlighted && (
+                        <p className="text-lg text-gray-600 mt-2">（全文: {translation.full}）</p>
+                      )}
+                    </div>
+                  ) : (
+                    <h2 className="text-4xl font-black text-indigo-900 mb-4">
+                      {translation.full || "（訳が見つかりません）"}
+                    </h2>
+                  )}
                 </div>
                 <div className="mb-6">
                   <p className="text-sm text-gray-600 mb-2">英語</p>

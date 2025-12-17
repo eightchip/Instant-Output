@@ -286,8 +286,15 @@ export async function getWordMeaning(
 /**
  * 単語の意味を保存
  */
-export async function saveWordMeaning(word: string, meaning: string, notes?: string): Promise<void> {
-  const vocabWord: VocabularyWord = {
+export async function saveWordMeaning(
+  word: string, 
+  meaning: string, 
+  notes?: string,
+  highlightedMeaning?: string,
+  exampleSentence?: string
+): Promise<void> {
+  const existing = await storage.getVocabularyWord(word);
+  const vocabWord: VocabularyWord = existing || {
     word: word.toLowerCase(),
     meaning,
     isLearned: false,
@@ -295,6 +302,17 @@ export async function saveWordMeaning(word: string, meaning: string, notes?: str
     notes,
     updatedAt: new Date(),
   };
+  vocabWord.meaning = meaning;
+  if (notes !== undefined) {
+    vocabWord.notes = notes;
+  }
+  if (highlightedMeaning !== undefined) {
+    vocabWord.highlightedMeaning = highlightedMeaning;
+  }
+  if (exampleSentence !== undefined) {
+    vocabWord.exampleSentence = exampleSentence;
+  }
+  vocabWord.updatedAt = new Date();
   await storage.saveVocabularyWord(vocabWord);
 }
 
