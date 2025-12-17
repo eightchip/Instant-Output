@@ -8,6 +8,7 @@ import { generateVocabularyList, getImportantWords, getWordMeaning } from "@/lib
 import { tts } from "@/lib/tts";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import AudioPlaybackButton from "@/components/AudioPlaybackButton";
+import ConfirmDialog from "@/components/ConfirmDialog";
 import VocabularyWordEditor from "@/components/VocabularyWordEditor";
 
 // 編集モーダルコンポーネント
@@ -211,13 +212,17 @@ export default function VocabularyPage() {
     minCount: null,
     maxCount: null,
     learnedOnly: null,
-    hideLearned: false,
+    hideLearned: true, // デフォルトで覚えた単語を非表示
     wantToLearnOnly: false,
   });
   const [showFilters, setShowFilters] = useState(false);
   const [selectedWord, setSelectedWord] = useState<string | null>(null);
   const [editingWord, setEditingWord] = useState<string | null>(null);
   const [vocabularyWords, setVocabularyWords] = useState<Map<string, VocabularyWord>>(new Map());
+  const [deleteConfirm, setDeleteConfirm] = useState<{ isOpen: boolean; word: string | null }>({
+    isOpen: false,
+    word: null,
+  });
 
   useEffect(() => {
     loadData();
@@ -376,7 +381,7 @@ export default function VocabularyPage() {
           </button>
         </div>
 
-        <div className="bg-white/90 backdrop-blur-sm rounded-xl shadow-xl border border-white/20 p-6 mb-6">
+        <div className="sticky top-0 z-10 bg-white/90 backdrop-blur-sm rounded-xl shadow-xl border border-white/20 p-6 mb-6">
           <div className="mb-4">
             <input
               type="text"
@@ -736,6 +741,13 @@ export default function VocabularyPage() {
                       title="この単語でフラッシュカード"
                     >
                       🃏 暗記
+                    </button>
+                    <button
+                      onClick={() => setDeleteConfirm({ isOpen: true, word })}
+                      className="px-3 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-semibold"
+                      title="この単語を削除"
+                    >
+                      🗑️ 削除
                     </button>
                   </div>
                 </div>
