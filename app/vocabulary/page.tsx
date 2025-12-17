@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { storage } from "@/lib/storage";
 import { Card, Review, Lesson, VocabularyWord } from "@/types/models";
@@ -29,7 +29,12 @@ function VocabularyWordEditorModal({
   const [currentMeaning, setCurrentMeaning] = useState("");
   const [exampleSentence, setExampleSentence] = useState("");
   const [isLoading, setIsLoading] = useState(true);
-  const vocabWord = vocabularyWords.get(word.toLowerCase());
+  
+  // vocabWordをuseMemoで計算して、変更を確実に検知
+  const vocabWord = useMemo(() => {
+    return vocabularyWords.get(word.toLowerCase());
+  }, [vocabularyWords, word]);
+  
   const wordData = vocabulary.get(word);
 
   useEffect(() => {
@@ -84,8 +89,7 @@ function VocabularyWordEditorModal({
       }
     }
     loadMeaning();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [word, vocabWord?.meaning, vocabWord?.highlightedMeaning, vocabWord?.exampleSentence, wordData, vocabularyWords]);
+  }, [word, vocabWord, wordData, cards, vocabularyWords]);
 
   if (isLoading || !wordData) {
     return (
@@ -125,7 +129,7 @@ function VocabularyWordEditorModal({
           <VocabularyWordEditor
             word={word}
             initialMeaning={currentMeaning}
-            initialHighlightedMeaning={vocabWord?.highlightedMeaning}
+            initialHighlightedMeaning={vocabWord?.highlightedMeaning || ""}
             initialExampleSentence={vocabWord?.exampleSentence || exampleSentence}
             initialIsLearned={vocabWord?.isLearned || false}
             initialIsWantToLearn={vocabWord?.isWantToLearn || false}
