@@ -755,14 +755,34 @@ class StorageService {
     return new Promise((resolve, reject) => {
       const tx = db.transaction(STORES.vocabularyWords, "readwrite");
       const store = tx.objectStore(STORES.vocabularyWords);
-      // Date型をISO文字列に変換
-      const vocabData = {
-        ...vocabWord,
+      // Date型をISO文字列に変換し、すべてのプロパティを明示的に含める
+      const vocabData: any = {
+        word: vocabWord.word,
+        meaning: vocabWord.meaning,
+        isLearned: vocabWord.isLearned,
+        isWantToLearn: vocabWord.isWantToLearn,
         updatedAt: vocabWord.updatedAt instanceof Date ? vocabWord.updatedAt.toISOString() : vocabWord.updatedAt || new Date().toISOString(),
       };
+      // オプショナルプロパティを明示的に含める（undefinedの場合は含めない）
+      if (vocabWord.highlightedMeaning !== undefined) {
+        vocabData.highlightedMeaning = vocabWord.highlightedMeaning;
+      }
+      if (vocabWord.exampleSentence !== undefined) {
+        vocabData.exampleSentence = vocabWord.exampleSentence;
+      }
+      if (vocabWord.notes !== undefined) {
+        vocabData.notes = vocabWord.notes;
+      }
+      console.log("storage.saveVocabularyWord - saving data:", vocabData);
       const request = store.put(vocabData);
-      request.onsuccess = () => resolve();
-      request.onerror = () => reject(request.error);
+      request.onsuccess = () => {
+        console.log("storage.saveVocabularyWord - saved successfully");
+        resolve();
+      };
+      request.onerror = () => {
+        console.error("storage.saveVocabularyWord - error:", request.error);
+        reject(request.error);
+      };
     });
   }
 
@@ -778,11 +798,24 @@ class StorageService {
           resolve(null);
           return;
         }
-        // ISO文字列をDate型に変換
+        // ISO文字列をDate型に変換し、すべてのプロパティを明示的に含める
         const vocabWord: VocabularyWord = {
-          ...result,
+          word: result.word,
+          meaning: result.meaning,
+          isLearned: result.isLearned || false,
+          isWantToLearn: result.isWantToLearn || false,
           updatedAt: result.updatedAt ? new Date(result.updatedAt) : undefined,
         };
+        // オプショナルプロパティを明示的に含める
+        if (result.highlightedMeaning !== undefined) {
+          vocabWord.highlightedMeaning = result.highlightedMeaning;
+        }
+        if (result.exampleSentence !== undefined) {
+          vocabWord.exampleSentence = result.exampleSentence;
+        }
+        if (result.notes !== undefined) {
+          vocabWord.notes = result.notes;
+        }
         // デバッグログ：読み込んだデータを確認
         console.log("getVocabularyWord - loaded:", {
           word: vocabWord.word,
@@ -792,6 +825,7 @@ class StorageService {
           isLearned: vocabWord.isLearned,
           isWantToLearn: vocabWord.isWantToLearn,
           notes: vocabWord.notes,
+          rawResult: result, // 生のデータも確認
         });
         resolve(vocabWord);
       };
