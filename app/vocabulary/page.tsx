@@ -44,20 +44,23 @@ function VocabularyWordEditorModal({
     async function loadMeaning() {
       setIsLoading(true);
       try {
+        // 最新のvocabWordを取得（useEffect内で再取得）
+        const currentVocabWord = vocabularyWords.get(word.toLowerCase());
+        
         console.log("VocabularyWordEditorModal loadMeaning - start:", {
           word,
           vocabWordKey,
-          vocabWordExists: !!vocabWord,
-          hasHighlighted: !!vocabWord?.highlightedMeaning,
-          hasExample: !!vocabWord?.exampleSentence,
-          highlightedValue: vocabWord?.highlightedMeaning,
-          exampleValue: vocabWord?.exampleSentence,
-          vocabWordFull: vocabWord, // 完全なオブジェクトを確認
+          vocabWordExists: !!currentVocabWord,
+          hasHighlighted: !!currentVocabWord?.highlightedMeaning,
+          hasExample: !!currentVocabWord?.exampleSentence,
+          highlightedValue: currentVocabWord?.highlightedMeaning,
+          exampleValue: currentVocabWord?.exampleSentence,
+          vocabWordFull: currentVocabWord, // 完全なオブジェクトを確認
         });
         
         // 保存された例文があればそれを使う
-        if (vocabWord?.exampleSentence) {
-          setExampleSentence(vocabWord.exampleSentence);
+        if (currentVocabWord?.exampleSentence) {
+          setExampleSentence(currentVocabWord.exampleSentence);
         } else {
           // 例文を取得
           const wordCards = wordData?.isIdiom
@@ -76,8 +79,8 @@ function VocabularyWordEditorModal({
         }
 
         // 保存された意味があればそれを使う
-        if (vocabWord?.meaning) {
-          setCurrentMeaning(vocabWord.meaning);
+        if (currentVocabWord?.meaning) {
+          setCurrentMeaning(currentVocabWord.meaning);
         } else if (wordData) {
           const wordCards = wordData.isIdiom
             ? cards.filter(card => {
@@ -96,8 +99,6 @@ function VocabularyWordEditorModal({
         } else {
           setCurrentMeaning("");
         }
-        
-        // ログは非同期処理の外で出力する必要があるため、ここでは出力しない
       } catch (error) {
         console.error("Failed to load meaning:", error);
         setCurrentMeaning("");
