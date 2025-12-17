@@ -161,6 +161,15 @@ function VocabularyWordEditorModal({
             onCancel={onClose}
             autoFocus
           />
+          {/* デバッグ用：現在のvocabWordの状態を表示 */}
+          {process.env.NODE_ENV === 'development' && (
+            <div className="mt-4 p-2 bg-gray-100 text-xs">
+              <div>vocabWord: {vocabWord ? JSON.stringify(vocabWord, null, 2) : 'undefined'}</div>
+              <div>vocabWordKey: {vocabWordKey}</div>
+              <div>currentMeaning: {currentMeaning}</div>
+              <div>exampleSentence: {exampleSentence}</div>
+            </div>
+          )}
         </div>
       </div>
     </div>
