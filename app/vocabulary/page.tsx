@@ -952,11 +952,22 @@ export default function VocabularyPage() {
             exampleValue: finalUpdated.exampleSentence,
             fullFinalUpdated: finalUpdated,
           });
+          
+          // 単語が変更されたかどうかを確認（editingWordと比較）
+          const oldWord = editingWord?.toLowerCase();
+          const newWord = finalUpdated.word.toLowerCase();
+          const wordChanged = oldWord && oldWord !== newWord;
+          
           // 保存されたデータを直接vocabularyWordsに反映
           setVocabularyWords(prev => {
             const next = new Map(prev);
+            // 単語が変更された場合、古い単語のエントリを削除
+            if (wordChanged && oldWord) {
+              next.delete(oldWord);
+              console.log("VocabularyPage setVocabularyWords - deleted old word:", oldWord);
+            }
             // finalUpdatedオブジェクトをそのまま使用（すべてのプロパティが含まれている）
-            next.set(finalUpdated.word.toLowerCase(), finalUpdated);
+            next.set(newWord, finalUpdated);
             console.log("VocabularyPage setVocabularyWords - new map:", {
               size: next.size,
               word: finalUpdated.word,
@@ -964,10 +975,34 @@ export default function VocabularyPage() {
               highlightedValue: finalUpdated.highlightedMeaning,
               hasExample: !!finalUpdated.exampleSentence,
               exampleValue: finalUpdated.exampleSentence,
+              wordChanged,
+              oldWord,
+              newWord,
               fullFinalUpdated: finalUpdated, // 完全なオブジェクトも確認
             });
             return next;
           });
+          
+          // 単語が変更された場合、vocabulary Mapも更新する
+          if (wordChanged && oldWord) {
+            setVocabulary(prev => {
+              const next = new Map(prev);
+              // 古い単語を削除
+              next.delete(oldWord);
+              // 新しい単語を追加（デフォルト値で）
+              // カードから自動抽出されていない単語なので、基本的な値を使用
+              if (!next.has(newWord)) {
+                next.set(newWord, {
+                  count: 1,
+                  difficulty: 20, // デフォルトの難易度
+                  importance: 20,
+                  isIdiom: false,
+                });
+                console.log("VocabularyPage setVocabulary - added new word to vocabulary map:", newWord);
+              }
+              return next;
+            });
+          }
         }}
       />}
     </div>
