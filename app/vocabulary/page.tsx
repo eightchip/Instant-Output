@@ -155,7 +155,14 @@ function VocabularyWordEditorModal({
             initialIsWantToLearn={vocabWord?.isWantToLearn ?? false}
             initialNotes={vocabWord?.notes ?? ""}
             onSave={async (updated) => {
-              console.log("VocabularyWordEditorModal onSave - updated:", updated);
+              console.log("VocabularyWordEditorModal onSave - updated:", {
+                word: updated.word,
+                hasHighlighted: !!updated.highlightedMeaning,
+                highlightedValue: updated.highlightedMeaning,
+                hasExample: !!updated.exampleSentence,
+                exampleValue: updated.exampleSentence,
+                fullUpdated: updated,
+              });
               await onSave(updated);
               onClose();
             }}
