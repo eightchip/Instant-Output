@@ -92,16 +92,19 @@ export async function getTodayCards(
 
   // 3. まだ足りない場合は、復習がないカードから新規を取得（お気に入り優先）
   // テンプレートカードは除外
+  // パフォーマンス向上のため、必要な数だけ取得する（最大remaining * 2まで）
   const remaining = dailyTarget - allReviewCards.length;
   if (remaining > 0) {
+    // まず、お気に入りカードを取得（復習がないもの）
     const allCards = await storage.getAllCards();
     const availableCards = allCards.filter(
       (card) => !reviewCardIds.has(card.id) && card.source_type !== "template"
     );
+    
+    // お気に入りを優先的に追加
     const favoriteCards = availableCards.filter((card) => card.isFavorite);
     const normalCards = availableCards.filter((card) => !card.isFavorite);
     
-    // お気に入りを優先的に追加
     const favoriteToAdd = favoriteCards.slice(0, remaining);
     const remainingAfterFavorite = remaining - favoriteToAdd.length;
     const normalToAdd = normalCards.slice(0, remainingAfterFavorite);

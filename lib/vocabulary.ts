@@ -246,11 +246,11 @@ export function splitIntoWords(text: string): Array<{ word: string; isPunctuatio
 }
 
 /**
- * 単語の意味を取得（ユーザーが編集した意味があればそれを、なければカードから抽出）
+ * 単語の意味を取得（カードから抽出）
  * @param word 単語
  * @param cards カードの配列
  * @param isIdiom イディオムかどうか
- * @param vocabularyWordMap 既に読み込まれたVocabularyWordのMap（オプション、パフォーマンス向上のため）
+ * @param vocabularyWordMap 既に読み込まれたVocabularyWordのMap（オプション、編集機能用）
  */
 export async function getWordMeaning(
   word: string, 
@@ -258,21 +258,15 @@ export async function getWordMeaning(
   isIdiom: boolean,
   vocabularyWordMap?: Map<string, VocabularyWord>
 ): Promise<string> {
-  // まず、保存された意味を確認（既に読み込まれたMapがあればそれを使う）
+  // 編集機能用：既に読み込まれたMapがあればそれを使う（語彙リストページのみ）
   if (vocabularyWordMap) {
     const vocabWord = vocabularyWordMap.get(word.toLowerCase());
     if (vocabWord && vocabWord.meaning) {
       return vocabWord.meaning;
     }
-  } else {
-    // Mapが提供されていない場合のみ、個別に取得（軽量）
-    const vocabWord = await storage.getVocabularyWord(word);
-    if (vocabWord && vocabWord.meaning) {
-      return vocabWord.meaning;
-    }
   }
   
-  // 保存された意味がない場合、カードから抽出を試みる
+  // カードから抽出を試みる
   const wordCards = isIdiom
     ? cards.filter(card => {
         const lowerText = card.target_en.toLowerCase();
