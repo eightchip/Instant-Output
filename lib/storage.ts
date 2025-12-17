@@ -779,10 +779,21 @@ class StorageService {
           return;
         }
         // ISO文字列をDate型に変換
-        resolve({
+        const vocabWord: VocabularyWord = {
           ...result,
           updatedAt: result.updatedAt ? new Date(result.updatedAt) : undefined,
+        };
+        // デバッグログ：読み込んだデータを確認
+        console.log("getVocabularyWord - loaded:", {
+          word: vocabWord.word,
+          meaning: vocabWord.meaning,
+          highlightedMeaning: vocabWord.highlightedMeaning,
+          exampleSentence: vocabWord.exampleSentence,
+          isLearned: vocabWord.isLearned,
+          isWantToLearn: vocabWord.isWantToLearn,
+          notes: vocabWord.notes,
         });
+        resolve(vocabWord);
       };
       request.onerror = () => reject(request.error);
     });

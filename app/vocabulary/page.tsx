@@ -31,21 +31,16 @@ function VocabularyWordEditorModal({
   const [isLoading, setIsLoading] = useState(true);
   
   // vocabWordをuseMemoで計算して、変更を確実に検知
-  // vocabWordの各プロパティを依存配列に含めて、変更を確実に検知
+  // vocabularyWordsのMapが更新されたときに再計算されるようにする
   const vocabWord = useMemo(() => {
-    return vocabularyWords.get(word.toLowerCase());
-  }, [
-    vocabularyWords, 
-    word,
-    // vocabWordの各プロパティを個別に監視
-    vocabularyWords.get(word.toLowerCase())?.meaning,
-    vocabularyWords.get(word.toLowerCase())?.highlightedMeaning,
-    vocabularyWords.get(word.toLowerCase())?.exampleSentence,
-    vocabularyWords.get(word.toLowerCase())?.isLearned,
-    vocabularyWords.get(word.toLowerCase())?.isWantToLearn,
-    vocabularyWords.get(word.toLowerCase())?.notes,
-    vocabularyWords.get(word.toLowerCase())?.updatedAt?.getTime(),
-  ]);
+    const result = vocabularyWords.get(word.toLowerCase());
+    console.log("VocabularyWordEditorModal vocabWord useMemo:", {
+      word,
+      result,
+      mapSize: vocabularyWords.size,
+    });
+    return result;
+  }, [vocabularyWords, word]);
   
   const wordData = vocabulary.get(word);
 
@@ -873,13 +868,15 @@ export default function VocabularyPage() {
         cards={cards}
         onClose={() => setEditingWord(null)}
         onSave={async (updated) => {
+          console.log("VocabularyPage onSave - updated:", updated);
           // 保存されたデータを直接vocabularyWordsに反映
           setVocabularyWords(prev => {
             const next = new Map(prev);
             next.set(updated.word.toLowerCase(), updated);
+            console.log("VocabularyPage setVocabularyWords - new map size:", next.size);
             return next;
           });
-          // データを再読み込み
+          // データを再読み込み（念のため）
           await loadData();
         }}
       />}

@@ -334,7 +334,23 @@ export async function saveWordMeaning(
     vocabWord.isWantToLearn = isWantToLearn;
   }
   vocabWord.updatedAt = new Date();
+  
+  // デバッグログ：保存前のデータを確認
+  console.log("saveWordMeaning - saving:", {
+    word: vocabWord.word,
+    meaning: vocabWord.meaning,
+    highlightedMeaning: vocabWord.highlightedMeaning,
+    exampleSentence: vocabWord.exampleSentence,
+    isLearned: vocabWord.isLearned,
+    isWantToLearn: vocabWord.isWantToLearn,
+    notes: vocabWord.notes,
+  });
+  
   await storage.saveVocabularyWord(vocabWord);
+  
+  // デバッグログ：保存後のデータを確認
+  const saved = await storage.getVocabularyWord(word);
+  console.log("saveWordMeaning - saved:", saved);
 }
 
 /**
