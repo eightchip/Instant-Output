@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { Card } from "@/types/models";
 import { storage } from "@/lib/storage";
+import { saveWordMeaning } from "@/lib/vocabulary";
 import AudioPlaybackButton from "./AudioPlaybackButton";
 import VoiceInputButton from "./VoiceInputButton";
 import MessageDialog from "./MessageDialog";
@@ -32,8 +33,15 @@ export default function CardEditor({
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isTranslating, setIsTranslating] = useState(false);
+  const [showAddVocabulary, setShowAddVocabulary] = useState(false);
+  const [vocabWord, setVocabWord] = useState("");
+  const [vocabMeaning, setVocabMeaning] = useState("");
+  const [vocabExample, setVocabExample] = useState("");
+  const [isAddingVocabulary, setIsAddingVocabulary] = useState(false);
   const [errors, setErrors] = useState<{
     targetEn?: string;
+    vocabWord?: string;
+    vocabMeaning?: string;
   }>({});
   const [messageDialog, setMessageDialog] = useState<{
     isOpen: boolean;
@@ -200,6 +208,51 @@ export default function CardEditor({
         }
       },
     });
+  };
+
+  const handleAddVocabulary = async () => {
+    if (!vocabWord.trim()) {
+      setErrors({ vocabWord: "単語または表現を入力してください" });
+      return;
+    }
+    if (!vocabMeaning.trim()) {
+      setErrors({ vocabMeaning: "意味を入力してください" });
+      return;
+    }
+
+    setErrors({});
+    setIsAddingVocabulary(true);
+
+    try {
+      await saveWordMeaning(
+        vocabWord.trim().toLowerCase(),
+        vocabMeaning.trim(),
+        undefined, // notes
+        undefined, // highlightedMeaning
+        vocabExample.trim() || targetEn.trim(), // exampleSentence (入力がない場合はカードの英文を使用)
+        false, // isLearned
+        false // isWantToLearn
+      );
+      setMessageDialog({
+        isOpen: true,
+        title: "追加完了",
+        message: "語彙リストに追加しました！",
+      });
+      // フォームをリセット
+      setVocabWord("");
+      setVocabMeaning("");
+      setVocabExample("");
+      setShowAddVocabulary(false);
+    } catch (error) {
+      console.error("Failed to add vocabulary:", error);
+      setMessageDialog({
+        isOpen: true,
+        title: "追加エラー",
+        message: "語彙リストへの追加に失敗しました。",
+      });
+    } finally {
+      setIsAddingVocabulary(false);
+    }
   };
 
   return (
