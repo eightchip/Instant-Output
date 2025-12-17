@@ -223,6 +223,8 @@ export default function VocabularyPage() {
     isOpen: false,
     word: null,
   });
+  const [selectedWords, setSelectedWords] = useState<Set<string>>(new Set());
+  const [isSelectMode, setIsSelectMode] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -393,13 +395,38 @@ export default function VocabularyPage() {
           </div>
           
           {/* フィルター表示/非表示トグル */}
-          <div className="mb-4 flex items-center justify-between">
-            <button
-              onClick={() => setShowFilters(!showFilters)}
-              className="px-4 py-2 bg-indigo-100 hover:bg-indigo-200 text-indigo-700 font-semibold rounded-lg transition-all text-sm"
-            >
-              {showFilters ? "▼ フィルターを隠す" : "▶ フィルターを表示"}
-            </button>
+          <div className="mb-4 flex items-center justify-between flex-wrap gap-2">
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setShowFilters(!showFilters)}
+                className="px-4 py-2 bg-indigo-100 hover:bg-indigo-200 text-indigo-700 font-semibold rounded-lg transition-all text-sm"
+              >
+                {showFilters ? "▼ フィルターを隠す" : "▶ フィルターを表示"}
+              </button>
+              <button
+                onClick={() => {
+                  setIsSelectMode(!isSelectMode);
+                  if (isSelectMode) {
+                    setSelectedWords(new Set());
+                  }
+                }}
+                className={`px-4 py-2 font-semibold rounded-lg transition-all text-sm ${
+                  isSelectMode
+                    ? "bg-red-100 hover:bg-red-200 text-red-700"
+                    : "bg-gray-100 hover:bg-gray-200 text-gray-700"
+                }`}
+              >
+                {isSelectMode ? "✓ 選択モード終了" : "☑ 一括削除"}
+              </button>
+              {isSelectMode && selectedWords.size > 0 && (
+                <button
+                  onClick={() => setDeleteConfirm({ isOpen: true, word: null })}
+                  className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-lg transition-all text-sm"
+                >
+                  🗑️ {selectedWords.size}件を削除
+                </button>
+              )}
+            </div>
             <div className="flex items-center gap-4">
               <span className="text-sm font-semibold text-gray-700">並び替え:</span>
               <button
@@ -591,20 +618,56 @@ export default function VocabularyPage() {
               const mastery = getWordMastery(word, data.isIdiom);
               const masteryColor = mastery.rate >= 70 ? "text-green-600" : mastery.rate >= 50 ? "text-yellow-600" : mastery.total > 0 ? "text-orange-600" : "text-gray-400";
               
+              const isSelected = selectedWords.has(word);
+              
               return (
               <div
                 key={`${word}-${vocabularyWords.get(word.toLowerCase())?.updatedAt?.getTime() || 0}`}
                 className={`bg-white/90 backdrop-blur-sm rounded-xl shadow-lg p-5 hover:shadow-xl transition-all duration-300 border-2 ${
-                  data.isIdiom 
+                  isSelected
+                    ? "border-2 border-red-500 bg-red-50/50"
+                    : data.isIdiom 
                     ? "border-l-4 border-purple-500 bg-gradient-to-r from-purple-50/50 to-white" 
                     : mastery.isLearned
                     ? "border-l-4 border-green-500 bg-gradient-to-r from-green-50/50 to-white"
                     : "border-transparent hover:border-indigo-200"
                 }`}
+                onClick={() => {
+                  if (isSelectMode) {
+                    setSelectedWords(prev => {
+                      const next = new Set(prev);
+                      if (next.has(word)) {
+                        next.delete(word);
+                      } else {
+                        next.add(word);
+                      }
+                      return next;
+                    });
+                  }
+                }}
               >
                 <div>
                   <div className="w-full">
                     <div className="flex items-center gap-3 flex-wrap mb-2">
+                      {isSelectMode && (
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={(e) => {
+                            e.stopPropagation();
+                            setSelectedWords(prev => {
+                              const next = new Set(prev);
+                              if (next.has(word)) {
+                                next.delete(word);
+                              } else {
+                                next.add(word);
+                              }
+                              return next;
+                            });
+                          }}
+                          className="w-5 h-5 text-red-600 rounded focus:ring-red-500"
+                        />
+                      )}
                       <span className="text-xl font-bold text-blue-900">{word}</span>
                       {data.isIdiom && (
                         <span className="px-2 py-1 bg-purple-100 text-purple-700 text-xs font-semibold rounded">
@@ -1024,12 +1087,17 @@ export default function VocabularyPage() {
       {/* 削除確認ダイアログ */}
       <ConfirmDialog
         isOpen={deleteConfirm.isOpen}
-        title="単語を削除"
-        message={`「${deleteConfirm.word}」を語彙リストから削除しますか？\nこの操作は取り消せません。`}
+        title={deleteConfirm.word ? "単語を削除" : "複数の単語を削除"}
+        message={
+          deleteConfirm.word
+            ? `「${deleteConfirm.word}」を語彙リストから削除しますか？\nこの操作は取り消せません。`
+            : `${selectedWords.size}件の単語を語彙リストから削除しますか？\nこの操作は取り消せません。`
+        }
         variant="danger"
         confirmLabel="削除"
         onConfirm={async () => {
           if (deleteConfirm.word) {
+            // 単一削除
             const wordToDelete = deleteConfirm.word.toLowerCase();
             const originalWord = deleteConfirm.word; // nullチェック後の値を保持
             // vocabularyWords Mapから削除
@@ -1046,6 +1114,30 @@ export default function VocabularyPage() {
             });
             // storageからも削除
             await storage.deleteVocabularyWord(originalWord);
+          } else if (selectedWords.size > 0) {
+            // 一括削除
+            const wordsToDelete = Array.from(selectedWords);
+            // vocabularyWords Mapから削除
+            setVocabularyWords(prev => {
+              const next = new Map(prev);
+              for (const word of wordsToDelete) {
+                next.delete(word.toLowerCase());
+              }
+              return next;
+            });
+            // vocabulary Mapから削除
+            setVocabulary(prev => {
+              const next = new Map(prev);
+              for (const word of wordsToDelete) {
+                next.delete(word);
+              }
+              return next;
+            });
+            // storageからも削除
+            await Promise.all(wordsToDelete.map(word => storage.deleteVocabularyWord(word)));
+            // 選択をクリア
+            setSelectedWords(new Set());
+            setIsSelectMode(false);
           }
           setDeleteConfirm({ isOpen: false, word: null });
         }}
