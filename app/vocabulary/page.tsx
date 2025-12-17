@@ -887,19 +887,41 @@ export default function VocabularyPage() {
           // 保存されたデータを直接vocabularyWordsに反映
           setVocabularyWords(prev => {
             const next = new Map(prev);
-            next.set(updated.word.toLowerCase(), updated);
+            // updatedオブジェクトのすべてのプロパティを確実に含める
+            const fullUpdated: VocabularyWord = {
+              word: updated.word,
+              meaning: updated.meaning,
+              isLearned: updated.isLearned,
+              isWantToLearn: updated.isWantToLearn,
+              updatedAt: updated.updatedAt,
+            };
+            // オプショナルプロパティを明示的に含める
+            if (updated.highlightedMeaning !== undefined) {
+              fullUpdated.highlightedMeaning = updated.highlightedMeaning;
+            }
+            if (updated.exampleSentence !== undefined) {
+              fullUpdated.exampleSentence = updated.exampleSentence;
+            }
+            if (updated.notes !== undefined) {
+              fullUpdated.notes = updated.notes;
+            }
+            next.set(updated.word.toLowerCase(), fullUpdated);
             console.log("VocabularyPage setVocabularyWords - new map:", {
               size: next.size,
               word: updated.word,
-              hasHighlighted: !!updated.highlightedMeaning,
-              hasExample: !!updated.exampleSentence,
+              hasHighlighted: !!fullUpdated.highlightedMeaning,
+              highlightedValue: fullUpdated.highlightedMeaning,
+              hasExample: !!fullUpdated.exampleSentence,
+              exampleValue: fullUpdated.exampleSentence,
+              fullUpdated, // 完全なオブジェクトも確認
             });
             return next;
           });
-          // 少し待ってからデータを再読み込み（念のため、データベースから最新データを取得）
-          setTimeout(async () => {
-            await loadData();
-          }, 100);
+          // loadData()を呼び出さない（setVocabularyWordsで直接状態を更新するため）
+          // 必要に応じて、保存が完了したことを確認するために少し待つ
+          // setTimeout(async () => {
+          //   await loadData();
+          // }, 100);
         }}
       />}
     </div>
