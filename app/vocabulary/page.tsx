@@ -556,9 +556,9 @@ export default function VocabularyPage() {
                     : "border-transparent hover:border-indigo-200"
                 }`}
               >
-                <div className="flex items-center justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 flex-wrap">
+                <div>
+                  <div className="w-full">
+                    <div className="flex items-center gap-3 flex-wrap mb-2">
                       <span className="text-xl font-bold text-blue-900">{word}</span>
                       {data.isIdiom && (
                         <span className="px-2 py-1 bg-purple-100 text-purple-700 text-xs font-semibold rounded">
@@ -594,7 +594,7 @@ export default function VocabularyPage() {
                         難易度: {Math.round(data.difficulty)}
                       </span>
                     </div>
-                    <div className="mt-2 text-sm text-gray-600">
+                    <div className="mt-2 text-sm text-gray-600 w-full">
                       {(() => {
                         // idiomの場合は、idiomが含まれるカードを検索
                         const exampleCards = data.isIdiom
@@ -614,11 +614,11 @@ export default function VocabularyPage() {
                         }
                         
                         return exampleCards.slice(0, 3).map(card => (
-                          <div key={card.id} className="mb-2 p-2 bg-gray-50 rounded border border-gray-200">
-                            <div className="font-semibold text-gray-800 mb-1">
+                          <div key={card.id} className="mb-2 p-2 bg-gray-50 rounded border border-gray-200 w-full">
+                            <div className="font-semibold text-gray-800 mb-1 break-words">
                               "{card.target_en}"
                             </div>
-                            <div className="text-gray-600 text-xs">
+                            <div className="text-gray-600 text-xs break-words">
                               {card.prompt_jp}
                             </div>
                           </div>
@@ -626,7 +626,7 @@ export default function VocabularyPage() {
                       })()}
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 mt-3 flex-wrap">
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
