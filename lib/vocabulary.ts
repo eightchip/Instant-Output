@@ -344,6 +344,15 @@ export async function saveWordMeaning(
     isLearned: vocabWord.isLearned,
     isWantToLearn: vocabWord.isWantToLearn,
     notes: vocabWord.notes,
+    fullVocabWord: vocabWord, // 完全なオブジェクトも確認
+  });
+  
+  // デバッグログ：storage.saveVocabularyWordに渡す直前のデータを確認
+  console.log("saveWordMeaning - before storage.saveVocabularyWord:", {
+    hasHighlightedMeaning: vocabWord.highlightedMeaning !== undefined,
+    highlightedMeaningValue: vocabWord.highlightedMeaning,
+    hasExampleSentence: vocabWord.exampleSentence !== undefined,
+    exampleSentenceValue: vocabWord.exampleSentence,
   });
   
   await storage.saveVocabularyWord(vocabWord);

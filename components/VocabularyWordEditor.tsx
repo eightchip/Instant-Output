@@ -164,9 +164,19 @@ export default function VocabularyWordEditor({
 
       // 意味を保存（ハイライト、例文、フラグも含む）
       // 空文字列の場合はundefinedに変換
-      const trimmedHighlighted = highlightedMeaning.trim();
-      const trimmedExample = exampleSentence.trim();
-      const trimmedNotes = notes.trim();
+      const trimmedHighlighted = highlightedMeaning?.trim() || "";
+      const trimmedExample = exampleSentence?.trim() || "";
+      const trimmedNotes = notes?.trim() || "";
+      
+      console.log("VocabularyWordEditor handleSave - before saveWordMeaning:", {
+        trimmedWord,
+        trimmedMeaning,
+        trimmedHighlighted,
+        trimmedExample,
+        trimmedNotes,
+        isLearned,
+        isWantToLearn,
+      });
       
       await saveWordMeaning(
         trimmedWord, 
