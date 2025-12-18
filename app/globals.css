@@ -63,25 +63,29 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 /* タイトル用のより強いスタイル */
-h1.text-3xl,
-h1.text-2xl,
-h1.text-xl {
+h1.text-3xl:not(.header-title-orange),
+h1.text-2xl:not(.header-title-orange),
+h1.text-xl:not(.header-title-orange) {
   font-weight: 800 !important; /* より太く */
   color: #000000 !important; /* 完全な黒 */
   letter-spacing: -0.02em; /* 文字間隔を調整 */
 }
 
 /* ロゴ用のスタイル（ラポール22風） */
-h1.font-black {
+h1.font-black:not(.header-title-orange) {
   font-weight: 800 !important;
+  color: #000000 !important;
   letter-spacing: -0.03em !important;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
 }
 
-/* ヘッダー内のタイトルはオレンジ色を優先 */
-.header-title-orange {
+/* ヘッダー内のタイトルはオレンジ色を優先（最高優先度） */
+header.bg-black h1.header-title-orange,
+h1.header-title-orange.text-2xl,
+h1.header-title-orange.text-3xl,
+h1.header-title-orange.font-black {
   color: #FF6600 !important;
 }
 

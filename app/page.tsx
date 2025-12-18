@@ -80,7 +80,8 @@ export default function Home() {
             style={{ 
               fontFamily: 'var(--font-geist-sans), sans-serif', 
               fontWeight: 900, 
-              letterSpacing: '-0.03em'
+              letterSpacing: '-0.03em',
+              color: '#FF6600'
             }}
           >
             instant_output
