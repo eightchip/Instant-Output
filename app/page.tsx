@@ -13,6 +13,7 @@ import GlobalVoiceInputButton from "@/components/GlobalVoiceInputButton";
 import { PlayCircle, Zap } from "lucide-react";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import ThemeToggle from "@/components/ThemeToggle";
+import { isAdminAuthenticated, getSessionTimeRemaining, extendAdminSession } from "@/lib/admin-auth";
 
 export default function Home() {
   const router = useRouter();
@@ -25,6 +26,22 @@ export default function Home() {
   const [showReviewDetails, setShowReviewDetails] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [showQRCode, setShowQRCode] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [sessionTimeRemaining, setSessionTimeRemaining] = useState(0);
+
+  useEffect(() => {
+    // 管理者認証状態をチェック
+    setIsAdmin(isAdminAuthenticated());
+    setSessionTimeRemaining(getSessionTimeRemaining());
+    
+    // セッション残り時間を定期的に更新
+    const interval = setInterval(() => {
+      setIsAdmin(isAdminAuthenticated());
+      setSessionTimeRemaining(getSessionTimeRemaining());
+    }, 60000); // 1分ごと
+    
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     async function loadData() {
@@ -84,7 +101,7 @@ export default function Home() {
               color: '#FF6600'
             }}
           >
-            instant_output
+            instant output
           </h1>
           <div className="flex items-center gap-3 relative z-10">
             {/* QRコードボタン */}
@@ -510,15 +527,38 @@ export default function Home() {
             onClick={() => router.push("/courses")}
           />
           
+          {/* 管理者専用メニュー */}
+          {isAdmin && (
+            <div className="pt-2 mt-2 border-t border-purple-200 space-y-2">
+              <div className="px-2 py-1 bg-purple-50 rounded-lg mb-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold text-purple-700">🔐 管理者モード</span>
+                  <span className="text-xs text-purple-600">
+                    残り: {sessionTimeRemaining}時間
+                  </span>
+                </div>
+                <button
+                  onClick={() => {
+                    extendAdminSession();
+                    setSessionTimeRemaining(getSessionTimeRemaining());
+                  }}
+                  className="text-xs text-purple-600 hover:text-purple-800 underline mt-1"
+                >
+                  セッションを24時間延長
+                </button>
+              </div>
+              <MenuButton
+                icon="🤖"
+                title="AI-OCR（管理者専用）"
+                description="画像から自動でカード化"
+                color="purple"
+                onClick={() => router.push("/cards/ai-card")}
+              />
+            </div>
+          )}
+          
           {/* その他 */}
           <div className="pt-2 mt-2 border-t border-gray-200 space-y-2">
-            <MenuButton
-              icon="🤖"
-              title="AI-OCR（管理者専用）"
-              description="画像から自動でカード化"
-              color="purple"
-              onClick={() => router.push("/cards/ai-card")}
-            />
             <MenuButton
               icon="📚"
               title="語彙リスト"

@@ -10,6 +10,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { isAdminAuthenticated } from "@/lib/admin-auth";
 
 interface VoiceInputModalProps {
   isOpen: boolean;
@@ -39,6 +40,10 @@ export default function VoiceInputModal({
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const modalRef = useRef<HTMLDivElement>(null);
+  const [useWhisper, setUseWhisper] = useState(false); // Whisper APIを使用するか
+  const [isTranscribing, setIsTranscribing] = useState(false); // Whisper APIで転写中か
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
 
   useEffect(() => {
     return () => {
@@ -201,8 +206,103 @@ export default function VoiceInputModal({
 
   const langCode = language === "jp" ? "ja-JP" : "en-US";
   const langName = language === "jp" ? "日本語" : "英語";
+  const isAdmin = isAdminAuthenticated();
+  const canUseWhisper = isAdmin && language === "en"; // 管理者かつ英語の場合のみWhisper使用可能
+
+  // Whisper APIを使用した音声認識
+  async function startWhisperRecording() {
+    try {
+      setIsRecording(true);
+      setIsTranscribing(false);
+      setRecognizedText("");
+      setFinalText("");
+      audioChunksRef.current = [];
+
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new MediaRecorder(stream, {
+        mimeType: "audio/webm",
+      });
+      mediaRecorderRef.current = mediaRecorder;
+
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          audioChunksRef.current.push(event.data);
+        }
+      };
+
+      mediaRecorder.onstop = async () => {
+        stream.getTracks().forEach((track) => track.stop());
+        
+        if (audioChunksRef.current.length === 0) {
+          setIsRecording(false);
+          return;
+        }
+
+        setIsTranscribing(true);
+        const audioBlob = new Blob(audioChunksRef.current, { type: "audio/webm" });
+        
+        // base64に変換
+        const reader = new FileReader();
+        reader.onloadend = async () => {
+          const base64Audio = reader.result as string;
+          
+          try {
+            // 管理者パスワードを取得（環境変数から）
+            const adminPassword = process.env.NEXT_PUBLIC_ADMIN_PASSWORD || "";
+            
+            const response = await fetch("/api/whisper-transcribe", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                audioBase64: base64Audio,
+                adminPassword: adminPassword,
+                language: "en",
+              }),
+            });
+
+            if (!response.ok) {
+              const errorData = await response.json().catch(() => ({}));
+              console.error("Whisper API error:", errorData);
+              setRecognizedText(`[エラー: ${errorData.message || "音声認識に失敗しました"}]`);
+              setIsRecording(false);
+              setIsTranscribing(false);
+              return;
+            }
+
+            const data = await response.json();
+            if (data.text) {
+              setFinalText(data.text);
+              setRecognizedText("");
+            }
+          } catch (error) {
+            console.error("Whisper transcription error:", error);
+            setRecognizedText("[エラー: 音声認識処理中にエラーが発生しました]");
+          } finally {
+            setIsRecording(false);
+            setIsTranscribing(false);
+          }
+        };
+        reader.readAsDataURL(audioBlob);
+      };
+
+      mediaRecorder.start();
+    } catch (error) {
+      console.error("Failed to start Whisper recording:", error);
+      setIsRecording(false);
+      setRecognizedText("[エラー: マイクへのアクセスに失敗しました]");
+    }
+  }
 
   function startRecording() {
+    // 管理者かつ英語の場合、Whisper APIを使用
+    if (useWhisper && canUseWhisper) {
+      startWhisperRecording();
+      return;
+    }
+
+    // 通常のWeb Speech API
     if (!("webkitSpeechRecognition" in window) && !("SpeechRecognition" in window)) {
       console.warn("お使いのブラウザは音声認識に対応していません。");
       return;
@@ -262,6 +362,10 @@ export default function VoiceInputModal({
   }
 
   function stopRecording() {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
+      mediaRecorderRef.current.stop();
+      mediaRecorderRef.current = null;
+    }
     if (recognitionRef.current) {
       recognitionRef.current.stop();
       recognitionRef.current = null;
@@ -336,17 +440,43 @@ export default function VoiceInputModal({
           </div>
         )}
 
+        {/* Whisper API切り替え（管理者かつ英語の場合のみ） */}
+        {canUseWhisper && (
+          <div className="mb-3 p-2 bg-purple-50 border border-purple-200 rounded-lg">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={useWhisper}
+                onChange={(e) => setUseWhisper(e.target.checked)}
+                className="w-4 h-4 text-purple-600 rounded"
+                disabled={isRecording}
+              />
+              <span className="text-sm font-semibold text-purple-700">
+                🤖 Whisper APIを使用（高精度・管理者専用）
+              </span>
+            </label>
+            <p className="text-xs text-purple-600 mt-1 ml-6">
+              {useWhisper 
+                ? "録音停止後に自動で認識されます（約1-2秒かかります）"
+                : "Web Speech APIを使用（リアルタイム認識）"}
+            </p>
+          </div>
+        )}
+
         <div className="space-y-3 py-2">
           <div className="flex items-center justify-center">
             <button
               onClick={isRecording ? stopRecording : startRecording}
+              disabled={isTranscribing}
               className={`w-16 h-16 rounded-full flex items-center justify-center text-2xl transition-all ${
                 isRecording
                   ? "bg-red-500 hover:bg-red-600 animate-pulse"
+                  : isTranscribing
+                  ? "bg-yellow-500 cursor-wait"
                   : "bg-blue-600 hover:bg-blue-700"
-              } text-white shadow-lg`}
+              } text-white shadow-lg disabled:opacity-50`}
             >
-              {isRecording ? "⏹" : "🎤"}
+              {isTranscribing ? "⏳" : isRecording ? "⏹" : "🎤"}
             </button>
           </div>
 
@@ -360,7 +490,11 @@ export default function VoiceInputModal({
               </p>
             ) : (
               <p className="text-gray-400 text-center">
-                {isRecording ? "音声を認識中..." : "録音ボタンを押して開始してください"}
+                {isTranscribing 
+                  ? "Whisper APIで認識中..." 
+                  : isRecording 
+                  ? (useWhisper ? "録音中...（停止ボタンで認識開始）" : "音声を認識中...")
+                  : "録音ボタンを押して開始してください"}
               </p>
             )}
           </div>
