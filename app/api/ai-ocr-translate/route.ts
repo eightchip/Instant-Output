@@ -5,6 +5,7 @@ export async function POST(request: NextRequest) {
     const { imageBase64, password } = await request.json();
 
     // 管理者パスワードチェック
+    // 環境変数が設定されていない場合はデフォルト値を使用（後方互換性のため）
     const adminPassword = process.env.ADMIN_PASSWORD || "admin123";
     if (password !== adminPassword) {
       return NextResponse.json(

@@ -23,8 +23,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 管理者パスワードを取得（環境変数が設定されていない場合はデフォルト値を使用）
-    // 注意: 本番環境では必ず環境変数ADMIN_PASSWORDを設定してください
+    // 管理者パスワードを取得
+    // 環境変数が設定されていない場合はデフォルト値を使用（後方互換性のため）
+    // ただし、Vercelで環境変数を設定した場合は、必ずADMIN_PASSWORDも設定してください
     const expectedPassword = process.env.ADMIN_PASSWORD || "admin123";
 
     // パスワードを比較（トリムして比較）

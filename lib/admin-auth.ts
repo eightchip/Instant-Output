@@ -1,5 +1,7 @@
 // 管理者認証機能
 
+// 環境変数が設定されていない場合はデフォルト値を使用（後方互換性のため）
+// ただし、Vercelで環境変数を設定した場合は、必ずNEXT_PUBLIC_ADMIN_PASSWORDも設定してください
 const ADMIN_PASSWORD = process.env.NEXT_PUBLIC_ADMIN_PASSWORD || "admin123";
 const SESSION_DURATION = 24 * 60 * 60 * 1000; // 24時間（ミリ秒）
 const ADMIN_SESSION_KEY = "admin_session";
