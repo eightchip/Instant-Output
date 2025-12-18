@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { storage } from "@/lib/storage";
 import { ocrService, OCRProgress } from "@/lib/ocr";
 import { Lesson, Card } from "@/types/models";
@@ -11,6 +11,7 @@ import VoiceInputButton from "@/components/VoiceInputButton";
 
 export default function ScreenshotCardPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [lessons, setLessons] = useState<Lesson[]>([]);
   const [selectedLessonId, setSelectedLessonId] = useState<string>("");
@@ -136,7 +137,12 @@ export default function ScreenshotCardPage() {
 
   useEffect(() => {
     loadLessons();
-  }, []);
+    // URLパラメータからlessonIdを取得
+    const lessonIdParam = searchParams.get('lessonId');
+    if (lessonIdParam) {
+      setSelectedLessonId(lessonIdParam);
+    }
+  }, [searchParams]);
 
   async function loadLessons() {
     try {

@@ -11,6 +11,7 @@ import AudioPlaybackButton from "@/components/AudioPlaybackButton";
 import CardEditor from "@/components/CardEditor";
 import { useInfiniteScroll } from "@/hooks/useInfiniteScroll";
 import InfiniteScrollSentinel from "@/components/InfiniteScrollSentinel";
+import { saveWordMeaning } from "@/lib/vocabulary";
 
 export default function LessonDetailPage() {
   const router = useRouter();
@@ -41,6 +42,8 @@ export default function LessonDetailPage() {
   const [dragOverCardId, setDragOverCardId] = useState<string | null>(null);
   const [selectedWord, setSelectedWord] = useState<string | null>(null);
   const [selectedWordPosition, setSelectedWordPosition] = useState<{ x: number; y: number; width: number } | null>(null);
+  const [selectedWordContext, setSelectedWordContext] = useState<string | null>(null); // 選択した単語のコンテキスト（カードの英文）
+  const [isAddingVocabulary, setIsAddingVocabulary] = useState(false);
 
   // ソート済みカード
   const sortedCards = [...cards].sort((a, b) => {
@@ -335,7 +338,7 @@ export default function LessonDetailPage() {
           <div className="flex items-center justify-between">
             <div className="flex gap-2">
               <button
-                onClick={() => router.push(`/cards/new?lessonId=${lessonId}`)}
+                onClick={() => router.push(`/cards/screenshot?lessonId=${lessonId}`)}
                 className="btn-primary"
               >
                 + カードを追加
@@ -585,10 +588,15 @@ export default function LessonDetailPage() {
                 <div>
                   <div className="flex items-center justify-between mb-1">
                     <p className="text-gray-600 text-sm">英語</p>
+                    <span className="text-xs text-gray-500 italic">💡 単語を長押しで辞書・語彙追加</span>
                   </div>
                   <p 
                     className="text-lg whitespace-pre-wrap break-words selectable-text"
                     onMouseUp={(e) => {
+                      // ドラッグ状態をリセット（単語選択時）
+                      if (draggedCardId) {
+                        setDraggedCardId(null);
+                      }
                       // 少し遅延させて選択範囲を取得（ブラウザの処理を待つ）
                       setTimeout(() => {
                         const selection = window.getSelection();
@@ -600,6 +608,7 @@ export default function LessonDetailPage() {
                           const word = selectedText.replace(/[.,!?;:()\[\]{}'"]/g, '').split(/\s+/)[0];
                           if (word && word.length > 0 && rect.width > 0) {
                             setSelectedWord(word);
+                            setSelectedWordContext(card.target_en); // カードの英文をコンテキストとして保存
                             // 選択範囲の中央下に表示
                             setSelectedWordPosition({ 
                               x: rect.left + rect.width / 2, 
@@ -611,6 +620,10 @@ export default function LessonDetailPage() {
                       }, 50);
                     }}
                     onTouchEnd={(e) => {
+                      // ドラッグ状態をリセット（単語選択時）
+                      if (draggedCardId) {
+                        setDraggedCardId(null);
+                      }
                       // モバイルでは少し長めの遅延を入れる（テキスト選択UIと競合しないように）
                       setTimeout(() => {
                         const selection = window.getSelection();
@@ -621,6 +634,7 @@ export default function LessonDetailPage() {
                           const word = selectedText.replace(/[.,!?;:()\[\]{}'"]/g, '').split(/\s+/)[0];
                           if (word && word.length > 0 && rect.width > 0) {
                             setSelectedWord(word);
+                            setSelectedWordContext(card.target_en); // カードの英文をコンテキストとして保存
                             // 選択範囲の中央下に表示
                             setSelectedWordPosition({ 
                               x: rect.left + rect.width / 2, 
@@ -798,6 +812,7 @@ export default function LessonDetailPage() {
               window.open(`https://dictionary.cambridge.org/dictionary/english/${selectedWord}`, '_blank');
               setSelectedWord(null);
               setSelectedWordPosition(null);
+              setSelectedWordContext(null);
               window.getSelection()?.removeAllRanges();
             }}
             className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-1.5 px-3 rounded text-xs whitespace-nowrap"
@@ -809,6 +824,7 @@ export default function LessonDetailPage() {
               window.open(`https://dictionary.cambridge.org/dictionary/english-japanese/${selectedWord}`, '_blank');
               setSelectedWord(null);
               setSelectedWordPosition(null);
+              setSelectedWordContext(null);
               window.getSelection()?.removeAllRanges();
             }}
             className="bg-green-600 hover:bg-green-700 text-white font-semibold py-1.5 px-3 rounded text-xs whitespace-nowrap"
@@ -816,9 +832,50 @@ export default function LessonDetailPage() {
             英日
           </button>
           <button
+            onClick={async () => {
+              if (!selectedWord) return;
+              setIsAddingVocabulary(true);
+              try {
+                await storage.init();
+                await saveWordMeaning(
+                  selectedWord.toLowerCase(),
+                  "", // 意味は空（後で編集可能）
+                  undefined, // notes
+                  undefined, // highlightedMeaning
+                  selectedWordContext || undefined, // exampleSentence
+                  false, // isLearned
+                  false // isWantToLearn
+                );
+                setMessageDialog({
+                  isOpen: true,
+                  title: "追加完了",
+                  message: `「${selectedWord}」を語彙リストに追加しました！`,
+                });
+                setSelectedWord(null);
+                setSelectedWordPosition(null);
+                setSelectedWordContext(null);
+                window.getSelection()?.removeAllRanges();
+              } catch (error) {
+                console.error("Failed to add vocabulary:", error);
+                setMessageDialog({
+                  isOpen: true,
+                  title: "追加エラー",
+                  message: "語彙リストへの追加に失敗しました。",
+                });
+              } finally {
+                setIsAddingVocabulary(false);
+              }
+            }}
+            disabled={isAddingVocabulary}
+            className="bg-purple-600 hover:bg-purple-700 disabled:bg-gray-400 text-white font-semibold py-1.5 px-3 rounded text-xs whitespace-nowrap"
+          >
+            {isAddingVocabulary ? "追加中..." : "語彙追加"}
+          </button>
+          <button
             onClick={() => {
               setSelectedWord(null);
               setSelectedWordPosition(null);
+              setSelectedWordContext(null);
               window.getSelection()?.removeAllRanges();
             }}
             className="bg-gray-400 hover:bg-gray-500 text-white font-semibold py-1.5 px-2 rounded text-xs"
@@ -835,6 +892,7 @@ export default function LessonDetailPage() {
           onClick={() => {
             setSelectedWord(null);
             setSelectedWordPosition(null);
+            setSelectedWordContext(null);
             window.getSelection()?.removeAllRanges();
           }}
         />
