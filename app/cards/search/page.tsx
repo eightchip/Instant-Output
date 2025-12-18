@@ -44,7 +44,7 @@ export default function CardSearchPage() {
   const [draggedCardId, setDraggedCardId] = useState<string | null>(null);
   const [dragOverCardId, setDragOverCardId] = useState<string | null>(null);
   const [selectedWord, setSelectedWord] = useState<string | null>(null);
-  const [selectedWordPosition, setSelectedWordPosition] = useState<{ x: number; y: number } | null>(null);
+  const [selectedWordPosition, setSelectedWordPosition] = useState<{ x: number; y: number; width: number } | null>(null);
   const [cardToDelete, setCardToDelete] = useState<string | null>(null);
 
   const { displayedItems, sentinelRef } = useInfiniteScroll(filteredCards, {
@@ -495,28 +495,47 @@ export default function CardSearchPage() {
                   <p 
                     className="text-lg whitespace-pre-wrap break-words selectable-text"
                     onMouseUp={(e) => {
-                      const selection = window.getSelection();
-                      if (selection && selection.toString().trim()) {
-                        const selectedText = selection.toString().trim();
-                        // 単語のみを抽出（句読点を除去）
-                        const word = selectedText.replace(/[.,!?;:()\[\]{}'"]/g, '').split(/\s+/)[0];
-                        if (word && word.length > 0) {
-                          setSelectedWord(word);
-                          setSelectedWordPosition({ x: e.clientX, y: e.clientY });
+                      // 少し遅延させて選択範囲を取得（ブラウザの処理を待つ）
+                      setTimeout(() => {
+                        const selection = window.getSelection();
+                        if (selection && selection.rangeCount > 0 && selection.toString().trim()) {
+                          const range = selection.getRangeAt(0);
+                          const rect = range.getBoundingClientRect();
+                          const selectedText = selection.toString().trim();
+                          // 単語のみを抽出（句読点を除去）
+                          const word = selectedText.replace(/[.,!?;:()\[\]{}'"]/g, '').split(/\s+/)[0];
+                          if (word && word.length > 0 && rect.width > 0) {
+                            setSelectedWord(word);
+                            // 選択範囲の中央下に表示
+                            setSelectedWordPosition({ 
+                              x: rect.left + rect.width / 2, 
+                              y: rect.bottom + 5,
+                              width: rect.width
+                            });
+                          }
                         }
-                      }
+                      }, 50);
                     }}
                     onTouchEnd={(e) => {
-                      const selection = window.getSelection();
-                      if (selection && selection.toString().trim()) {
-                        const selectedText = selection.toString().trim();
-                        const word = selectedText.replace(/[.,!?;:()\[\]{}'"]/g, '').split(/\s+/)[0];
-                        if (word && word.length > 0) {
-                          const touch = e.changedTouches[0];
-                          setSelectedWord(word);
-                          setSelectedWordPosition({ x: touch.clientX, y: touch.clientY });
+                      // モバイルでは少し長めの遅延を入れる（テキスト選択UIと競合しないように）
+                      setTimeout(() => {
+                        const selection = window.getSelection();
+                        if (selection && selection.rangeCount > 0 && selection.toString().trim()) {
+                          const range = selection.getRangeAt(0);
+                          const rect = range.getBoundingClientRect();
+                          const selectedText = selection.toString().trim();
+                          const word = selectedText.replace(/[.,!?;:()\[\]{}'"]/g, '').split(/\s+/)[0];
+                          if (word && word.length > 0 && rect.width > 0) {
+                            setSelectedWord(word);
+                            // 選択範囲の中央下に表示
+                            setSelectedWordPosition({ 
+                              x: rect.left + rect.width / 2, 
+                              y: rect.bottom + 5,
+                              width: rect.width
+                            });
+                          }
                         }
-                      }
+                      }, 200);
                     }}
                   >
                     {highlightText(card.target_en, searchQuery)}
@@ -663,40 +682,48 @@ export default function CardSearchPage() {
       {/* 単語選択時のWeb辞書リンク */}
       {selectedWord && selectedWordPosition && (
         <div
-          className="fixed z-50 bg-white border-2 border-blue-500 rounded-lg shadow-xl p-2 flex gap-2"
+          className="fixed z-50 bg-white border-2 border-blue-500 rounded-lg shadow-xl p-2 flex gap-2 items-center"
           style={{
             left: `${selectedWordPosition.x}px`,
-            top: `${selectedWordPosition.y - 60}px`,
+            top: `${selectedWordPosition.y}px`,
             transform: 'translateX(-50%)',
+            maxWidth: '90vw',
           }}
           onClick={(e) => e.stopPropagation()}
         >
+          <span className="text-xs text-gray-600 font-semibold mr-1 whitespace-nowrap">
+            「{selectedWord}」
+          </span>
           <button
             onClick={() => {
               window.open(`https://dictionary.cambridge.org/dictionary/english/${selectedWord}`, '_blank');
               setSelectedWord(null);
               setSelectedWordPosition(null);
+              window.getSelection()?.removeAllRanges();
             }}
-            className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-1 px-3 rounded text-xs"
+            className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-1.5 px-3 rounded text-xs whitespace-nowrap"
           >
-            英英辞書
+            英英
           </button>
           <button
             onClick={() => {
               window.open(`https://dictionary.cambridge.org/dictionary/english-japanese/${selectedWord}`, '_blank');
               setSelectedWord(null);
               setSelectedWordPosition(null);
+              window.getSelection()?.removeAllRanges();
             }}
-            className="bg-green-600 hover:bg-green-700 text-white font-semibold py-1 px-3 rounded text-xs"
+            className="bg-green-600 hover:bg-green-700 text-white font-semibold py-1.5 px-3 rounded text-xs whitespace-nowrap"
           >
-            英日辞書
+            英日
           </button>
           <button
             onClick={() => {
               setSelectedWord(null);
               setSelectedWordPosition(null);
+              window.getSelection()?.removeAllRanges();
             }}
-            className="bg-gray-400 hover:bg-gray-500 text-white font-semibold py-1 px-2 rounded text-xs"
+            className="bg-gray-400 hover:bg-gray-500 text-white font-semibold py-1.5 px-2 rounded text-xs"
+            title="閉じる"
           >
             ✕
           </button>
@@ -709,6 +736,7 @@ export default function CardSearchPage() {
           onClick={() => {
             setSelectedWord(null);
             setSelectedWordPosition(null);
+            window.getSelection()?.removeAllRanges();
           }}
         />
       )}
