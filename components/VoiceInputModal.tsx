@@ -10,7 +10,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { isAdminAuthenticated } from "@/lib/admin-auth";
+import { isAdminAuthenticated, getAdminPassword } from "@/lib/admin-auth";
 
 interface VoiceInputModalProps {
   isOpen: boolean;
@@ -247,8 +247,15 @@ export default function VoiceInputModal({
           const base64Audio = reader.result as string;
           
           try {
-            // 管理者パスワードを取得（環境変数から）
-            const adminPassword = process.env.NEXT_PUBLIC_ADMIN_PASSWORD || "";
+            // 管理者パスワードを取得
+            const adminPassword = getAdminPassword();
+            
+            if (!adminPassword || adminPassword.trim().length === 0) {
+              setRecognizedText("[エラー: 管理者パスワードが設定されていません]");
+              setIsRecording(false);
+              setIsTranscribing(false);
+              return;
+            }
             
             const response = await fetch("/api/whisper-transcribe", {
               method: "POST",

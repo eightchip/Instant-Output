@@ -110,3 +110,13 @@ export function extendAdminSession(): void {
   }
 }
 
+/**
+ * 管理者パスワードを取得（クライアント側用）
+ * 注意: セキュリティ上の理由から、この関数は環境変数から取得します
+ * 本番環境では、より安全な認証方法を使用することを推奨します
+ */
+export function getAdminPassword(): string {
+  if (typeof window === "undefined") return "";
+  return ADMIN_PASSWORD;
+}
+
