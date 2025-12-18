@@ -494,7 +494,7 @@ export default function CardSearchPage() {
                 <div>
                   <div className="flex items-center justify-between mb-1">
                     <p className="text-gray-600 text-sm">英語</p>
-                    <span className="text-xs text-gray-500 italic">💡 単語を長押しで辞書・語彙追加</span>
+                    <span className="text-xs text-gray-500 italic">💡 単語を長押しかダブルクリックで辞書・語彙追加</span>
                   </div>
                   <p 
                     className="text-lg whitespace-pre-wrap break-words selectable-text"
