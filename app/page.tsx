@@ -73,22 +73,18 @@ export default function Home() {
   return (
     <div className="flex min-h-screen flex-col bg-gray-50">
       {/* ヘッダー */}
-      <header className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 border-b border-transparent sticky top-0 z-40 shadow-lg">
+      <header className="bg-black border-b border-transparent sticky top-0 z-40 shadow-lg">
         <div className="max-w-2xl mx-auto px-4 py-4 flex items-center justify-between relative overflow-hidden">
-          {/* 背景アニメーション */}
-          <div className="absolute inset-0 bg-gradient-to-r from-blue-400/20 via-purple-400/20 to-pink-400/20 animate-pulse-subtle"></div>
-          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent animate-shimmer"></div>
-          
           <h1 
-            className="text-2xl md:text-3xl font-black text-white tracking-tight relative z-10 drop-shadow-lg"
+            className="text-2xl md:text-3xl font-black tracking-tight relative z-10"
             style={{ 
               fontFamily: 'var(--font-geist-sans), sans-serif', 
               fontWeight: 900, 
               letterSpacing: '-0.03em',
-              textShadow: '0 2px 4px rgba(0,0,0,0.2), 0 0 20px rgba(255,255,255,0.3)'
+              color: '#FF6600'
             }}
           >
-            Instant Output
+            instant_output
           </h1>
           <div className="flex items-center gap-3 relative z-10">
             {/* QRコードボタン */}

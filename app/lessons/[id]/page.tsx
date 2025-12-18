@@ -334,12 +334,12 @@ export default function LessonDetailPage() {
           </div>
         </div>
 
-        <div className="mb-4 space-y-3">
-          <div className="flex items-center justify-between">
-            <div className="flex gap-2">
+        <div className="mb-4">
+          <div className="flex flex-wrap items-center gap-2 justify-between">
+            <div className="flex flex-wrap items-center gap-2">
               <button
                 onClick={() => router.push(`/cards/screenshot?lessonId=${lessonId}`)}
-                className="btn-primary"
+                className="btn-primary whitespace-nowrap"
               >
                 + カードを追加
               </button>
@@ -350,7 +350,7 @@ export default function LessonDetailPage() {
                       setIsBatchMode(!isBatchMode);
                       setSelectedCards(new Set());
                     }}
-                    className={`font-bold py-2 px-4 rounded-lg transition-all ${
+                    className={`font-bold py-2 px-4 rounded-lg transition-all whitespace-nowrap ${
                       isBatchMode
                         ? "bg-gray-600 hover:bg-gray-700 text-white shadow-md"
                         : "bg-gray-200 hover:bg-gray-300 text-gray-700"
@@ -358,7 +358,7 @@ export default function LessonDetailPage() {
                   >
                     {isBatchMode ? "一括操作を終了" : "一括操作"}
                   </button>
-                  <div className="flex items-center gap-2 px-3 py-2 bg-white rounded-lg border border-gray-200">
+                  <div className="flex items-center gap-2 px-3 py-2 bg-white rounded-lg border border-gray-200 whitespace-nowrap">
                     <span className="text-sm font-semibold text-gray-700">並び替え:</span>
                     <select
                       value={sortBy}
@@ -373,7 +373,7 @@ export default function LessonDetailPage() {
                 </>
               )}
             </div>
-            <div className="text-sm text-gray-600">
+            <div className="text-sm text-gray-600 whitespace-nowrap">
               カード数: {cards.length}
               {isBatchMode && selectedCards.size > 0 && (
                 <span className="ml-2 text-blue-600 font-semibold">
@@ -462,7 +462,7 @@ export default function LessonDetailPage() {
                 onClick={() => router.push("/cards/screenshot")}
                 className="bg-slate-600 hover:bg-slate-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors shadow-md hover:shadow-lg"
               >
-                📷 スクリーンショットから追加
+                📷 スクショから追加
               </button>
             </div>
           </div>
@@ -847,7 +847,8 @@ export default function LessonDetailPage() {
           </span>
           <button
             onClick={() => {
-              window.open(`https://dictionary.cambridge.org/dictionary/english/${selectedWord}`, '_blank');
+              const encodedWord = encodeURIComponent(selectedWord.toLowerCase());
+              window.open(`https://dictionary.cambridge.org/dictionary/english/${encodedWord}`, '_blank');
               setSelectedWord(null);
               setSelectedWordPosition(null);
               setSelectedWordContext(null);
@@ -859,7 +860,8 @@ export default function LessonDetailPage() {
           </button>
           <button
             onClick={() => {
-              window.open(`https://dictionary.cambridge.org/dictionary/english-japanese/${selectedWord}`, '_blank');
+              const encodedWord = encodeURIComponent(selectedWord.toLowerCase());
+              window.open(`https://dictionary.cambridge.org/dictionary/english-japanese/${encodedWord}`, '_blank');
               setSelectedWord(null);
               setSelectedWordPosition(null);
               setSelectedWordContext(null);

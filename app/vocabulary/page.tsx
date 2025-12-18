@@ -4,7 +4,7 @@ import { useEffect, useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { storage } from "@/lib/storage";
 import { Card, Review, Lesson, VocabularyWord } from "@/types/models";
-import { generateVocabularyList, getImportantWords, getWordMeaning } from "@/lib/vocabulary";
+import { getImportantWords, getWordMeaning } from "@/lib/vocabulary";
 import { tts } from "@/lib/tts";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import AudioPlaybackButton from "@/components/AudioPlaybackButton";
@@ -258,9 +258,20 @@ export default function VocabularyPage() {
       }
       setVocabularyWords(vocabWordsMap);
       
-      // 既知のイディオム辞書を使用（無料）
-      const vocab = generateVocabularyList(userCards);
-      setVocabulary(vocab);
+      // ユーザーが追加した語彙のみを表示（自動生成は削除）
+      // vocabularyWordsから語彙リストを構築
+      const userVocab = new Map<string, { count: number; difficulty: number; importance: number; isIdiom: boolean }>();
+      for (const [word, vocabWord] of vocabWordsMap.entries()) {
+        // イディオムかどうかを判定（スペースが含まれている場合はイディオムとみなす）
+        const isIdiom = word.includes(" ");
+        userVocab.set(word, {
+          count: 1, // ユーザーが追加した語彙は1回として扱う
+          difficulty: 5, // デフォルトの難易度
+          importance: 1, // デフォルトの重要度
+          isIdiom,
+        });
+      }
+      setVocabulary(userVocab);
     } catch (error) {
       console.error("Failed to load data:", error);
     } finally {

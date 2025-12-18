@@ -388,7 +388,7 @@ export default function CardSearchPage() {
                   onClick={() => router.push("/cards/screenshot")}
                   className="bg-slate-600 hover:bg-slate-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors shadow-md hover:shadow-lg"
                 >
-                  📷 スクリーンショットから追加
+                  📷 スクショから追加
                 </button>
               </div>
             </div>
@@ -710,7 +710,8 @@ export default function CardSearchPage() {
           </span>
           <button
             onClick={() => {
-              window.open(`https://dictionary.cambridge.org/dictionary/english/${selectedWord}`, '_blank');
+              const encodedWord = encodeURIComponent(selectedWord.toLowerCase());
+              window.open(`https://dictionary.cambridge.org/dictionary/english/${encodedWord}`, '_blank');
               setSelectedWord(null);
               setSelectedWordPosition(null);
               setSelectedWordContext(null);
@@ -722,7 +723,8 @@ export default function CardSearchPage() {
           </button>
           <button
             onClick={() => {
-              window.open(`https://dictionary.cambridge.org/dictionary/english-japanese/${selectedWord}`, '_blank');
+              const encodedWord = encodeURIComponent(selectedWord.toLowerCase());
+              window.open(`https://dictionary.cambridge.org/dictionary/english-japanese/${encodedWord}`, '_blank');
               setSelectedWord(null);
               setSelectedWordPosition(null);
               setSelectedWordContext(null);
