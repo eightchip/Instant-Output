@@ -39,6 +39,8 @@ export default function LessonDetailPage() {
   const [sortBy, setSortBy] = useState<"order" | "created" | "alphabetical">("order");
   const [draggedCardId, setDraggedCardId] = useState<string | null>(null);
   const [dragOverCardId, setDragOverCardId] = useState<string | null>(null);
+  const [selectedWord, setSelectedWord] = useState<string | null>(null);
+  const [selectedWordPosition, setSelectedWordPosition] = useState<{ x: number; y: number } | null>(null);
 
   // ソート済みカード
   const sortedCards = [...cards].sort((a, b) => {
@@ -583,13 +585,35 @@ export default function LessonDetailPage() {
                 <div>
                   <div className="flex items-center justify-between mb-1">
                     <p className="text-gray-600 text-sm">英語</p>
-                    <AudioPlaybackButton
-                      text={card.target_en}
-                      language="en"
-                      size="sm"
-                    />
                   </div>
-                  <p className="text-lg">{card.target_en}</p>
+                  <p 
+                    className="text-lg whitespace-pre-wrap break-words selectable-text"
+                    onMouseUp={(e) => {
+                      const selection = window.getSelection();
+                      if (selection && selection.toString().trim()) {
+                        const selectedText = selection.toString().trim();
+                        const word = selectedText.replace(/[.,!?;:()\[\]{}'"]/g, '').split(/\s+/)[0];
+                        if (word && word.length > 0) {
+                          setSelectedWord(word);
+                          setSelectedWordPosition({ x: e.clientX, y: e.clientY });
+                        }
+                      }
+                    }}
+                    onTouchEnd={(e) => {
+                      const selection = window.getSelection();
+                      if (selection && selection.toString().trim()) {
+                        const selectedText = selection.toString().trim();
+                        const word = selectedText.replace(/[.,!?;:()\[\]{}'"]/g, '').split(/\s+/)[0];
+                        if (word && word.length > 0) {
+                          const touch = e.changedTouches[0];
+                          setSelectedWord(word);
+                          setSelectedWordPosition({ x: touch.clientX, y: touch.clientY });
+                        }
+                      }
+                    }}
+                  >
+                    {card.target_en}
+                  </p>
                 </div>
                 <div className="mt-2 mb-3 flex items-center justify-between">
                   <div className="flex items-center gap-2">
@@ -613,34 +637,6 @@ export default function LessonDetailPage() {
                       </button>
                     )}
                   </div>
-                  {!isBatchMode && (
-                    <button
-                      onClick={async (e) => {
-                        e.stopPropagation();
-                        try {
-                          await storage.init();
-                          await storage.updateCard(card.id, { isFavorite: !card.isFavorite });
-                          await loadData();
-                        } catch (error) {
-                          console.error("Failed to toggle favorite:", error);
-                          setMessageDialog({
-                            isOpen: true,
-                            title: "更新エラー",
-                            message: "お気に入りの更新に失敗しました。",
-                          });
-                        }
-                      }}
-                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold transition-all duration-200 ${
-                        card.isFavorite
-                          ? "bg-gradient-to-r from-yellow-400 to-yellow-500 text-white shadow-md hover:shadow-lg hover:scale-105"
-                          : "bg-gray-100 text-gray-600 hover:bg-gray-200 hover:scale-105"
-                      }`}
-                      title={card.isFavorite ? "お気に入りを解除" : "お気に入りに追加"}
-                    >
-                      <span>★</span>
-                      <span>お気に入り</span>
-                    </button>
-                  )}
                 </div>
                 {!isBatchMode && editingCardId === card.id ? (
                   <CardEditor
@@ -669,7 +665,7 @@ export default function LessonDetailPage() {
                     <div className="flex gap-2">
                       <button
                         onClick={() => setEditingCardId(card.id)}
-                        className="flex-1 btn-primary text-sm"
+                        className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg text-sm"
                       >
                         編集
                       </button>
@@ -704,6 +700,38 @@ export default function LessonDetailPage() {
                       >
                         削除
                       </button>
+                      <button
+                        onClick={async (e) => {
+                          e.stopPropagation();
+                          try {
+                            await storage.init();
+                            await storage.updateCard(card.id, { isFavorite: !card.isFavorite });
+                            await loadData();
+                          } catch (error) {
+                            console.error("Failed to toggle favorite:", error);
+                            setMessageDialog({
+                              isOpen: true,
+                              title: "更新エラー",
+                              message: "お気に入りの更新に失敗しました。",
+                            });
+                          }
+                        }}
+                        className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-semibold transition-all duration-200 ${
+                          card.isFavorite
+                            ? "bg-gradient-to-r from-yellow-400 to-yellow-500 text-white shadow-md hover:shadow-lg"
+                            : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                        }`}
+                        title={card.isFavorite ? "お気に入りを解除" : "お気に入りに追加"}
+                      >
+                        <span>★</span>
+                        <span>お気に入り</span>
+                      </button>
+                      <AudioPlaybackButton
+                        text={card.target_en}
+                        language="en"
+                        size="sm"
+                        className="flex-shrink-0"
+                      />
                     </div>
                   )
                 )}
@@ -730,6 +758,58 @@ export default function LessonDetailPage() {
         onCancel={() => setConfirmDialog({ isOpen: false, title: "", message: "", onConfirm: () => {} })}
         variant="danger"
       />
+      {/* 単語選択時のWeb辞書リンク */}
+      {selectedWord && selectedWordPosition && (
+        <div
+          className="fixed z-50 bg-white border-2 border-blue-500 rounded-lg shadow-xl p-2 flex gap-2"
+          style={{
+            left: `${selectedWordPosition.x}px`,
+            top: `${selectedWordPosition.y - 60}px`,
+            transform: 'translateX(-50%)',
+          }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <button
+            onClick={() => {
+              window.open(`https://dictionary.cambridge.org/dictionary/english/${selectedWord}`, '_blank');
+              setSelectedWord(null);
+              setSelectedWordPosition(null);
+            }}
+            className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-1 px-3 rounded text-xs"
+          >
+            英英辞書
+          </button>
+          <button
+            onClick={() => {
+              window.open(`https://dictionary.cambridge.org/dictionary/english-japanese/${selectedWord}`, '_blank');
+              setSelectedWord(null);
+              setSelectedWordPosition(null);
+            }}
+            className="bg-green-600 hover:bg-green-700 text-white font-semibold py-1 px-3 rounded text-xs"
+          >
+            英日辞書
+          </button>
+          <button
+            onClick={() => {
+              setSelectedWord(null);
+              setSelectedWordPosition(null);
+            }}
+            className="bg-gray-400 hover:bg-gray-500 text-white font-semibold py-1 px-2 rounded text-xs"
+          >
+            ✕
+          </button>
+        </div>
+      )}
+      {/* クリックで辞書リンクを閉じる */}
+      {selectedWord && (
+        <div
+          className="fixed inset-0 z-40"
+          onClick={() => {
+            setSelectedWord(null);
+            setSelectedWordPosition(null);
+          }}
+        />
+      )}
     </div>
   );
 }
