@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { storage } from "@/lib/storage";
 import { ocrService, OCRProgress } from "@/lib/ocr";
@@ -8,8 +8,9 @@ import { Lesson, Card } from "@/types/models";
 import { processOcrText } from "@/lib/text-processing";
 import MessageDialog from "@/components/MessageDialog";
 import VoiceInputButton from "@/components/VoiceInputButton";
+import LoadingSpinner from "@/components/LoadingSpinner";
 
-export default function ScreenshotCardPage() {
+function ScreenshotCardContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -1610,6 +1611,14 @@ export default function ScreenshotCardPage() {
         onClose={() => setMessageDialog({ isOpen: false, title: "", message: "" })}
       />
     </div>
+  );
+}
+
+export default function ScreenshotCardPage() {
+  return (
+    <Suspense fallback={<LoadingSpinner fullScreen text="読み込み中..." />}>
+      <ScreenshotCardContent />
+    </Suspense>
   );
 }
 
