@@ -445,18 +445,71 @@ export default function Home() {
                   }}
                 />
                 
+                {/* 管理者ログイン/メニュー（モバイル） */}
+                {!isAdmin ? (
+                  <div className="pt-2 mt-2 border-t border-purple-200">
+                    <button
+                      onClick={() => {
+                        setShowAdminLogin(true);
+                        setShowMobileMenu(false);
+                      }}
+                      className="w-full px-4 py-3 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white font-bold rounded-lg flex items-center justify-center gap-2 transition-all shadow-md hover:shadow-lg active:scale-95"
+                    >
+                      <span className="text-xl">🔐</span>
+                      <span className="text-base">管理者ログイン</span>
+                    </button>
+                    <p className="text-xs text-gray-500 mt-2 text-center">
+                      管理者機能を使用するにはログインが必要です
+                    </p>
+                  </div>
+                ) : (
+                  <div className="pt-2 mt-2 border-t border-purple-200 space-y-2">
+                    <div className="px-2 py-1 bg-purple-50 rounded-lg mb-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-semibold text-purple-700">🔐 管理者モード</span>
+                        <span className="text-xs text-purple-600">
+                          残り: {sessionTimeRemaining}時間
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between mt-1">
+                        <button
+                          onClick={() => {
+                            extendAdminSession();
+                            setSessionTimeRemaining(getSessionTimeRemaining());
+                            setShowMobileMenu(false);
+                          }}
+                          className="text-xs text-purple-600 hover:text-purple-800 underline"
+                        >
+                          セッション延長
+                        </button>
+                        <button
+                          onClick={() => {
+                            setAdminAuthenticated(false);
+                            setIsAdmin(false);
+                            setSessionTimeRemaining(0);
+                            setShowMobileMenu(false);
+                          }}
+                          className="text-xs text-red-600 hover:text-red-800 underline"
+                        >
+                          ログアウト
+                        </button>
+                      </div>
+                    </div>
+                    <MenuButton
+                      icon="🤖"
+                      title="AI-OCR（管理者専用）"
+                      description="画像から自動でカード化"
+                      color="purple"
+                      onClick={() => {
+                        router.push("/cards/ai-card");
+                        setShowMobileMenu(false);
+                      }}
+                    />
+                  </div>
+                )}
+                
                 {/* その他 */}
                 <div className="pt-2 mt-2 border-t border-gray-200">
-                  <MenuButton
-                    icon="🤖"
-                    title="AI-OCR（管理者専用）"
-                    description="画像から自動でカード化"
-                    color="purple"
-                    onClick={() => {
-                      router.push("/cards/ai-card");
-                      setShowMobileMenu(false);
-                    }}
-                  />
                   <MenuButton
                     icon="📚"
                     title="語彙リスト"
@@ -537,14 +590,17 @@ export default function Home() {
           
           {/* 管理者ログイン/メニュー */}
           {!isAdmin ? (
-            <div className="pt-2 mt-2 border-t border-gray-200">
+            <div className="pt-2 mt-2 border-t border-purple-200">
               <button
                 onClick={() => setShowAdminLogin(true)}
-                className="w-full px-4 py-3 bg-purple-100 hover:bg-purple-200 text-purple-700 font-semibold rounded-lg flex items-center justify-center gap-2 transition-colors"
+                className="w-full px-4 py-3 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white font-bold rounded-lg flex items-center justify-center gap-2 transition-all shadow-md hover:shadow-lg active:scale-95"
               >
-                <span>🔐</span>
-                <span>管理者ログイン</span>
+                <span className="text-xl">🔐</span>
+                <span className="text-base">管理者ログイン</span>
               </button>
+              <p className="text-xs text-gray-500 mt-2 text-center">
+                管理者機能を使用するにはログインが必要です
+              </p>
             </div>
           ) : (
             <div className="pt-2 mt-2 border-t border-purple-200 space-y-2">
@@ -643,15 +699,31 @@ export default function Home() {
       
       {/* 管理者ログインモーダル */}
       {showAdminLogin && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl p-8 w-full max-w-md mx-4">
-            <h2 className="text-2xl font-bold mb-4 text-center">管理者ログイン</h2>
-            <p className="text-sm text-gray-600 mb-6 text-center">
-              管理者機能を使用するにはパスワードが必要です。
-            </p>
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setShowAdminLogin(false);
+              setAdminPassword("");
+            }
+          }}
+        >
+          <div className="bg-white rounded-xl shadow-2xl p-6 w-full max-w-md mx-4 animate-fade-in">
+            {/* ヘッダー */}
+            <div className="text-center mb-6">
+              <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-purple-600 to-purple-700 rounded-full mb-4">
+                <span className="text-3xl">🔐</span>
+              </div>
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">管理者ログイン</h2>
+              <p className="text-sm text-gray-600">
+                管理者機能を使用するにはパスワードが必要です
+              </p>
+            </div>
+            
+            {/* フォーム */}
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-semibold mb-2">
+                <label className="block text-sm font-semibold mb-2 text-gray-700">
                   パスワード
                 </label>
                 <input
@@ -664,23 +736,25 @@ export default function Home() {
                     }
                   }}
                   placeholder="管理者パスワードを入力"
-                  className="w-full border border-gray-300 rounded-lg px-4 py-3 bg-white text-gray-900"
+                  className="w-full border-2 border-gray-300 focus:border-purple-500 focus:ring-2 focus:ring-purple-200 rounded-lg px-4 py-3 bg-white text-gray-900 text-base transition-all"
                   autoFocus
                 />
               </div>
-              <div className="flex gap-3">
+              
+              {/* ボタン */}
+              <div className="flex gap-3 pt-2">
                 <button
                   onClick={() => {
                     setShowAdminLogin(false);
                     setAdminPassword("");
                   }}
-                  className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold py-3 px-4 rounded-lg transition-colors"
+                  className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold py-3 px-4 rounded-lg transition-colors active:scale-95"
                 >
                   キャンセル
                 </button>
                 <button
                   onClick={handleAdminLogin}
-                  className="flex-1 bg-purple-600 hover:bg-purple-700 text-white font-semibold py-3 px-4 rounded-lg transition-colors"
+                  className="flex-1 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white font-bold py-3 px-4 rounded-lg transition-all shadow-md hover:shadow-lg active:scale-95"
                 >
                   ログイン
                 </button>
