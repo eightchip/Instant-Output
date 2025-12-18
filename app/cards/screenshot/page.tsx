@@ -918,7 +918,7 @@ function ScreenshotCardContent() {
       <main className="flex-1 px-4 py-8 max-w-2xl mx-auto w-full">
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-3xl font-black bg-gradient-to-r from-slate-600 to-indigo-600 bg-clip-text text-transparent">
-            📷 スクリーンショットから追加
+            📷 スクショから追加
           </h1>
           <button
             onClick={() => router.back()}

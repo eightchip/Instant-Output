@@ -363,7 +363,7 @@ export default function CardSelectPage() {
                   onClick={() => router.push("/cards/screenshot")}
                   className="bg-slate-600 hover:bg-slate-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors shadow-md hover:shadow-lg"
                 >
-                  📷 スクリーンショットから追加
+                  📷 スクショから追加
                 </button>
               </div>
             </div>
