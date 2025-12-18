@@ -13,7 +13,8 @@ import GlobalVoiceInputButton from "@/components/GlobalVoiceInputButton";
 import { PlayCircle, Zap } from "lucide-react";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import ThemeToggle from "@/components/ThemeToggle";
-import { isAdminAuthenticated, getSessionTimeRemaining, extendAdminSession } from "@/lib/admin-auth";
+import { isAdminAuthenticated, getSessionTimeRemaining, extendAdminSession, setAdminAuthenticated, verifyAdminPassword } from "@/lib/admin-auth";
+import MessageDialog from "@/components/MessageDialog";
 
 export default function Home() {
   const router = useRouter();
@@ -28,6 +29,13 @@ export default function Home() {
   const [showQRCode, setShowQRCode] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [sessionTimeRemaining, setSessionTimeRemaining] = useState(0);
+  const [showAdminLogin, setShowAdminLogin] = useState(false);
+  const [adminPassword, setAdminPassword] = useState("");
+  const [messageDialog, setMessageDialog] = useState<{ isOpen: boolean; title: string; message: string }>({
+    isOpen: false,
+    title: "",
+    message: "",
+  });
 
   useEffect(() => {
     // 管理者認証状態をチェック
@@ -527,8 +535,18 @@ export default function Home() {
             onClick={() => router.push("/courses")}
           />
           
-          {/* 管理者専用メニュー */}
-          {isAdmin && (
+          {/* 管理者ログイン/メニュー */}
+          {!isAdmin ? (
+            <div className="pt-2 mt-2 border-t border-gray-200">
+              <button
+                onClick={() => setShowAdminLogin(true)}
+                className="w-full px-4 py-3 bg-purple-100 hover:bg-purple-200 text-purple-700 font-semibold rounded-lg flex items-center justify-center gap-2 transition-colors"
+              >
+                <span>🔐</span>
+                <span>管理者ログイン</span>
+              </button>
+            </div>
+          ) : (
             <div className="pt-2 mt-2 border-t border-purple-200 space-y-2">
               <div className="px-2 py-1 bg-purple-50 rounded-lg mb-2">
                 <div className="flex items-center justify-between">
@@ -537,15 +555,27 @@ export default function Home() {
                     残り: {sessionTimeRemaining}時間
                   </span>
                 </div>
-                <button
-                  onClick={() => {
-                    extendAdminSession();
-                    setSessionTimeRemaining(getSessionTimeRemaining());
-                  }}
-                  className="text-xs text-purple-600 hover:text-purple-800 underline mt-1"
-                >
-                  セッションを24時間延長
-                </button>
+                <div className="flex items-center justify-between mt-1">
+                  <button
+                    onClick={() => {
+                      extendAdminSession();
+                      setSessionTimeRemaining(getSessionTimeRemaining());
+                    }}
+                    className="text-xs text-purple-600 hover:text-purple-800 underline"
+                  >
+                    セッションを24時間延長
+                  </button>
+                  <button
+                    onClick={() => {
+                      setAdminAuthenticated(false);
+                      setIsAdmin(false);
+                      setSessionTimeRemaining(0);
+                    }}
+                    className="text-xs text-red-600 hover:text-red-800 underline"
+                  >
+                    ログアウト
+                  </button>
+                </div>
               </div>
               <MenuButton
                 icon="🤖"
@@ -610,6 +640,84 @@ export default function Home() {
         </div>
       </main>
       <GlobalVoiceInputButton variant="floating" size="md" />
+      
+      {/* 管理者ログインモーダル */}
+      {showAdminLogin && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl p-8 w-full max-w-md mx-4">
+            <h2 className="text-2xl font-bold mb-4 text-center">管理者ログイン</h2>
+            <p className="text-sm text-gray-600 mb-6 text-center">
+              管理者機能を使用するにはパスワードが必要です。
+            </p>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-semibold mb-2">
+                  パスワード
+                </label>
+                <input
+                  type="password"
+                  value={adminPassword}
+                  onChange={(e) => setAdminPassword(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      handleAdminLogin();
+                    }
+                  }}
+                  placeholder="管理者パスワードを入力"
+                  className="w-full border border-gray-300 rounded-lg px-4 py-3 bg-white text-gray-900"
+                  autoFocus
+                />
+              </div>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => {
+                    setShowAdminLogin(false);
+                    setAdminPassword("");
+                  }}
+                  className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold py-3 px-4 rounded-lg transition-colors"
+                >
+                  キャンセル
+                </button>
+                <button
+                  onClick={handleAdminLogin}
+                  className="flex-1 bg-purple-600 hover:bg-purple-700 text-white font-semibold py-3 px-4 rounded-lg transition-colors"
+                >
+                  ログイン
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* メッセージダイアログ */}
+      <MessageDialog
+        isOpen={messageDialog.isOpen}
+        title={messageDialog.title}
+        message={messageDialog.message}
+        onClose={() => setMessageDialog({ isOpen: false, title: "", message: "" })}
+      />
     </div>
   );
+  
+  function handleAdminLogin() {
+    if (verifyAdminPassword(adminPassword)) {
+      setAdminAuthenticated(true);
+      setIsAdmin(true);
+      setSessionTimeRemaining(getSessionTimeRemaining());
+      setShowAdminLogin(false);
+      setAdminPassword("");
+      setMessageDialog({
+        isOpen: true,
+        title: "ログイン成功",
+        message: "管理者としてログインしました。",
+      });
+    } else {
+      setMessageDialog({
+        isOpen: true,
+        title: "認証エラー",
+        message: "管理者パスワードが正しくありません。",
+      });
+    }
+  }
 }
