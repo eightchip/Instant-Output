@@ -476,6 +476,12 @@ export default function LessonDetailPage() {
                       draggable={isDraggable}
                       onDragStart={(e) => {
                         if (isDraggable) {
+                          // テキスト選択中はドラッグを無効化
+                          const selection = window.getSelection();
+                          if (selection && selection.toString().trim()) {
+                            e.preventDefault();
+                            return;
+                          }
                           setDraggedCardId(card.id);
                           e.dataTransfer.effectAllowed = "move";
                           e.dataTransfer.setData("text/plain", card.id);
@@ -521,7 +527,7 @@ export default function LessonDetailPage() {
                     )}
                     {isDraggable && (
                       <div 
-                        className="flex items-center gap-1 text-gray-400 hover:text-gray-600 transition-colors"
+                        className="flex items-center gap-1 text-gray-400 hover:text-gray-600 transition-colors drag-handle"
                         title="ドラッグして並び替え（順序は保存されます）"
                       >
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -592,6 +598,14 @@ export default function LessonDetailPage() {
                   </div>
                   <p 
                     className="text-lg whitespace-pre-wrap break-words selectable-text"
+                    onMouseDown={(e) => {
+                      // テキスト選択を開始する際は、ドラッグを無効化しない（テキスト選択を優先）
+                      // ただし、ドラッグハンドルをクリックした場合は除く
+                      const target = e.target as HTMLElement;
+                      if (target.closest('.drag-handle')) {
+                        return; // ドラッグハンドルの場合は何もしない
+                      }
+                    }}
                     onMouseUp={(e) => {
                       // ドラッグ状態をリセット（単語選択時）
                       if (draggedCardId) {
@@ -617,7 +631,31 @@ export default function LessonDetailPage() {
                             });
                           }
                         }
-                      }, 50);
+                      }, 100); // PCでは少し長めの遅延を設定
+                    }}
+                    onSelect={(e) => {
+                      // PCでのテキスト選択を確実に検出（onMouseUpと併用）
+                      // このイベントは選択が変更されるたびに発火するため、少し遅延を入れる
+                      setTimeout(() => {
+                        const selection = window.getSelection();
+                        if (selection && selection.rangeCount > 0 && selection.toString().trim()) {
+                          const range = selection.getRangeAt(0);
+                          const rect = range.getBoundingClientRect();
+                          const selectedText = selection.toString().trim();
+                          // 単語のみを抽出（句読点を除去）
+                          const word = selectedText.replace(/[.,!?;:()\[\]{}'"]/g, '').split(/\s+/)[0];
+                          if (word && word.length > 0 && rect.width > 0) {
+                            setSelectedWord(word);
+                            setSelectedWordContext(card.target_en); // カードの英文をコンテキストとして保存
+                            // 選択範囲の中央下に表示
+                            setSelectedWordPosition({ 
+                              x: rect.left + rect.width / 2, 
+                              y: rect.bottom + 5,
+                              width: rect.width
+                            });
+                          }
+                        }
+                      }, 100);
                     }}
                     onTouchEnd={(e) => {
                       // ドラッグ状態をリセット（単語選択時）
