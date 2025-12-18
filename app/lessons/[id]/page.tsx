@@ -473,20 +473,7 @@ export default function LessonDetailPage() {
               return (
                     <div
                       key={card.id}
-                      draggable={isDraggable}
-                      onDragStart={(e) => {
-                        if (isDraggable) {
-                          // テキスト選択中はドラッグを無効化
-                          const selection = window.getSelection();
-                          if (selection && selection.toString().trim()) {
-                            e.preventDefault();
-                            return;
-                          }
-                          setDraggedCardId(card.id);
-                          e.dataTransfer.effectAllowed = "move";
-                          e.dataTransfer.setData("text/plain", card.id);
-                        }
-                      }}
+                      draggable={false}
                       onDragOver={(e) => {
                         if (isDraggable && draggedCardId && draggedCardId !== card.id) {
                           e.preventDefault();
@@ -504,6 +491,12 @@ export default function LessonDetailPage() {
                         }
                         setDraggedCardId(null);
                         setDragOverCardId(null);
+                      }}
+                      onDragEnter={(e) => {
+                        // ドラッグハンドル以外からのドラッグを無視
+                        if (isDraggable && draggedCardId && draggedCardId !== card.id) {
+                          e.preventDefault();
+                        }
                       }}
                       className={`card-base p-4 hover-lift animate-fade-in ${
                         isBatchMode && selectedCards.has(card.id)
@@ -527,8 +520,15 @@ export default function LessonDetailPage() {
                     )}
                     {isDraggable && (
                       <div 
-                        className="flex items-center gap-1 text-gray-400 hover:text-gray-600 transition-colors drag-handle"
+                        className="flex items-center gap-1 text-gray-400 hover:text-gray-600 transition-colors drag-handle cursor-move"
                         title="ドラッグして並び替え（順序は保存されます）"
+                        draggable={true}
+                        onDragStart={(e) => {
+                          setDraggedCardId(card.id);
+                          e.dataTransfer.effectAllowed = "move";
+                          e.dataTransfer.setData("text/plain", card.id);
+                          e.stopPropagation();
+                        }}
                       >
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8h16M4 16h16" />
