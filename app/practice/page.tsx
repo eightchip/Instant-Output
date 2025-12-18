@@ -604,30 +604,38 @@ function PracticeContent() {
               {/* 回答入力 */}
               {!showAnswer && (
             <div className="space-y-4">
-              <div className="flex gap-2">
-                <input
-                  type="text"
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-sm font-semibold text-gray-700">英語で回答</label>
+                  <VoiceInputButton
+                    language="en"
+                    onInsert={(text) => setUserAnswer((prev) => prev + (prev ? " " : "") + text)}
+                    size="md"
+                    japaneseText={currentCard.prompt_jp}
+                  />
+                </div>
+                <textarea
                   value={userAnswer}
                   onChange={(e) => setUserAnswer(e.target.value)}
-                  placeholder="英語で入力..."
-                  className="flex-1 border border-gray-300 rounded-lg px-4 py-3 text-lg"
+                  placeholder="英語で入力...（音声認識で入力した後、誤りがあれば修正してください）"
+                  className="w-full border-2 border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 rounded-lg px-4 py-3 text-lg min-h-[120px] resize-y"
+                  rows={4}
                   onKeyDown={(e) => {
-                    if (e.key === "Enter" && userAnswer.trim()) {
+                    // Ctrl+Enter または Cmd+Enter で送信
+                    if ((e.ctrlKey || e.metaKey) && e.key === "Enter" && userAnswer.trim()) {
+                      e.preventDefault();
                       handleShowAnswer();
                     }
                   }}
                 />
-                <VoiceInputButton
-                  language="en"
-                  onInsert={(text) => setUserAnswer((prev) => prev + (prev ? " " : "") + text)}
-                  size="md"
-                  japaneseText={currentCard.prompt_jp}
-                />
+                <p className="text-xs text-gray-500">
+                  💡 音声認識で入力後、誤りがあればタイピングで修正できます（Ctrl+Enter または Cmd+Enter で送信）
+                </p>
               </div>
               <button
                 onClick={handleShowAnswer}
                 disabled={!userAnswer.trim()}
-                className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-bold py-3 px-4 rounded-lg"
+                className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-bold py-3 px-4 rounded-lg transition-all shadow-md hover:shadow-lg active:scale-95"
               >
                 答えを見る
               </button>
