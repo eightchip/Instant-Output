@@ -74,11 +74,15 @@ h1.text-xl {
 /* ロゴ用のスタイル（ラポール22風） */
 h1.font-black {
   font-weight: 800 !important;
-  color: #000000 !important;
   letter-spacing: -0.03em !important;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
+}
+
+/* ヘッダー内のタイトルはオレンジ色を優先 */
+.header-title-orange {
+  color: #FF6600 !important;
 }
 
 .font-bold {

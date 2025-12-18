@@ -76,12 +76,11 @@ export default function Home() {
       <header className="bg-black border-b border-transparent sticky top-0 z-40 shadow-lg">
         <div className="max-w-2xl mx-auto px-4 py-4 flex items-center justify-between relative overflow-hidden">
           <h1 
-            className="text-2xl md:text-3xl font-black tracking-tight relative z-10"
+            className="text-2xl md:text-3xl font-black tracking-tight relative z-10 header-title-orange"
             style={{ 
               fontFamily: 'var(--font-geist-sans), sans-serif', 
               fontWeight: 900, 
-              letterSpacing: '-0.03em',
-              color: '#FF6600'
+              letterSpacing: '-0.03em'
             }}
           >
             instant_output
