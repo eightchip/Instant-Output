@@ -10,7 +10,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { isAdminAuthenticated, getAdminPassword } from "@/lib/admin-auth";
+import { isAdminAuthenticated, getSessionData } from "@/lib/admin-auth";
 
 interface VoiceInputModalProps {
   isOpen: boolean;
@@ -247,11 +247,11 @@ export default function VoiceInputModal({
           const base64Audio = reader.result as string;
           
           try {
-            // 管理者パスワードを取得
-            const adminPassword = getAdminPassword();
+            // セッションデータを取得
+            const sessionData = getSessionData();
             
-            if (!adminPassword || adminPassword.trim().length === 0) {
-              setRecognizedText("[エラー: 管理者パスワードが設定されていません]");
+            if (!sessionData) {
+              setRecognizedText("[エラー: 管理者セッションが無効です。再度ログインしてください]");
               setIsRecording(false);
               setIsTranscribing(false);
               return;
@@ -264,7 +264,7 @@ export default function VoiceInputModal({
               },
               body: JSON.stringify({
                 audioBase64: base64Audio,
-                adminPassword: adminPassword,
+                sessionData: sessionData,
                 language: "en",
               }),
             });

@@ -111,12 +111,23 @@ export function extendAdminSession(): void {
 }
 
 /**
- * 管理者パスワードを取得（クライアント側用）
- * 注意: セキュリティ上の理由から、この関数は環境変数から取得します
- * 本番環境では、より安全な認証方法を使用することを推奨します
+ * セッションデータを取得（APIルートでの認証用）
+ * クライアント側からセッション情報を送信し、サーバー側で検証する
  */
-export function getAdminPassword(): string {
-  if (typeof window === "undefined") return "";
-  return ADMIN_PASSWORD;
+export function getSessionData(): { timestamp: number; expiresAt: number } | null {
+  if (typeof window === "undefined") return null;
+  
+  try {
+    const sessionData = localStorage.getItem(ADMIN_SESSION_KEY);
+    if (!sessionData) return null;
+    
+    const session: AdminSession = JSON.parse(sessionData);
+    return {
+      timestamp: session.timestamp,
+      expiresAt: session.expiresAt,
+    };
+  } catch {
+    return null;
+  }
 }
 

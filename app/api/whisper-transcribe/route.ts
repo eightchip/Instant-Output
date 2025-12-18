@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { verifyAdminSession } from "@/lib/admin-auth-server";
 
 /**
  * OpenAI Whisper APIを使用した高精度音声認識
@@ -6,7 +7,7 @@ import { NextRequest, NextResponse } from "next/server";
  */
 export async function POST(request: NextRequest) {
   try {
-    const { audioBase64, adminPassword, language = "en" } = await request.json();
+    const { audioBase64, sessionData, language = "en" } = await request.json();
 
     if (!audioBase64 || typeof audioBase64 !== "string") {
       return NextResponse.json(
@@ -15,19 +16,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 管理者パスワード確認
-    if (!adminPassword || typeof adminPassword !== "string" || adminPassword.trim().length === 0) {
+    // セッション認証
+    if (!verifyAdminSession(sessionData)) {
+      console.warn("管理者セッション認証失敗（Whisper API）");
       return NextResponse.json(
-        { error: "UNAUTHORIZED", message: "管理者パスワードが提供されていません。" },
-        { status: 401 }
-      );
-    }
-
-    const expectedPassword = process.env.ADMIN_PASSWORD || "admin123";
-    if (adminPassword.trim() !== expectedPassword.trim()) {
-      console.warn("管理者パスワード認証失敗（Whisper API）");
-      return NextResponse.json(
-        { error: "UNAUTHORIZED", message: "管理者パスワードが正しくありません。" },
+        { error: "UNAUTHORIZED", message: "管理者セッションが無効または期限切れです。再度ログインしてください。" },
         { status: 401 }
       );
     }
