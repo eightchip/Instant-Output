@@ -37,6 +37,9 @@ export default function CardEditor({
   const [isRecordingForRetranslate, setIsRecordingForRetranslate] = useState(false);
   const [isTranscribing, setIsTranscribing] = useState(false);
   const [isImproving, setIsImproving] = useState(false);
+  const [isExtractingVocabulary, setIsExtractingVocabulary] = useState(false);
+  const [isCheckingQuality, setIsCheckingQuality] = useState(false);
+  const [qualityCheckResult, setQualityCheckResult] = useState<{ score: number; issues: string[]; suggestions: string[] } | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const [showAddVocabulary, setShowAddVocabulary] = useState(false);
@@ -394,6 +397,177 @@ export default function CardEditor({
     }
   }
 
+  // 語彙の自動抽出と意味の自動取得
+  async function handleExtractVocabulary() {
+    if (!targetEn.trim()) {
+      setMessageDialog({
+        isOpen: true,
+        title: "入力エラー",
+        message: "英語を入力してください。",
+      });
+      return;
+    }
+
+    if (!isAdminAuthenticated()) {
+      setMessageDialog({
+        isOpen: true,
+        title: "認証エラー",
+        message: "この機能を使用するには管理者ログインが必要です。",
+      });
+      return;
+    }
+
+    setIsExtractingVocabulary(true);
+    try {
+      const sessionData = getSessionData();
+      if (!sessionData) {
+        setMessageDialog({
+          isOpen: true,
+          title: "認証エラー",
+          message: "管理者セッションが無効です。再度ログインしてください。",
+        });
+        setIsExtractingVocabulary(false);
+        return;
+      }
+
+      const response = await fetch("/api/extract-vocabulary", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          text: targetEn.trim(),
+          sessionData,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        setMessageDialog({
+          isOpen: true,
+          title: "抽出エラー",
+          message: errorData.message || "語彙の抽出に失敗しました。",
+        });
+        return;
+      }
+
+      const data = await response.json();
+      if (data.vocabulary && Array.isArray(data.vocabulary) && data.vocabulary.length > 0) {
+        // 抽出された語彙を語彙リストに追加
+        let successCount = 0;
+        for (const item of data.vocabulary) {
+          try {
+            await saveWordMeaning(
+              item.word.toLowerCase(),
+              item.meaning,
+              undefined, // notes
+              undefined, // highlightedMeaning
+              targetEn.trim(), // exampleSentence
+              false, // isLearned
+              false // isWantToLearn
+            );
+            successCount++;
+          } catch (error) {
+            console.error(`Failed to save vocabulary word: ${item.word}`, error);
+          }
+        }
+        setMessageDialog({
+          isOpen: true,
+          title: "抽出完了",
+          message: `${successCount}個の語彙を語彙リストに追加しました。`,
+        });
+      } else {
+        setMessageDialog({
+          isOpen: true,
+          title: "抽出結果",
+          message: "抽出された語彙がありませんでした。",
+        });
+      }
+    } catch (error) {
+      console.error("Vocabulary extraction error:", error);
+      setMessageDialog({
+        isOpen: true,
+        title: "エラー",
+        message: "語彙抽出処理中にエラーが発生しました。",
+      });
+    } finally {
+      setIsExtractingVocabulary(false);
+    }
+  }
+
+  // カードの自動品質チェック
+  async function handleCheckQuality() {
+    if (!targetEn.trim() || !promptJp.trim()) {
+      setMessageDialog({
+        isOpen: true,
+        title: "入力エラー",
+        message: "英語と日本語の両方を入力してください。",
+      });
+      return;
+    }
+
+    if (!isAdminAuthenticated()) {
+      setMessageDialog({
+        isOpen: true,
+        title: "認証エラー",
+        message: "この機能を使用するには管理者ログインが必要です。",
+      });
+      return;
+    }
+
+    setIsCheckingQuality(true);
+    try {
+      const sessionData = getSessionData();
+      if (!sessionData) {
+        setMessageDialog({
+          isOpen: true,
+          title: "認証エラー",
+          message: "管理者セッションが無効です。再度ログインしてください。",
+        });
+        setIsCheckingQuality(false);
+        return;
+      }
+
+      const response = await fetch("/api/check-card-quality", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          card: {
+            target_en: targetEn.trim(),
+            prompt_jp: promptJp.trim(),
+          },
+          sessionData,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        setMessageDialog({
+          isOpen: true,
+          title: "品質チェックエラー",
+          message: errorData.message || "カードの品質チェックに失敗しました。",
+        });
+        return;
+      }
+
+      const data = await response.json();
+      if (data.qualityCheck) {
+        setQualityCheckResult(data.qualityCheck);
+      }
+    } catch (error) {
+      console.error("Card quality check error:", error);
+      setMessageDialog({
+        isOpen: true,
+        title: "エラー",
+        message: "カード品質チェック処理中にエラーが発生しました。",
+      });
+    } finally {
+      setIsCheckingQuality(false);
+    }
+  }
+
   const handleSave = async () => {
     if (!targetEn.trim()) {
       setErrors({ targetEn: "英語を入力してください" });
@@ -606,18 +780,29 @@ export default function CardEditor({
 
         {/* 英語 */}
         <div>
-          <label className="block text-sm font-semibold mb-2">
-            英語
-            <AudioPlaybackButton
-              text={targetEn}
-              language="en"
-              size="sm"
-              className="ml-2"
-            />
-            {errors.targetEn && (
-              <span className="text-red-600 text-sm ml-2">{errors.targetEn}</span>
+          <div className="flex items-center justify-between mb-2">
+            <label className="block text-sm font-semibold">
+              英語
+              <AudioPlaybackButton
+                text={targetEn}
+                language="en"
+                size="sm"
+                className="ml-2"
+              />
+              {errors.targetEn && (
+                <span className="text-red-600 text-sm ml-2">{errors.targetEn}</span>
+              )}
+            </label>
+            {targetEn.trim() && isAdminAuthenticated() && (
+              <button
+                onClick={handleImproveText}
+                disabled={isImproving}
+                className="text-xs bg-yellow-600 hover:bg-yellow-700 disabled:bg-gray-400 text-white font-semibold py-1 px-3 rounded-lg transition-colors"
+              >
+                {isImproving ? "改善中..." : "✨ 文章を改善"}
+              </button>
             )}
-          </label>
+          </div>
           <div className="relative">
             <textarea
               ref={textareaEnRef}
@@ -682,6 +867,24 @@ export default function CardEditor({
               キャンセル
             </button>
           )}
+          {isAdminAuthenticated() && (
+            <>
+              <button
+                onClick={handleExtractVocabulary}
+                disabled={isExtractingVocabulary || !targetEn.trim()}
+                className="bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white font-semibold py-3 px-6 rounded-lg transition-colors"
+              >
+                {isExtractingVocabulary ? "抽出中..." : "📚 語彙を自動抽出"}
+              </button>
+              <button
+                onClick={handleCheckQuality}
+                disabled={isCheckingQuality || !targetEn.trim() || !promptJp.trim()}
+                className="bg-orange-600 hover:bg-orange-700 disabled:bg-gray-400 text-white font-semibold py-3 px-6 rounded-lg transition-colors"
+              >
+                {isCheckingQuality ? "チェック中..." : "🔍 品質チェック"}
+              </button>
+            </>
+          )}
           <button
             onClick={() => {
               setShowAddVocabulary(!showAddVocabulary);
@@ -705,6 +908,47 @@ export default function CardEditor({
           )}
         </div>
         
+        {/* 品質チェック結果 */}
+        {qualityCheckResult && (
+          <div className="mt-6 p-6 bg-orange-50 rounded-lg border-2 border-orange-200">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-gray-900">品質チェック結果</h3>
+              <button
+                onClick={() => setQualityCheckResult(null)}
+                className="text-gray-500 hover:text-gray-700 text-xl font-bold"
+              >
+                ×
+              </button>
+            </div>
+            <div className="space-y-3">
+              <div>
+                <p className="text-sm text-gray-600 mb-1">品質スコア</p>
+                <p className="text-2xl font-bold text-orange-600">{qualityCheckResult.score}点</p>
+              </div>
+              {qualityCheckResult.issues.length > 0 && (
+                <div>
+                  <p className="text-sm font-semibold text-gray-700 mb-2">⚠️ 問題点</p>
+                  <ul className="list-disc list-inside space-y-1 text-sm text-gray-700">
+                    {qualityCheckResult.issues.map((issue, index) => (
+                      <li key={index}>{issue}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              {qualityCheckResult.suggestions.length > 0 && (
+                <div>
+                  <p className="text-sm font-semibold text-gray-700 mb-2">💡 改善提案</p>
+                  <ul className="list-disc list-inside space-y-1 text-sm text-gray-700">
+                    {qualityCheckResult.suggestions.map((suggestion, index) => (
+                      <li key={index}>{suggestion}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* 語彙リスト追加フォーム */}
         {showAddVocabulary && (
           <div className="mt-6 p-6 bg-blue-50 rounded-lg border-2 border-blue-200">

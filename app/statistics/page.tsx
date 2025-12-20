@@ -6,12 +6,21 @@ import { storage } from "@/lib/storage";
 import { calculateStatistics, getDailyData, Statistics } from "@/lib/statistics";
 import { StudySession } from "@/types/models";
 import LoadingSpinner from "@/components/LoadingSpinner";
+import { isAdminAuthenticated, getSessionData } from "@/lib/admin-auth";
+import MessageDialog from "@/components/MessageDialog";
 
 export default function StatisticsPage() {
   const router = useRouter();
   const [sessions, setSessions] = useState<StudySession[]>([]);
   const [statistics, setStatistics] = useState<Statistics | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [analysisResult, setAnalysisResult] = useState<string | null>(null);
+  const [messageDialog, setMessageDialog] = useState<{ isOpen: boolean; title: string; message: string }>({
+    isOpen: false,
+    title: "",
+    message: "",
+  });
 
   useEffect(() => {
     loadData();
@@ -62,12 +71,23 @@ export default function StatisticsPage() {
       <main className="flex-1 px-4 py-8 max-w-2xl mx-auto w-full">
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-3xl font-bold">学習統計</h1>
-          <button
-            onClick={() => router.push("/")}
-            className="text-gray-600 hover:text-gray-800"
-          >
-            ← ホーム
-          </button>
+          <div className="flex items-center gap-2">
+            {isAdminAuthenticated() && statistics && sessions.length > 0 && (
+              <button
+                onClick={handleAnalyzeProgress}
+                disabled={isAnalyzing}
+                className="bg-purple-600 hover:bg-purple-700 disabled:bg-gray-400 text-white font-semibold py-2 px-4 rounded-lg transition-colors"
+              >
+                {isAnalyzing ? "分析中..." : "📊 AI分析"}
+              </button>
+            )}
+            <button
+              onClick={() => router.push("/")}
+              className="text-gray-600 hover:text-gray-800"
+            >
+              ← ホーム
+            </button>
+          </div>
         </div>
 
         {/* 統計サマリー */}
@@ -238,7 +258,32 @@ export default function StatisticsPage() {
             </button>
           </div>
         )}
+
+        {/* AI分析結果 */}
+        {analysisResult && (
+          <div className="bg-gradient-to-r from-purple-50 to-indigo-50 border-2 border-purple-200 rounded-lg shadow-lg p-6 mb-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold text-purple-900">📊 AI分析結果</h2>
+              <button
+                onClick={() => setAnalysisResult(null)}
+                className="text-gray-500 hover:text-gray-700 text-xl font-bold"
+              >
+                ×
+              </button>
+            </div>
+            <div className="bg-white rounded-lg p-4 text-gray-800 whitespace-pre-wrap leading-relaxed">
+              {analysisResult}
+            </div>
+          </div>
+        )}
       </main>
+
+      <MessageDialog
+        isOpen={messageDialog.isOpen}
+        title={messageDialog.title}
+        message={messageDialog.message}
+        onClose={() => setMessageDialog({ isOpen: false, title: "", message: "" })}
+      />
     </div>
   );
 }
