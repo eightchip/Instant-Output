@@ -58,6 +58,7 @@ export default function CardSearchPage() {
   const [openAIVoice, setOpenAIVoice] = useState<"alloy" | "echo" | "fable" | "onyx" | "nova" | "shimmer">("alloy"); // OpenAI TTS音声
   const listeningTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const currentAudioRef = useRef<HTMLAudioElement | null>(null); // 現在再生中の音声
+  const playCardRef = useRef<((index: number) => Promise<void>) | null>(null); // playCard関数の参照
 
   const { displayedItems, sentinelRef } = useInfiniteScroll(filteredCards, {
     initialCount: 20,
@@ -184,6 +185,8 @@ export default function CardSearchPage() {
     
     // 最初のカードを再生
     const playCard = async (currentIndex: number) => {
+      // playCard関数をrefに保存（useEffectから呼び出せるように）
+      playCardRef.current = playCard;
       if (currentIndex >= filteredCards.length) {
         // すべて再生完了
         setIsListeningMode(false);
@@ -199,6 +202,8 @@ export default function CardSearchPage() {
           // 既存の音声を停止
           if (currentAudioRef.current) {
             currentAudioRef.current.pause();
+            currentAudioRef.current.onended = null; // イベントハンドラをクリア
+            currentAudioRef.current.onerror = null;
             currentAudioRef.current = null;
           }
 
@@ -239,12 +244,19 @@ export default function CardSearchPage() {
           const audioUrl = URL.createObjectURL(audioBlob);
           
           const audio = new Audio(audioUrl);
-          currentAudioRef.current = audio;
-
-          // 音声再生終了時に、再生間隔後に次のカードを再生
+          
+          // イベントハンドラを設定（再生開始前に設定）
           audio.onended = () => {
+            console.log(`Audio ended for card ${currentIndex}`);
             URL.revokeObjectURL(audioUrl);
-            currentAudioRef.current = null;
+            if (currentAudioRef.current === audio) {
+              currentAudioRef.current = null;
+            }
+            // 既存のタイマーをクリア
+            if (listeningTimeoutRef.current) {
+              clearTimeout(listeningTimeoutRef.current);
+            }
+            // 音声再生が終了した後、再生間隔を待ってから次のカードを再生
             listeningTimeoutRef.current = setTimeout(() => {
               playCard(currentIndex + 1);
             }, listeningInterval);
@@ -253,16 +265,41 @@ export default function CardSearchPage() {
           audio.onerror = (event) => {
             console.error("Audio playback error:", event);
             URL.revokeObjectURL(audioUrl);
-            currentAudioRef.current = null;
+            if (currentAudioRef.current === audio) {
+              currentAudioRef.current = null;
+            }
+            // 既存のタイマーをクリア
+            if (listeningTimeoutRef.current) {
+              clearTimeout(listeningTimeoutRef.current);
+            }
             // エラーが発生しても次のカードに進む
             listeningTimeoutRef.current = setTimeout(() => {
               playCard(currentIndex + 1);
             }, listeningInterval);
           };
 
-          await audio.play();
+          // 再生開始前にcurrentAudioRefに設定
+          currentAudioRef.current = audio;
+
+          // 音声再生を開始（Promiseを適切に処理）
+          try {
+            await audio.play();
+            console.log(`Audio started playing for card ${currentIndex}`);
+          } catch (playError) {
+            console.error("Failed to play audio:", playError);
+            // 再生に失敗した場合も次のカードに進む
+            URL.revokeObjectURL(audioUrl);
+            currentAudioRef.current = null;
+            listeningTimeoutRef.current = setTimeout(() => {
+              playCard(currentIndex + 1);
+            }, listeningInterval);
+          }
         } catch (error) {
           console.error("Failed to play OpenAI TTS:", error);
+          // 既存のタイマーをクリア
+          if (listeningTimeoutRef.current) {
+            clearTimeout(listeningTimeoutRef.current);
+          }
           // エラーが発生しても次のカードに進む
           listeningTimeoutRef.current = setTimeout(() => {
             playCard(currentIndex + 1);
@@ -345,21 +382,25 @@ export default function CardSearchPage() {
 
   // 再生間隔が変更された場合、現在の再生を再開（音声再生中でない場合のみ）
   useEffect(() => {
-    if (isListeningMode && filteredCards.length > 0 && listeningIndex < filteredCards.length) {
-      // 現在のタイマーをクリア（次のカードへの遷移タイマー）
-      if (listeningTimeoutRef.current) {
-        clearTimeout(listeningTimeoutRef.current);
-      }
-      // 音声再生中でない場合のみ再開（音声再生中はonendイベントで処理される）
-      const isPlaying = useOpenAITTS 
-        ? currentAudioRef.current && !currentAudioRef.current.paused
-        : tts.getIsSpeaking();
-      
-      if (!isPlaying) {
-        // 現在のカードから再開
-        startListeningMode();
-      }
+    if (!isListeningMode || filteredCards.length === 0) return;
+    
+    // 現在のタイマーをクリア（次のカードへの遷移タイマー）
+    if (listeningTimeoutRef.current) {
+      clearTimeout(listeningTimeoutRef.current);
+      listeningTimeoutRef.current = null;
     }
+    
+    // 音声再生中でない場合のみ再開（音声再生中はonendイベントで処理される）
+    const isPlaying = useOpenAITTS 
+      ? currentAudioRef.current && !currentAudioRef.current.paused && !currentAudioRef.current.ended
+      : tts.getIsSpeaking();
+    
+    // 再生中でない場合のみ、現在のカードから再開
+    if (!isPlaying && playCardRef.current) {
+      // playCard関数を直接呼び出す（現在のカードから再開）
+      playCardRef.current(listeningIndex);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [listeningInterval, useOpenAITTS, openAIVoice]);
 
   // 同じレッスン内のカードのみ並び替え可能
