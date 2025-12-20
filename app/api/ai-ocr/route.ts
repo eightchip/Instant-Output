@@ -1,17 +1,28 @@
 import { NextRequest, NextResponse } from "next/server";
+import { verifyAdminSession } from "@/lib/admin-auth-server";
 
 export async function POST(request: NextRequest) {
   try {
-    const { imageBase64, password } = await request.json();
+    const { imageBase64, password, sessionData } = await request.json();
 
-    // 管理者パスワードチェック
-    // 環境変数が設定されていない場合はデフォルト値を使用（後方互換性のため）
-    const adminPassword = process.env.ADMIN_PASSWORD || "admin123";
-    if (password !== adminPassword) {
-      return NextResponse.json(
-        { error: "認証エラー", message: "管理者パスワードが正しくありません。" },
-        { status: 401 }
-      );
+    // セッション認証を優先（sessionDataが提供されている場合）
+    if (sessionData) {
+      if (!verifyAdminSession(sessionData)) {
+        console.warn("管理者セッション認証失敗（AI OCR）");
+        return NextResponse.json(
+          { error: "認証エラー", message: "管理者セッションが無効または期限切れです。再度ログインしてください。" },
+          { status: 401 }
+        );
+      }
+    } else {
+      // 後方互換性のため、パスワード認証もサポート
+      const adminPassword = process.env.ADMIN_PASSWORD || "admin123";
+      if (!password || password !== adminPassword) {
+        return NextResponse.json(
+          { error: "認証エラー", message: "管理者パスワードまたはセッションデータが必要です。" },
+          { status: 401 }
+        );
+      }
     }
 
     // OpenAI API Keyのチェック

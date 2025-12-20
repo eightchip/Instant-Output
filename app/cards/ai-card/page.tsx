@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { storage } from "@/lib/storage";
 import { Source } from "@/types/ai-card";
 import { generateCardCandidates, processOcrText } from "@/lib/text-processing";
-import { isAdminAuthenticated, setAdminAuthenticated, verifyAdminPassword } from "@/lib/admin-auth";
+import { isAdminAuthenticated, setAdminAuthenticated, verifyAdminPassword, getSessionData } from "@/lib/admin-auth";
 import MessageDialog from "@/components/MessageDialog";
 import LoadingSpinner from "@/components/LoadingSpinner";
 
@@ -174,6 +174,9 @@ function AICardContent() {
       setStatus("画像をアップロード中...");
       setProgress(0.2);
 
+      // セッションデータを取得（優先）
+      const sessionData = getSessionData();
+      
       const response = await fetch("/api/ai-ocr", {
         method: "POST",
         headers: {
@@ -181,7 +184,7 @@ function AICardContent() {
         },
         body: JSON.stringify({
           imageBase64: imagePreview,
-          password: savedPassword, // 保存された管理者パスワードを送信
+          ...(sessionData ? { sessionData } : { password: savedPassword }), // セッションデータがあれば優先、なければパスワード
         }),
       });
 
@@ -246,11 +249,15 @@ function AICardContent() {
   const handleOneRequestOCR = async () => {
     if (!imageFile || !imagePreview) return;
 
-    if (!savedPassword) {
+    // セッションデータを取得（優先）
+    const sessionData = getSessionData();
+    
+    // セッションデータもパスワードもない場合はエラー
+    if (!sessionData && !savedPassword) {
       setMessageDialog({
         isOpen: true,
         title: "認証エラー",
-        message: "1リクエストモードを使用するには、管理者パスワードが必要です。再度ログインしてください。",
+        message: "1リクエストモードを使用するには、管理者ログインが必要です。再度ログインしてください。",
       });
       return;
     }
@@ -270,7 +277,7 @@ function AICardContent() {
         },
         body: JSON.stringify({
           imageBase64: imagePreview,
-          password: savedPassword,
+          ...(sessionData ? { sessionData } : { password: savedPassword }), // セッションデータがあれば優先、なければパスワード
         }),
       });
 
