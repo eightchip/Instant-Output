@@ -61,19 +61,27 @@ function VocabularyFlashcardContent() {
       }
       setVocabularyWords(vocabWordsMap);
       
-      const vocab = generateVocabularyList(userCards);
-      setVocabulary(vocab);
+      // ユーザーが追加した語彙のみを使用（語彙リストに表示されているすべての単語）
+      const userVocab = new Map<string, { count: number; difficulty: number; importance: number; isIdiom: boolean }>();
+      for (const [word, vocabWord] of vocabWordsMap.entries()) {
+        // イディオムかどうかを判定（スペースが含まれている場合はイディオムとみなす）
+        const isIdiom = word.includes(" ");
+        userVocab.set(word, {
+          count: 1, // ユーザーが追加した語彙は1回として扱う
+          difficulty: 5, // デフォルトの難易度
+          importance: 1, // デフォルトの重要度
+          isIdiom,
+        });
+      }
+      setVocabulary(userVocab);
       
-      // フラッシュカード対象の単語を決定
+      // フラッシュカード対象の単語を決定（すべての単語を対象）
       let targetWords: string[] = [];
       if (wordFilter.length > 0) {
-        targetWords = Array.from(vocab.keys()).filter(word => wordFilter.includes(word));
+        targetWords = Array.from(userVocab.keys()).filter(word => wordFilter.includes(word));
       } else {
-        // 重要度順に上位50個を選択
-        targetWords = Array.from(vocab.entries())
-          .sort((a, b) => b[1].importance - a[1].importance)
-          .slice(0, 50)
-          .map(([word]) => word);
+        // すべての単語を対象にする
+        targetWords = Array.from(userVocab.keys());
       }
       
       // ランダムにシャッフル

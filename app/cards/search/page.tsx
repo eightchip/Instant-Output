@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { storage } from "@/lib/storage";
 import { Card, Lesson, SourceType } from "@/types/models";
@@ -14,6 +14,7 @@ import CardEditor from "@/components/CardEditor";
 import { useInfiniteScroll } from "@/hooks/useInfiniteScroll";
 import InfiniteScrollSentinel from "@/components/InfiniteScrollSentinel";
 import { saveWordMeaning } from "@/lib/vocabulary";
+import { tts } from "@/lib/tts";
 
 type FilterType = {
   lessonId?: string;
@@ -49,6 +50,10 @@ export default function CardSearchPage() {
   const [selectedWordContext, setSelectedWordContext] = useState<string | null>(null); // 選択した単語のコンテキスト（カードの英文）
   const [isAddingVocabulary, setIsAddingVocabulary] = useState(false);
   const [cardToDelete, setCardToDelete] = useState<string | null>(null);
+  const [isListeningMode, setIsListeningMode] = useState(false); // 聞き流しモード
+  const [listeningIndex, setListeningIndex] = useState(0); // 現在再生中のカードインデックス
+  const [listeningInterval, setListeningInterval] = useState(3000); // 再生間隔（ミリ秒）
+  const listeningTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const { displayedItems, sentinelRef } = useInfiniteScroll(filteredCards, {
     initialCount: 20,
@@ -157,6 +162,73 @@ export default function CardSearchPage() {
     setSearchQuery("");
     setFilters({});
   }
+
+  // 聞き流しモードの開始
+  function startListeningMode() {
+    if (filteredCards.length === 0) return;
+    
+    // 最初のカードを再生
+    const playCard = (currentIndex: number) => {
+      if (currentIndex >= filteredCards.length) {
+        // すべて再生完了
+        setIsListeningMode(false);
+        return;
+      }
+
+      const card = filteredCards[currentIndex];
+      setListeningIndex(currentIndex);
+
+      // カードの英語を再生
+      tts.speak(card.target_en, "en", 1);
+
+      // 次のカードを再生間隔後に再生
+      listeningTimeoutRef.current = setTimeout(() => {
+        playCard(currentIndex + 1);
+      }, listeningInterval);
+    };
+
+    playCard(0);
+  }
+
+  // 聞き流しモードの停止
+  useEffect(() => {
+    if (!isListeningMode) {
+      if (listeningTimeoutRef.current) {
+        clearTimeout(listeningTimeoutRef.current);
+        listeningTimeoutRef.current = null;
+      }
+      tts.stop();
+    }
+    return () => {
+      if (listeningTimeoutRef.current) {
+        clearTimeout(listeningTimeoutRef.current);
+      }
+    };
+  }, [isListeningMode]);
+
+  // 再生間隔が変更された場合、現在の再生を再開
+  useEffect(() => {
+    if (isListeningMode && filteredCards.length > 0 && listeningIndex < filteredCards.length) {
+      // 現在のタイマーをクリア
+      if (listeningTimeoutRef.current) {
+        clearTimeout(listeningTimeoutRef.current);
+      }
+      // 現在のカードから再開
+      const playCard = (currentIndex: number) => {
+        if (currentIndex >= filteredCards.length) {
+          setIsListeningMode(false);
+          return;
+        }
+        const card = filteredCards[currentIndex];
+        setListeningIndex(currentIndex);
+        tts.speak(card.target_en, "en", 1);
+        listeningTimeoutRef.current = setTimeout(() => {
+          playCard(currentIndex + 1);
+        }, listeningInterval);
+      };
+      playCard(listeningIndex);
+    }
+  }, [listeningInterval]);
 
   // 同じレッスン内のカードのみ並び替え可能
   const canReorder = filters.lessonId !== undefined && filters.lessonId !== "";
@@ -313,6 +385,77 @@ export default function CardSearchPage() {
           </div>
         </div>
 
+        {/* 聞き流しモード */}
+        {filteredCards.length > 0 && (
+          <div className="bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-200 rounded-lg shadow-lg p-4 mb-6">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => {
+                    if (isListeningMode) {
+                      // 停止
+                      tts.stop();
+                      if (listeningTimeoutRef.current) {
+                        clearTimeout(listeningTimeoutRef.current);
+                        listeningTimeoutRef.current = null;
+                      }
+                      setIsListeningMode(false);
+                    } else {
+                      // 開始
+                      setIsListeningMode(true);
+                      setListeningIndex(0);
+                      startListeningMode();
+                    }
+                  }}
+                  className={`px-4 py-2 rounded-lg font-semibold transition-all ${
+                    isListeningMode
+                      ? "bg-red-600 hover:bg-red-700 text-white"
+                      : "bg-green-600 hover:bg-green-700 text-white"
+                  }`}
+                >
+                  {isListeningMode ? "⏹ 聞き流し停止" : "🎧 聞き流しモード開始"}
+                </button>
+                {isListeningMode && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-gray-700">
+                      {listeningIndex + 1} / {filteredCards.length}
+                    </span>
+                    <span className="text-xs text-gray-500">
+                      {filteredCards[listeningIndex]?.target_en}
+                    </span>
+                  </div>
+                )}
+              </div>
+              {isListeningMode && (
+                <div className="flex items-center gap-2">
+                  <label className="text-sm text-gray-700 font-semibold">再生間隔:</label>
+                  <select
+                    value={listeningInterval}
+                    onChange={(e) => {
+                      setListeningInterval(Number(e.target.value));
+                    }}
+                    className="border border-gray-300 rounded px-2 py-1 bg-white text-sm"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <option value={1000}>1秒</option>
+                    <option value={2000}>2秒</option>
+                    <option value={3000}>3秒</option>
+                    <option value={5000}>5秒</option>
+                    <option value={10000}>10秒</option>
+                    <option value={15000}>15秒</option>
+                    <option value={30000}>30秒</option>
+                  </select>
+                </div>
+              )}
+            </div>
+            {isListeningMode && (
+              <p className="text-xs text-gray-600 mt-2">
+                💡 電車などの移動中に最適。フィルターで選んだカードを順番に再生します。
+              </p>
+            )}
+          </div>
+        )}
+
         {/* 一括操作 */}
         <div className="bg-white rounded-lg shadow-lg p-4 mb-6">
           <div className="flex items-center justify-between mb-3">
@@ -379,16 +522,10 @@ export default function CardSearchPage() {
               </p>
               <div className="flex flex-col gap-3 max-w-xs mx-auto">
                 <button
-                  onClick={() => router.push("/cards/new")}
+                  onClick={() => router.push("/cards/screenshot")}
                   className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors shadow-md hover:shadow-lg"
                 >
                   ➕ カードを追加
-                </button>
-                <button
-                  onClick={() => router.push("/cards/screenshot")}
-                  className="bg-slate-600 hover:bg-slate-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors shadow-md hover:shadow-lg"
-                >
-                  📷 スクショから追加
                 </button>
               </div>
             </div>

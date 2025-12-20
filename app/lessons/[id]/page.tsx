@@ -453,16 +453,10 @@ export default function LessonDetailPage() {
             </p>
             <div className="flex flex-col gap-3 max-w-xs mx-auto">
               <button
-                onClick={() => router.push(`/cards/new?lessonId=${lesson.id}`)}
+                onClick={() => router.push(`/cards/screenshot?lessonId=${lessonId}`)}
                 className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors shadow-md hover:shadow-lg"
               >
                 ➕ カードを追加
-              </button>
-              <button
-                onClick={() => router.push("/cards/screenshot")}
-                className="bg-slate-600 hover:bg-slate-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors shadow-md hover:shadow-lg"
-              >
-                📷 スクショから追加
               </button>
             </div>
           </div>

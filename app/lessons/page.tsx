@@ -177,7 +177,7 @@ export default function LessonsPage() {
                   <div className="flex-1">
                     <h3 className="text-lg font-semibold">{lesson.title}</h3>
                     <button
-                      onClick={() => router.push(`/cards/new?lessonId=${lesson.id}`)}
+                      onClick={() => router.push(`/cards/screenshot?lessonId=${lesson.id}`)}
                       className="text-sm text-blue-600 hover:text-blue-800 mt-2"
                     >
                       + カードを追加
