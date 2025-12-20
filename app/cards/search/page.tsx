@@ -178,13 +178,50 @@ export default function CardSearchPage() {
       const card = filteredCards[currentIndex];
       setListeningIndex(currentIndex);
 
-      // カードの英語を再生
-      tts.speak(card.target_en, "en", 1);
+      // カードの英語を再生（音声再生終了後に次のカードを再生）
+      if (!tts.isAvailable()) {
+        console.warn("音声読み上げは利用できません");
+        setIsListeningMode(false);
+        return;
+      }
 
-      // 次のカードを再生間隔後に再生
-      listeningTimeoutRef.current = setTimeout(() => {
-        playCard(currentIndex + 1);
-      }, listeningInterval);
+      // 既存の読み上げを停止
+      tts.stop();
+
+      // SpeechSynthesisUtteranceを直接作成して、onendイベントで次のカードを再生
+      const utterance = new SpeechSynthesisUtterance(card.target_en);
+      utterance.lang = "en-US";
+      utterance.rate = 1;
+      utterance.pitch = 1;
+      utterance.volume = 1;
+
+      // 英語音声を明示的に選択
+      const voices = window.speechSynthesis.getVoices();
+      const englishVoice = voices.find(
+        (voice) => voice.lang.startsWith("en") && voice.localService !== false
+      ) || voices.find((voice) => voice.lang.startsWith("en"));
+      
+      if (englishVoice) {
+        utterance.voice = englishVoice;
+      }
+
+      // 音声再生終了時に、再生間隔後に次のカードを再生
+      utterance.onend = () => {
+        // 音声再生が終了した後、再生間隔を待ってから次のカードを再生
+        listeningTimeoutRef.current = setTimeout(() => {
+          playCard(currentIndex + 1);
+        }, listeningInterval);
+      };
+
+      utterance.onerror = (event) => {
+        console.error("TTS error:", event);
+        // エラーが発生しても次のカードに進む
+        listeningTimeoutRef.current = setTimeout(() => {
+          playCard(currentIndex + 1);
+        }, listeningInterval);
+      };
+
+      window.speechSynthesis.speak(utterance);
     };
 
     playCard(0);
@@ -206,27 +243,64 @@ export default function CardSearchPage() {
     };
   }, [isListeningMode]);
 
-  // 再生間隔が変更された場合、現在の再生を再開
+  // 再生間隔が変更された場合、現在の再生を再開（音声再生中でない場合のみ）
   useEffect(() => {
     if (isListeningMode && filteredCards.length > 0 && listeningIndex < filteredCards.length) {
-      // 現在のタイマーをクリア
+      // 現在のタイマーをクリア（次のカードへの遷移タイマー）
       if (listeningTimeoutRef.current) {
         clearTimeout(listeningTimeoutRef.current);
       }
-      // 現在のカードから再開
-      const playCard = (currentIndex: number) => {
-        if (currentIndex >= filteredCards.length) {
-          setIsListeningMode(false);
-          return;
-        }
-        const card = filteredCards[currentIndex];
-        setListeningIndex(currentIndex);
-        tts.speak(card.target_en, "en", 1);
-        listeningTimeoutRef.current = setTimeout(() => {
-          playCard(currentIndex + 1);
-        }, listeningInterval);
-      };
-      playCard(listeningIndex);
+      // 音声再生中でない場合のみ再開（音声再生中はonendイベントで処理される）
+      if (!tts.getIsSpeaking()) {
+        // 現在のカードから再開
+        const playCard = (currentIndex: number) => {
+          if (currentIndex >= filteredCards.length) {
+            setIsListeningMode(false);
+            return;
+          }
+
+          const card = filteredCards[currentIndex];
+          setListeningIndex(currentIndex);
+
+          if (!tts.isAvailable()) {
+            setIsListeningMode(false);
+            return;
+          }
+
+          tts.stop();
+
+          const utterance = new SpeechSynthesisUtterance(card.target_en);
+          utterance.lang = "en-US";
+          utterance.rate = 1;
+          utterance.pitch = 1;
+          utterance.volume = 1;
+
+          const voices = window.speechSynthesis.getVoices();
+          const englishVoice = voices.find(
+            (voice) => voice.lang.startsWith("en") && voice.localService !== false
+          ) || voices.find((voice) => voice.lang.startsWith("en"));
+          
+          if (englishVoice) {
+            utterance.voice = englishVoice;
+          }
+
+          utterance.onend = () => {
+            listeningTimeoutRef.current = setTimeout(() => {
+              playCard(currentIndex + 1);
+            }, listeningInterval);
+          };
+
+          utterance.onerror = (event) => {
+            console.error("TTS error:", event);
+            listeningTimeoutRef.current = setTimeout(() => {
+              playCard(currentIndex + 1);
+            }, listeningInterval);
+          };
+
+          window.speechSynthesis.speak(utterance);
+        };
+        playCard(listeningIndex);
+      }
     }
   }, [listeningInterval]);
 
