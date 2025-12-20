@@ -39,6 +39,76 @@ export default function StatisticsPage() {
     }
   }
 
+  async function handleAnalyzeProgress() {
+    if (!statistics || sessions.length === 0) {
+      setMessageDialog({
+        isOpen: true,
+        title: "エラー",
+        message: "分析するデータがありません。",
+      });
+      return;
+    }
+
+    if (!isAdminAuthenticated()) {
+      setMessageDialog({
+        isOpen: true,
+        title: "認証エラー",
+        message: "この機能を使用するには管理者ログインが必要です。",
+      });
+      return;
+    }
+
+    setIsAnalyzing(true);
+    try {
+      const sessionData = getSessionData();
+      if (!sessionData) {
+        setMessageDialog({
+          isOpen: true,
+          title: "認証エラー",
+          message: "管理者セッションが無効です。再度ログインしてください。",
+        });
+        setIsAnalyzing(false);
+        return;
+      }
+
+      const response = await fetch("/api/analyze-progress", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          statistics,
+          sessions,
+          sessionData,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        setMessageDialog({
+          isOpen: true,
+          title: "分析エラー",
+          message: errorData.message || "学習進捗の分析に失敗しました。",
+        });
+        return;
+      }
+
+      const data = await response.json();
+      if (data.analysis) {
+        setAnalysisResult(data.analysis);
+      }
+    } catch (error) {
+      console.error("Progress analysis error:", error);
+      setMessageDialog({
+        isOpen: true,
+        title: "エラー",
+        message: "学習進捗分析処理中にエラーが発生しました。",
+      });
+    } finally {
+      setIsAnalyzing(false);
+    }
+  }
+
   if (isLoading) {
     return <LoadingSpinner fullScreen text="統計データを読み込み中..." />;
   }

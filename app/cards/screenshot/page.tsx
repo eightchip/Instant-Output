@@ -6,6 +6,7 @@ import { storage } from "@/lib/storage";
 import { ocrService, OCRProgress } from "@/lib/ocr";
 import { Lesson, Card } from "@/types/models";
 import { processOcrText } from "@/lib/text-processing";
+import { saveWordMeaning } from "@/lib/vocabulary";
 import MessageDialog from "@/components/MessageDialog";
 import VoiceInputButton from "@/components/VoiceInputButton";
 import LoadingSpinner from "@/components/LoadingSpinner";
@@ -42,6 +43,10 @@ function ScreenshotCardContent() {
   const mediaRecorderForRetranslateRef = useRef<MediaRecorder | null>(null);
   const audioChunksForRetranslateRef = useRef<Blob[]>([]);
   const [isEditingExtractedText, setIsEditingExtractedText] = useState(false);
+  const [isImproving, setIsImproving] = useState(false);
+  const [isExtractingVocabulary, setIsExtractingVocabulary] = useState(false);
+  const [isCheckingQuality, setIsCheckingQuality] = useState(false);
+  const [qualityCheckResult, setQualityCheckResult] = useState<{ score: number; issues: string[]; suggestions: string[] } | null>(null);
   const editingTextareaRef = useRef<HTMLTextAreaElement>(null);
   const extractedTextareaRef = useRef<HTMLTextAreaElement>(null);
   const [showNewLessonForm, setShowNewLessonForm] = useState(false);
@@ -404,6 +409,244 @@ function ScreenshotCardContent() {
     if (mediaRecorderForRetranslateRef.current && isRecordingForRetranslate) {
       mediaRecorderForRetranslateRef.current.stop();
       mediaRecorderForRetranslateRef.current = null;
+    }
+  }
+
+  // 英語文章の自動校正・改善
+  async function handleImproveText() {
+    if (!editingSentenceEn.trim()) {
+      setMessageDialog({
+        isOpen: true,
+        title: "入力エラー",
+        message: "英語を入力してください。",
+      });
+      return;
+    }
+
+    if (!isAdminAuthenticated()) {
+      setMessageDialog({
+        isOpen: true,
+        title: "認証エラー",
+        message: "この機能を使用するには管理者ログインが必要です。",
+      });
+      return;
+    }
+
+    setIsImproving(true);
+    try {
+      const sessionData = getSessionData();
+      if (!sessionData) {
+        setMessageDialog({
+          isOpen: true,
+          title: "認証エラー",
+          message: "管理者セッションが無効です。再度ログインしてください。",
+        });
+        setIsImproving(false);
+        return;
+      }
+
+      const response = await fetch("/api/improve-text", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          text: editingSentenceEn.trim(),
+          sessionData,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        setMessageDialog({
+          isOpen: true,
+          title: "改善エラー",
+          message: errorData.message || "文章の改善に失敗しました。",
+        });
+        return;
+      }
+
+      const data = await response.json();
+      if (data.improvedText) {
+        setEditingSentenceEn(data.improvedText);
+        setMessageDialog({
+          isOpen: true,
+          title: "改善完了",
+          message: "文章を改善しました。",
+        });
+      }
+    } catch (error) {
+      console.error("Text improvement error:", error);
+      setMessageDialog({
+        isOpen: true,
+        title: "エラー",
+        message: "文章改善処理中にエラーが発生しました。",
+      });
+    } finally {
+      setIsImproving(false);
+    }
+  }
+
+  // 語彙の自動抽出と意味の自動取得
+  async function handleExtractVocabulary() {
+    if (!editingSentenceEn.trim()) {
+      setMessageDialog({
+        isOpen: true,
+        title: "入力エラー",
+        message: "英語を入力してください。",
+      });
+      return;
+    }
+
+    if (!isAdminAuthenticated()) {
+      setMessageDialog({
+        isOpen: true,
+        title: "認証エラー",
+        message: "この機能を使用するには管理者ログインが必要です。",
+      });
+      return;
+    }
+
+    setIsExtractingVocabulary(true);
+    try {
+      const sessionData = getSessionData();
+      if (!sessionData) {
+        setMessageDialog({
+          isOpen: true,
+          title: "認証エラー",
+          message: "管理者セッションが無効です。再度ログインしてください。",
+        });
+        setIsExtractingVocabulary(false);
+        return;
+      }
+
+      const response = await fetch("/api/extract-vocabulary", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          text: editingSentenceEn.trim(),
+          sessionData,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        setMessageDialog({
+          isOpen: true,
+          title: "抽出エラー",
+          message: errorData.message || "語彙の抽出に失敗しました。",
+        });
+        return;
+      }
+
+      const data = await response.json();
+      if (data.vocabulary && Array.isArray(data.vocabulary) && data.vocabulary.length > 0) {
+        // 抽出された語彙を語彙リストに追加
+        let successCount = 0;
+        for (const item of data.vocabulary) {
+          try {
+            await saveWordMeaning(item.word, item.meaning, undefined, undefined, editingSentenceEn);
+            successCount++;
+          } catch (error) {
+            console.error(`Failed to save vocabulary word: ${item.word}`, error);
+          }
+        }
+        setMessageDialog({
+          isOpen: true,
+          title: "抽出完了",
+          message: `${successCount}個の語彙を語彙リストに追加しました。`,
+        });
+      } else {
+        setMessageDialog({
+          isOpen: true,
+          title: "抽出完了",
+          message: "抽出された語彙がありませんでした。",
+        });
+      }
+    } catch (error) {
+      console.error("Vocabulary extraction error:", error);
+      setMessageDialog({
+        isOpen: true,
+        title: "エラー",
+        message: "語彙抽出処理中にエラーが発生しました。",
+      });
+    } finally {
+      setIsExtractingVocabulary(false);
+    }
+  }
+
+  // カードの自動品質チェック
+  async function handleCheckQuality() {
+    if (!editingSentenceEn.trim() || !editingSentenceJp.trim()) {
+      setMessageDialog({
+        isOpen: true,
+        title: "入力エラー",
+        message: "英語と日本語訳の両方を入力してください。",
+      });
+      return;
+    }
+
+    if (!isAdminAuthenticated()) {
+      setMessageDialog({
+        isOpen: true,
+        title: "認証エラー",
+        message: "この機能を使用するには管理者ログインが必要です。",
+      });
+      return;
+    }
+
+    setIsCheckingQuality(true);
+    try {
+      const sessionData = getSessionData();
+      if (!sessionData) {
+        setMessageDialog({
+          isOpen: true,
+          title: "認証エラー",
+          message: "管理者セッションが無効です。再度ログインしてください。",
+        });
+        setIsCheckingQuality(false);
+        return;
+      }
+
+      const response = await fetch("/api/check-card-quality", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          card: {
+            target_en: editingSentenceEn.trim(),
+            prompt_jp: editingSentenceJp.trim(),
+          },
+          sessionData,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        setMessageDialog({
+          isOpen: true,
+          title: "品質チェックエラー",
+          message: errorData.message || "カードの品質チェックに失敗しました。",
+        });
+        return;
+      }
+
+      const data = await response.json();
+      if (data.qualityCheck) {
+        setQualityCheckResult(data.qualityCheck);
+      }
+    } catch (error) {
+      console.error("Card quality check error:", error);
+      setMessageDialog({
+        isOpen: true,
+        title: "エラー",
+        message: "カード品質チェック処理中にエラーが発生しました。",
+      });
+    } finally {
+      setIsCheckingQuality(false);
     }
   }
 
@@ -1645,6 +1888,116 @@ function ScreenshotCardContent() {
                                 placeholder="日本語訳を入力（任意）..."
                               />
                             </div>
+                            {/* 品質チェック（管理者のみ） */}
+                            {isAdminAuthenticated() && editingSentenceEn.trim() && editingSentenceJp.trim() && (
+                              <div className="mb-4">
+                                <button
+                                  onClick={handleCheckQuality}
+                                  disabled={isCheckingQuality}
+                                  className="text-xs bg-orange-600 hover:bg-orange-700 disabled:bg-gray-400 text-white font-semibold py-1 px-3 rounded-lg"
+                                >
+                                  {isCheckingQuality ? "チェック中..." : "🔍 品質チェック"}
+                                </button>
+                                {qualityCheckResult && (
+                                  <div className="mt-3 bg-orange-50 border-2 border-orange-200 rounded-lg p-4">
+                                    <div className="flex items-center justify-between mb-2">
+                                      <h3 className="text-sm font-semibold text-orange-900">品質チェック結果</h3>
+                                      <button
+                                        onClick={() => setQualityCheckResult(null)}
+                                        className="text-orange-600 hover:text-orange-800 text-lg font-bold"
+                                      >
+                                        ×
+                                      </button>
+                                    </div>
+                                    <div className="mb-3">
+                                      <p className="text-xs text-gray-600 mb-1">品質スコア</p>
+                                      <p className="text-2xl font-bold text-orange-600">{qualityCheckResult.score}点</p>
+                                    </div>
+                                    {qualityCheckResult.issues.length > 0 && (
+                                      <div className="mb-3">
+                                        <p className="text-xs font-semibold text-gray-700 mb-1">⚠️ 問題点</p>
+                                        <ul className="text-xs text-gray-600 space-y-1">
+                                          {qualityCheckResult.issues.map((issue, index) => (
+                                            <li key={index} className="flex items-start gap-1">
+                                              <span>•</span>
+                                              <span>{issue}</span>
+                                            </li>
+                                          ))}
+                                        </ul>
+                                      </div>
+                                    )}
+                                    {qualityCheckResult.suggestions.length > 0 && (
+                                      <div>
+                                        <p className="text-xs font-semibold text-gray-700 mb-1">💡 改善提案</p>
+                                        <ul className="text-xs text-gray-600 space-y-1">
+                                          {qualityCheckResult.suggestions.map((suggestion, index) => (
+                                            <li key={index} className="flex items-start gap-1">
+                                              <span>•</span>
+                                              <span>{suggestion}</span>
+                                            </li>
+                                          ))}
+                                        </ul>
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                            {/* 品質チェック（管理者のみ） */}
+                            {isAdminAuthenticated() && editingSentenceEn.trim() && editingSentenceJp.trim() && (
+                              <div className="mb-4">
+                                <button
+                                  onClick={handleCheckQuality}
+                                  disabled={isCheckingQuality}
+                                  className="text-xs bg-orange-600 hover:bg-orange-700 disabled:bg-gray-400 text-white font-semibold py-1 px-3 rounded-lg"
+                                >
+                                  {isCheckingQuality ? "チェック中..." : "🔍 品質チェック"}
+                                </button>
+                                {qualityCheckResult && (
+                                  <div className="mt-3 bg-orange-50 border-2 border-orange-200 rounded-lg p-4">
+                                    <div className="flex items-center justify-between mb-2">
+                                      <h3 className="text-sm font-semibold text-orange-900">品質チェック結果</h3>
+                                      <button
+                                        onClick={() => setQualityCheckResult(null)}
+                                        className="text-orange-600 hover:text-orange-800 text-lg font-bold"
+                                      >
+                                        ×
+                                      </button>
+                                    </div>
+                                    <div className="mb-3">
+                                      <p className="text-xs text-gray-600 mb-1">品質スコア</p>
+                                      <p className="text-2xl font-bold text-orange-600">{qualityCheckResult.score}点</p>
+                                    </div>
+                                    {qualityCheckResult.issues.length > 0 && (
+                                      <div className="mb-3">
+                                        <p className="text-xs font-semibold text-gray-700 mb-1">⚠️ 問題点</p>
+                                        <ul className="text-xs text-gray-600 space-y-1">
+                                          {qualityCheckResult.issues.map((issue, index) => (
+                                            <li key={index} className="flex items-start gap-1">
+                                              <span>•</span>
+                                              <span>{issue}</span>
+                                            </li>
+                                          ))}
+                                        </ul>
+                                      </div>
+                                    )}
+                                    {qualityCheckResult.suggestions.length > 0 && (
+                                      <div>
+                                        <p className="text-xs font-semibold text-gray-700 mb-1">💡 改善提案</p>
+                                        <ul className="text-xs text-gray-600 space-y-1">
+                                          {qualityCheckResult.suggestions.map((suggestion, index) => (
+                                            <li key={index} className="flex items-start gap-1">
+                                              <span>•</span>
+                                              <span>{suggestion}</span>
+                                            </li>
+                                          ))}
+                                        </ul>
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                            )}
                             <div className="flex gap-3 pt-2">
                               <button
                                 onClick={handleSaveEditedSentence}
