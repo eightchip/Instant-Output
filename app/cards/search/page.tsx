@@ -52,6 +52,11 @@ export default function CardSearchPage() {
   const [isAddingVocabulary, setIsAddingVocabulary] = useState(false);
   const [cardToDelete, setCardToDelete] = useState<string | null>(null);
   const [isListeningMode, setIsListeningMode] = useState(false); // 聞き流しモード
+  
+  // isListeningModeの最新値をrefに保持
+  useEffect(() => {
+    isListeningModeRef.current = isListeningMode;
+  }, [isListeningMode]);
   const [listeningIndex, setListeningIndex] = useState(0); // 現在再生中のカードインデックス
   const [listeningInterval, setListeningInterval] = useState(3000); // 再生間隔（ミリ秒）
   const [useOpenAITTS, setUseOpenAITTS] = useState(false); // OpenAI TTSを使用するか
@@ -59,6 +64,7 @@ export default function CardSearchPage() {
   const listeningTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const currentAudioRef = useRef<HTMLAudioElement | null>(null); // 現在再生中の音声
   const playCardRef = useRef<((index: number) => Promise<void>) | null>(null); // playCard関数の参照
+  const isListeningModeRef = useRef(false); // isListeningModeの最新値を保持
 
   const { displayedItems, sentinelRef } = useInfiniteScroll(filteredCards, {
     initialCount: 20,
@@ -185,8 +191,6 @@ export default function CardSearchPage() {
     
     // 最初のカードを再生
     const playCard = async (currentIndex: number) => {
-      // playCard関数をrefに保存（useEffectから呼び出せるように）
-      playCardRef.current = playCard;
       if (currentIndex >= filteredCards.length) {
         // すべて再生完了
         setIsListeningMode(false);
@@ -230,8 +234,13 @@ export default function CardSearchPage() {
             const errorData = await response.json().catch(() => ({}));
             console.error("OpenAI TTS error:", errorData);
             // エラーが発生しても次のカードに進む
+            if (listeningTimeoutRef.current) {
+              clearTimeout(listeningTimeoutRef.current);
+            }
             listeningTimeoutRef.current = setTimeout(() => {
-              playCard(currentIndex + 1);
+              if (playCardRef.current) {
+                playCardRef.current(currentIndex + 1);
+              }
             }, listeningInterval);
             return;
           }
@@ -245,9 +254,12 @@ export default function CardSearchPage() {
           
           const audio = new Audio(audioUrl);
           
+          // 再生開始前にcurrentAudioRefに設定
+          currentAudioRef.current = audio;
+          
           // イベントハンドラを設定（再生開始前に設定）
           audio.onended = () => {
-            console.log(`Audio ended for card ${currentIndex}`);
+            console.log(`Audio ended for card ${currentIndex}, next: ${currentIndex + 1}`);
             URL.revokeObjectURL(audioUrl);
             if (currentAudioRef.current === audio) {
               currentAudioRef.current = null;
@@ -257,8 +269,14 @@ export default function CardSearchPage() {
               clearTimeout(listeningTimeoutRef.current);
             }
             // 音声再生が終了した後、再生間隔を待ってから次のカードを再生
+            // playCardRef.currentを使用して、常に最新の関数を呼び出す
             listeningTimeoutRef.current = setTimeout(() => {
-              playCard(currentIndex + 1);
+              if (playCardRef.current && isListeningModeRef.current) {
+                console.log(`Playing next card: ${currentIndex + 1}`);
+                playCardRef.current(currentIndex + 1);
+              } else {
+                console.log(`Skipping next card: listening mode is ${isListeningModeRef.current}`);
+              }
             }, listeningInterval);
           };
 
@@ -274,12 +292,11 @@ export default function CardSearchPage() {
             }
             // エラーが発生しても次のカードに進む
             listeningTimeoutRef.current = setTimeout(() => {
-              playCard(currentIndex + 1);
+              if (playCardRef.current && isListeningModeRef.current) {
+                playCardRef.current(currentIndex + 1);
+              }
             }, listeningInterval);
           };
-
-          // 再生開始前にcurrentAudioRefに設定
-          currentAudioRef.current = audio;
 
           // 音声再生を開始（Promiseを適切に処理）
           try {
@@ -290,8 +307,13 @@ export default function CardSearchPage() {
             // 再生に失敗した場合も次のカードに進む
             URL.revokeObjectURL(audioUrl);
             currentAudioRef.current = null;
+            if (listeningTimeoutRef.current) {
+              clearTimeout(listeningTimeoutRef.current);
+            }
             listeningTimeoutRef.current = setTimeout(() => {
-              playCard(currentIndex + 1);
+              if (playCardRef.current && isListeningMode) {
+                playCardRef.current(currentIndex + 1);
+              }
             }, listeningInterval);
           }
         } catch (error) {
@@ -302,7 +324,9 @@ export default function CardSearchPage() {
           }
           // エラーが発生しても次のカードに進む
           listeningTimeoutRef.current = setTimeout(() => {
-            playCard(currentIndex + 1);
+            if (playCardRef.current && isListeningModeRef.current) {
+              playCardRef.current(currentIndex + 1);
+            }
           }, listeningInterval);
         }
       } else {
@@ -335,15 +359,25 @@ export default function CardSearchPage() {
 
         // 音声再生終了時に、再生間隔後に次のカードを再生
         utterance.onend = () => {
+          if (listeningTimeoutRef.current) {
+            clearTimeout(listeningTimeoutRef.current);
+          }
           listeningTimeoutRef.current = setTimeout(() => {
-            playCard(currentIndex + 1);
+            if (playCardRef.current && isListeningModeRef.current) {
+              playCardRef.current(currentIndex + 1);
+            }
           }, listeningInterval);
         };
 
         utterance.onerror = (event) => {
           console.error("TTS error:", event);
+          if (listeningTimeoutRef.current) {
+            clearTimeout(listeningTimeoutRef.current);
+          }
           listeningTimeoutRef.current = setTimeout(() => {
-            playCard(currentIndex + 1);
+            if (playCardRef.current && isListeningModeRef.current) {
+              playCardRef.current(currentIndex + 1);
+            }
           }, listeningInterval);
         };
 
@@ -351,6 +385,11 @@ export default function CardSearchPage() {
       }
     };
 
+    // playCard関数をrefに保存（イベントハンドラから呼び出せるように）
+    // 注意: playCard関数内でplayCardRef.currentを更新するのではなく、
+    // ここで一度だけ設定する
+    playCardRef.current = playCard;
+    
     playCard(0);
   }
 
