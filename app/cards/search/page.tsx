@@ -520,51 +520,52 @@ export default function CardSearchPage() {
         {/* 聞き流しモード */}
         {filteredCards.length > 0 && (
           <div className="bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-200 rounded-lg shadow-lg p-4 mb-6">
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-3">
-                <button
-                  onClick={() => {
-                    if (isListeningMode) {
-                      // 停止
-                      tts.stop();
-                      if (currentAudioRef.current) {
-                        currentAudioRef.current.pause();
-                        currentAudioRef.current = null;
-                      }
-                      if (listeningTimeoutRef.current) {
-                        clearTimeout(listeningTimeoutRef.current);
-                        listeningTimeoutRef.current = null;
-                      }
-                      setIsListeningMode(false);
-                    } else {
-                      // 開始
-                      setIsListeningMode(true);
-                      setListeningIndex(0);
-                      startListeningMode();
-                    }
-                  }}
-                  className={`px-4 py-2 rounded-lg font-semibold transition-all ${
-                    isListeningMode
-                      ? "bg-red-600 hover:bg-red-700 text-white"
-                      : "bg-green-600 hover:bg-green-700 text-white"
-                  }`}
-                >
-                  {isListeningMode ? "⏹ 聞き流し停止" : "🎧 聞き流しモード開始"}
-                </button>
-                {isListeningMode && (
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm text-gray-700">
-                      {listeningIndex + 1} / {filteredCards.length}
-                    </span>
-                    <span className="text-xs text-gray-500">
-                      {filteredCards[listeningIndex]?.target_en}
-                    </span>
-                  </div>
-                )}
+            {/* 再生中の文章表示（聞き流しモード時のみ、上に配置） */}
+            {isListeningMode && (
+              <div className="mb-4 p-3 bg-white/80 rounded-lg border border-green-300">
+                <div className="text-xs text-gray-600 mb-1 font-semibold">
+                  現在再生中: {listeningIndex + 1} / {filteredCards.length}
+                </div>
+                <div className="text-base text-gray-800 font-medium leading-relaxed">
+                  {filteredCards[listeningIndex]?.target_en}
+                </div>
               </div>
+            )}
+            
+            {/* ボタンと再生間隔（下に配置） */}
+            <div className="flex items-center gap-3 flex-wrap">
+              <button
+                onClick={() => {
+                  if (isListeningMode) {
+                    // 停止
+                    tts.stop();
+                    if (currentAudioRef.current) {
+                      currentAudioRef.current.pause();
+                      currentAudioRef.current = null;
+                    }
+                    if (listeningTimeoutRef.current) {
+                      clearTimeout(listeningTimeoutRef.current);
+                      listeningTimeoutRef.current = null;
+                    }
+                    setIsListeningMode(false);
+                  } else {
+                    // 開始
+                    setIsListeningMode(true);
+                    setListeningIndex(0);
+                    startListeningMode();
+                  }
+                }}
+                className={`px-4 py-2 rounded-lg font-semibold transition-all whitespace-nowrap ${
+                  isListeningMode
+                    ? "bg-red-600 hover:bg-red-700 text-white"
+                    : "bg-green-600 hover:bg-green-700 text-white"
+                }`}
+              >
+                {isListeningMode ? "⏹ 聞き流し停止" : "🎧 聞き流しモード開始"}
+              </button>
               {isListeningMode && (
                 <div className="flex items-center gap-2">
-                  <label className="text-sm text-gray-700 font-semibold">再生間隔:</label>
+                  <label className="text-sm text-gray-700 font-semibold whitespace-nowrap">再生間隔:</label>
                   <select
                     value={listeningInterval}
                     onChange={(e) => {
