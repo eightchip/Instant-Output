@@ -63,3 +63,40 @@ export interface VocabularyWord {
   updatedAt?: Date; // 更新日時
 }
 
+// サブスクリプション関連の型定義
+export type SubscriptionPlan = "basic" | "standard" | "professional";
+
+export interface User {
+  id: string;
+  email: string;
+  passwordHash: string; // bcryptでハッシュ化
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface Subscription {
+  id: string;
+  userId: string;
+  plan: SubscriptionPlan;
+  status: "active" | "expired" | "cancelled";
+  currentPeriodStart: Date;
+  currentPeriodEnd: Date;
+  cancelAtPeriodEnd?: boolean;
+  stripeSubscriptionId?: string;
+  stripeCustomerId?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface UsageStats {
+  id: string;
+  userId: string;
+  month: string; // "2024-01"
+  whisperMinutes: number;
+  aiFeatureCalls: number; // 再翻訳、改善、語彙抽出、品質チェックの合計
+  ttsCharacters: number;
+  ocrCalls: number;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
