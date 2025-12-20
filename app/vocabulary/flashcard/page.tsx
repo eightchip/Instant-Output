@@ -75,13 +75,21 @@ function VocabularyFlashcardContent() {
       }
       setVocabulary(userVocab);
       
-      // フラッシュカード対象の単語を決定（すべての単語を対象）
+      // フラッシュカード対象の単語を決定（覚えていない単語のみ）
       let targetWords: string[] = [];
       if (wordFilter.length > 0) {
         targetWords = Array.from(userVocab.keys()).filter(word => wordFilter.includes(word));
       } else {
-        // すべての単語を対象にする
-        targetWords = Array.from(userVocab.keys());
+        // 覚えていない単語のみを対象にする
+        for (const [word, vocabWord] of vocabWordsMap.entries()) {
+          if (!vocabWord.isLearned) {
+            targetWords.push(word);
+          }
+        }
+        // 覚えていない単語がない場合はすべての単語を対象にする
+        if (targetWords.length === 0) {
+          targetWords = Array.from(userVocab.keys());
+        }
       }
       
       // ランダムにシャッフル
@@ -157,25 +165,35 @@ function VocabularyFlashcardContent() {
     if (!currentWord) return;
     
     setFlashcardResult(result);
-    setResults([...results, { word: currentWord, result }]);
+    const newResults = [...results, { word: currentWord, result }];
+    setResults(newResults);
+    
+    // 覚えていない単語をリストに追加
+    let updatedFlashcardWords = [...flashcardWords];
+    if (result === "dont-know") {
+      // 覚えていない単語をリストの最後に追加
+      updatedFlashcardWords.push(currentWord);
+      setFlashcardWords(updatedFlashcardWords);
+    }
     
     // 結果に応じて次のカードへ（または完了）
     setTimeout(() => {
-      if (currentIndex < flashcardWords.length - 1) {
+      if (currentIndex < updatedFlashcardWords.length - 1) {
         setCurrentIndex(currentIndex + 1);
         setShowAnswer(false);
         setFlashcardResult(null);
         setShowSide("front");
       } else {
         // フラッシュカード完了
-        const knowCount = results.filter(r => r.result === "know").length;
-        const totalCount = results.length + 1; // 現在の結果も含む
+        const knowCount = newResults.filter(r => r.result === "know").length;
+        const dontKnowCount = newResults.filter(r => r.result === "dont-know").length;
+        const totalCount = newResults.length;
         const knowRate = totalCount > 0 ? Math.round((knowCount / totalCount) * 100) : 0;
         
         setMessageDialog({
           isOpen: true,
           title: "フラッシュカード完了",
-          message: `覚えている: ${knowCount}/${totalCount}問 (${knowRate}%)\n\nお疲れ様でした！`,
+          message: `覚えている: ${knowCount}/${totalCount}問 (${knowRate}%)\n覚えていない: ${dontKnowCount}問\n\nお疲れ様でした！`,
         });
       }
     }, 500);
@@ -239,6 +257,9 @@ function VocabularyFlashcardContent() {
             <div className="text-lg font-bold text-gray-900">
               カード {currentIndex + 1} / {flashcardWords.length}
             </div>
+            <div className="text-sm text-gray-600">
+              覚えていない単語: {results.filter(r => r.result === "dont-know").length}回
+            </div>
           </div>
           <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
             <div
@@ -263,7 +284,37 @@ function VocabularyFlashcardContent() {
                     </span>
                   </div>
                 )}
-                <h2 className="text-5xl font-black text-blue-900 mb-6">{currentWord}</h2>
+                <h2 className="text-5xl font-black text-blue-900 mb-4">{currentWord}</h2>
+                {/* 単語が含まれる英文を表示 */}
+                {(() => {
+                  const wordCards = wordData.isIdiom
+                    ? cards.filter(card => {
+                        const lowerText = card.target_en.toLowerCase();
+                        const lowerWord = currentWord.toLowerCase();
+                        return lowerText.includes(lowerWord);
+                      })
+                    : cards.filter(card => getImportantWords(card).includes(currentWord.toLowerCase()));
+                  
+                  if (wordCards.length > 0) {
+                    const exampleCard = wordCards[0];
+                    return (
+                      <div className="mb-4 px-4">
+                        <p className="text-sm text-gray-600 mb-2">例文</p>
+                        <p className="text-lg text-gray-800 italic leading-relaxed">{exampleCard.target_en}</p>
+                        {tts.isAvailable() && (
+                          <div className="mt-3">
+                            <AudioPlaybackButton
+                              text={exampleCard.target_en}
+                              language="en"
+                              size="sm"
+                            />
+                          </div>
+                        )}
+                      </div>
+                    );
+                  }
+                  return null;
+                })()}
                 {tts.isAvailable() && (
                   <div className="mb-4">
                     <AudioPlaybackButton
@@ -294,6 +345,27 @@ function VocabularyFlashcardContent() {
                     </h2>
                   )}
                 </div>
+                {/* 日本語訳を表示 */}
+                {(() => {
+                  const wordCards = wordData.isIdiom
+                    ? cards.filter(card => {
+                        const lowerText = card.target_en.toLowerCase();
+                        const lowerWord = currentWord.toLowerCase();
+                        return lowerText.includes(lowerWord);
+                      })
+                    : cards.filter(card => getImportantWords(card).includes(currentWord.toLowerCase()));
+                  
+                  if (wordCards.length > 0) {
+                    const exampleCard = wordCards[0];
+                    return (
+                      <div className="mb-6">
+                        <p className="text-sm text-gray-600 mb-2">日本語訳</p>
+                        <p className="text-xl text-gray-800 leading-relaxed">{exampleCard.prompt_jp}</p>
+                      </div>
+                    );
+                  }
+                  return null;
+                })()}
                 <div className="mb-6">
                   <p className="text-sm text-gray-600 mb-2">英語</p>
                   <h3 className="text-3xl font-bold text-blue-900">{currentWord}</h3>
