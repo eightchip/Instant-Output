@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifyPassword, generateToken } from "@/lib/auth-server";
 import { storage } from "@/lib/storage";
+import { User } from "@/types/models";
 
 /**
  * ユーザーログインAPI
@@ -22,7 +23,8 @@ export async function POST(request: NextRequest) {
     
     // ユーザーを取得（簡易実装）
     // 本番環境ではサーバーDBから取得
-    const user = null; // TODO: データベースから取得
+    // TODO: データベースから取得
+    const user: User | null = null;
     
     if (!user) {
       return NextResponse.json(
@@ -31,8 +33,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // この時点でuserはUser型であることが保証されている
+    const validUser: User = user;
+
     // パスワードを検証
-    const isValid = await verifyPassword(password, user.passwordHash);
+    const isValid = await verifyPassword(password, validUser.passwordHash);
     
     if (!isValid) {
       return NextResponse.json(
@@ -45,13 +50,13 @@ export async function POST(request: NextRequest) {
     const subscription = null; // TODO: データベースから取得
 
     // JWTトークンを生成
-    const token = generateToken(user.id, user.email);
+    const token = generateToken(validUser.id, validUser.email);
 
     return NextResponse.json({
       success: true,
       user: {
-        id: user.id,
-        email: user.email,
+        id: validUser.id,
+        email: validUser.email,
       },
       token,
       subscription: subscription || null,
