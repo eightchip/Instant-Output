@@ -1817,13 +1817,33 @@ function ScreenshotCardContent() {
                             <div>
                               <div className="flex items-center justify-between mb-2">
                                 <label className="text-sm text-gray-700 font-semibold block">英語:</label>
-                                <button
-                                  onClick={handleSplitSentence}
-                                  className="text-xs bg-purple-600 hover:bg-purple-700 text-white font-semibold py-1 px-3 rounded-lg flex items-center gap-1"
-                                  title="カーソル位置で文章を分割"
-                                >
-                                  ✂️ ここで分割
-                                </button>
+                                <div className="flex items-center gap-2">
+                                  {isAdminAuthenticated() && editingSentenceEn.trim() && (
+                                    <>
+                                      <button
+                                        onClick={handleImproveText}
+                                        disabled={isImproving}
+                                        className="text-xs bg-purple-600 hover:bg-purple-700 disabled:bg-gray-400 text-white font-semibold py-1 px-3 rounded-lg"
+                                      >
+                                        {isImproving ? "改善中..." : "✨ 改善"}
+                                      </button>
+                                      <button
+                                        onClick={handleExtractVocabulary}
+                                        disabled={isExtractingVocabulary}
+                                        className="text-xs bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-400 text-white font-semibold py-1 px-3 rounded-lg"
+                                      >
+                                        {isExtractingVocabulary ? "抽出中..." : "📚 語彙抽出"}
+                                      </button>
+                                    </>
+                                  )}
+                                  <button
+                                    onClick={handleSplitSentence}
+                                    className="text-xs bg-purple-600 hover:bg-purple-700 text-white font-semibold py-1 px-3 rounded-lg flex items-center gap-1"
+                                    title="カーソル位置で文章を分割"
+                                  >
+                                    ✂️ ここで分割
+                                  </button>
+                                </div>
                               </div>
                               <textarea
                                 ref={editingTextareaRef}
