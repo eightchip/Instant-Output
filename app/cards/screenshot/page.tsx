@@ -9,6 +9,7 @@ import { processOcrText } from "@/lib/text-processing";
 import MessageDialog from "@/components/MessageDialog";
 import VoiceInputButton from "@/components/VoiceInputButton";
 import LoadingSpinner from "@/components/LoadingSpinner";
+import { isAdminAuthenticated, getSessionData } from "@/lib/admin-auth";
 
 function ScreenshotCardContent() {
   const router = useRouter();
@@ -36,6 +37,10 @@ function ScreenshotCardContent() {
   const [editingSentenceJp, setEditingSentenceJp] = useState<string>("");
   const [originalEditingSentenceEn, setOriginalEditingSentenceEn] = useState<string>("");
   const [isTranslatingSingle, setIsTranslatingSingle] = useState(false);
+  const [isRecordingForRetranslate, setIsRecordingForRetranslate] = useState(false);
+  const [isTranscribingForRetranslate, setIsTranscribingForRetranslate] = useState(false);
+  const mediaRecorderForRetranslateRef = useRef<MediaRecorder | null>(null);
+  const audioChunksForRetranslateRef = useRef<Blob[]>([]);
   const [isEditingExtractedText, setIsEditingExtractedText] = useState(false);
   const editingTextareaRef = useRef<HTMLTextAreaElement>(null);
   const extractedTextareaRef = useRef<HTMLTextAreaElement>(null);
@@ -232,6 +237,173 @@ function ScreenshotCardContent() {
       });
     } finally {
       setIsTranslatingSingle(false);
+    }
+  }
+
+  // Whisper APIを使用した音声再翻訳
+  async function handleVoiceRetranslateSingle() {
+    if (!isAdminAuthenticated()) {
+      setMessageDialog({
+        isOpen: true,
+        title: "認証エラー",
+        message: "この機能を使用するには管理者ログインが必要です。",
+      });
+      return;
+    }
+
+    if (editingSentenceIndex === null) return;
+
+    try {
+      setIsRecordingForRetranslate(true);
+      setIsTranscribingForRetranslate(false);
+      audioChunksForRetranslateRef.current = [];
+
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new MediaRecorder(stream, {
+        mimeType: "audio/webm",
+      });
+      mediaRecorderForRetranslateRef.current = mediaRecorder;
+
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          audioChunksForRetranslateRef.current.push(event.data);
+        }
+      };
+
+      mediaRecorder.onstop = async () => {
+        stream.getTracks().forEach((track) => track.stop());
+        
+        if (audioChunksForRetranslateRef.current.length === 0) {
+          setIsRecordingForRetranslate(false);
+          return;
+        }
+
+        setIsTranscribingForRetranslate(true);
+        const audioBlob = new Blob(audioChunksForRetranslateRef.current, { type: "audio/webm" });
+        
+        // base64に変換
+        const reader = new FileReader();
+        reader.onloadend = async () => {
+          const base64Audio = reader.result as string;
+          
+          try {
+            // セッションデータを取得
+            const sessionData = getSessionData();
+            
+            if (!sessionData) {
+              setMessageDialog({
+                isOpen: true,
+                title: "認証エラー",
+                message: "管理者セッションが無効です。再度ログインしてください。",
+              });
+              setIsRecordingForRetranslate(false);
+              setIsTranscribingForRetranslate(false);
+              return;
+            }
+            
+            // Whisper APIで音声認識
+            const whisperResponse = await fetch("/api/whisper-transcribe", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                audioBase64: base64Audio,
+                sessionData: sessionData,
+                language: "en",
+              }),
+            });
+
+            if (!whisperResponse.ok) {
+              const errorData = await whisperResponse.json().catch(() => ({}));
+              setMessageDialog({
+                isOpen: true,
+                title: "音声認識エラー",
+                message: errorData.message || "音声認識に失敗しました。",
+              });
+              setIsRecordingForRetranslate(false);
+              setIsTranscribingForRetranslate(false);
+              return;
+            }
+
+            const whisperData = await whisperResponse.json();
+            if (!whisperData.text) {
+              setMessageDialog({
+                isOpen: true,
+                title: "音声認識エラー",
+                message: "音声認識結果が空です。",
+              });
+              setIsRecordingForRetranslate(false);
+              setIsTranscribingForRetranslate(false);
+              return;
+            }
+
+            // 認識したテキストを英語フィールドに設定
+            setEditingSentenceEn(whisperData.text);
+
+            // ChatGPT APIで翻訳
+            setIsTranslatingSingle(true);
+            const translateResponse = await fetch("/api/translate-chatgpt", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                text: whisperData.text,
+                sessionData: sessionData,
+              }),
+            });
+
+            if (!translateResponse.ok) {
+              const errorData = await translateResponse.json().catch(() => ({}));
+              setMessageDialog({
+                isOpen: true,
+                title: "翻訳エラー",
+                message: errorData.message || "翻訳に失敗しました。",
+              });
+              setIsRecordingForRetranslate(false);
+              setIsTranscribingForRetranslate(false);
+              setIsTranslatingSingle(false);
+              return;
+            }
+
+            const translateData = await translateResponse.json();
+            if (translateData.translatedText) {
+              setEditingSentenceJp(translateData.translatedText);
+            }
+          } catch (error) {
+            console.error("Voice retranslate error:", error);
+            setMessageDialog({
+              isOpen: true,
+              title: "エラー",
+              message: "音声再翻訳処理中にエラーが発生しました。",
+            });
+          } finally {
+            setIsRecordingForRetranslate(false);
+            setIsTranscribingForRetranslate(false);
+            setIsTranslatingSingle(false);
+          }
+        };
+        reader.readAsDataURL(audioBlob);
+      };
+
+      mediaRecorder.start();
+    } catch (error) {
+      console.error("Failed to start voice recording:", error);
+      setMessageDialog({
+        isOpen: true,
+        title: "エラー",
+        message: "マイクへのアクセスに失敗しました。",
+      });
+      setIsRecordingForRetranslate(false);
+      setIsTranscribingForRetranslate(false);
+    }
+  }
+
+  function stopVoiceRecordingForRetranslate() {
+    if (mediaRecorderForRetranslateRef.current && isRecordingForRetranslate) {
+      mediaRecorderForRetranslateRef.current.stop();
+      mediaRecorderForRetranslateRef.current = null;
     }
   }
 
@@ -1427,13 +1599,42 @@ function ScreenshotCardContent() {
                               <div className="flex items-center justify-between mb-2">
                                 <label className="text-sm text-gray-700 font-semibold block">日本語:</label>
                                 {(!hasJapaneseTranslation || hasEnglishChanged) && (
-                                  <button
-                                    onClick={handleTranslateSingleSentence}
-                                    disabled={isTranslatingSingle || !editingSentenceEn.trim()}
-                                    className="text-xs bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-semibold py-1 px-3 rounded-lg flex items-center gap-1"
-                                  >
-                                    {isTranslatingSingle ? "翻訳中..." : hasEnglishChanged ? "🔄 再翻訳" : "🌐 翻訳"}
-                                  </button>
+                                  <div className="flex items-center gap-2">
+                                    <button
+                                      onClick={handleTranslateSingleSentence}
+                                      disabled={isTranslatingSingle || !editingSentenceEn.trim()}
+                                      className="text-xs bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-semibold py-1 px-3 rounded-lg flex items-center gap-1"
+                                    >
+                                      {isTranslatingSingle ? "翻訳中..." : hasEnglishChanged ? "🔄 再翻訳" : "🌐 翻訳"}
+                                    </button>
+                                    {isAdminAuthenticated() && (
+                                      <button
+                                        onClick={() => {
+                                          if (isRecordingForRetranslate) {
+                                            stopVoiceRecordingForRetranslate();
+                                          } else {
+                                            handleVoiceRetranslateSingle();
+                                          }
+                                        }}
+                                        disabled={isTranscribingForRetranslate || isTranslatingSingle}
+                                        className={`text-xs font-semibold py-1 px-3 rounded-lg transition-colors ${
+                                          isRecordingForRetranslate
+                                            ? "bg-red-600 hover:bg-red-700 text-white"
+                                            : isTranscribingForRetranslate || isTranslatingSingle
+                                            ? "bg-gray-400 text-white cursor-not-allowed"
+                                            : "bg-purple-600 hover:bg-purple-700 text-white"
+                                        }`}
+                                      >
+                                        {isTranscribingForRetranslate
+                                          ? "認識中..."
+                                          : isTranslatingSingle
+                                          ? "翻訳中..."
+                                          : isRecordingForRetranslate
+                                          ? "⏹ 停止"
+                                          : "🎤 音声で再翻訳"}
+                                      </button>
+                                    )}
+                                  </div>
                                 )}
                               </div>
                               <textarea

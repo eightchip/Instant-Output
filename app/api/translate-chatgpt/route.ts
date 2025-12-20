@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { verifyAdminSession } from "@/lib/admin-auth-server";
 
 /**
  * ChatGPT APIを使用して英語を日本語に翻訳（高精度、イギリス英語対応）
@@ -6,7 +7,7 @@ import { NextRequest, NextResponse } from "next/server";
  */
 export async function POST(request: NextRequest) {
   try {
-    const { text, adminPassword } = await request.json();
+    const { text, adminPassword, sessionData } = await request.json();
 
     if (!text || typeof text !== "string" || text.trim().length === 0) {
       return NextResponse.json(
@@ -15,26 +16,37 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 管理者パスワード確認
-    if (!adminPassword || typeof adminPassword !== "string" || adminPassword.trim().length === 0) {
-      return NextResponse.json(
-        { error: "UNAUTHORIZED", message: "管理者パスワードが提供されていません。" },
-        { status: 401 }
-      );
-    }
+    // セッション認証を優先（sessionDataが提供されている場合）
+    if (sessionData) {
+      if (!verifyAdminSession(sessionData)) {
+        console.warn("管理者セッション認証失敗（ChatGPT翻訳）");
+        return NextResponse.json(
+          { error: "UNAUTHORIZED", message: "管理者セッションが無効または期限切れです。再度ログインしてください。" },
+          { status: 401 }
+        );
+      }
+    } else {
+      // 後方互換性のため、パスワード認証もサポート
+      if (!adminPassword || typeof adminPassword !== "string" || adminPassword.trim().length === 0) {
+        return NextResponse.json(
+          { error: "UNAUTHORIZED", message: "管理者パスワードまたはセッションデータが提供されていません。" },
+          { status: 401 }
+        );
+      }
 
-    // 管理者パスワードを取得
-    // 環境変数が設定されていない場合はデフォルト値を使用（後方互換性のため）
-    // ただし、Vercelで環境変数を設定した場合は、必ずADMIN_PASSWORDも設定してください
-    const expectedPassword = process.env.ADMIN_PASSWORD || "admin123";
+      // 管理者パスワードを取得
+      // 環境変数が設定されていない場合はデフォルト値を使用（後方互換性のため）
+      // ただし、Vercelで環境変数を設定した場合は、必ずADMIN_PASSWORDも設定してください
+      const expectedPassword = process.env.ADMIN_PASSWORD || "admin123";
 
-    // パスワードを比較（トリムして比較）
-    if (adminPassword.trim() !== expectedPassword.trim()) {
-      console.warn("管理者パスワード認証失敗");
-      return NextResponse.json(
-        { error: "UNAUTHORIZED", message: "管理者パスワードが正しくありません。" },
-        { status: 401 }
-      );
+      // パスワードを比較（トリムして比較）
+      if (adminPassword.trim() !== expectedPassword.trim()) {
+        console.warn("管理者パスワード認証失敗");
+        return NextResponse.json(
+          { error: "UNAUTHORIZED", message: "管理者パスワードが正しくありません。" },
+          { status: 401 }
+        );
+      }
     }
 
     // OpenAI APIキー確認

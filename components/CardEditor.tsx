@@ -8,6 +8,7 @@ import AudioPlaybackButton from "./AudioPlaybackButton";
 import VoiceInputButton from "./VoiceInputButton";
 import MessageDialog from "./MessageDialog";
 import ConfirmDialog from "./ConfirmDialog";
+import { isAdminAuthenticated, getSessionData } from "@/lib/admin-auth";
 
 interface CardEditorProps {
   card: Card;
@@ -33,6 +34,11 @@ export default function CardEditor({
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isTranslating, setIsTranslating] = useState(false);
+  const [isRecordingForRetranslate, setIsRecordingForRetranslate] = useState(false);
+  const [isTranscribing, setIsTranscribing] = useState(false);
+  const [isImproving, setIsImproving] = useState(false);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
   const [showAddVocabulary, setShowAddVocabulary] = useState(false);
   const [vocabWord, setVocabWord] = useState("");
   const [vocabMeaning, setVocabMeaning] = useState("");
@@ -142,6 +148,251 @@ export default function CardEditor({
       setIsTranslating(false);
     }
   };
+
+  // Whisper APIを使用した音声再翻訳
+  async function handleVoiceRetranslate() {
+    if (!isAdminAuthenticated()) {
+      setMessageDialog({
+        isOpen: true,
+        title: "認証エラー",
+        message: "この機能を使用するには管理者ログインが必要です。",
+      });
+      return;
+    }
+
+    try {
+      setIsRecordingForRetranslate(true);
+      setIsTranscribing(false);
+      audioChunksRef.current = [];
+
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new MediaRecorder(stream, {
+        mimeType: "audio/webm",
+      });
+      mediaRecorderRef.current = mediaRecorder;
+
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          audioChunksRef.current.push(event.data);
+        }
+      };
+
+      mediaRecorder.onstop = async () => {
+        stream.getTracks().forEach((track) => track.stop());
+        
+        if (audioChunksRef.current.length === 0) {
+          setIsRecordingForRetranslate(false);
+          return;
+        }
+
+        setIsTranscribing(true);
+        const audioBlob = new Blob(audioChunksRef.current, { type: "audio/webm" });
+        
+        // base64に変換
+        const reader = new FileReader();
+        reader.onloadend = async () => {
+          const base64Audio = reader.result as string;
+          
+          try {
+            // セッションデータを取得
+            const sessionData = getSessionData();
+            
+            if (!sessionData) {
+              setMessageDialog({
+                isOpen: true,
+                title: "認証エラー",
+                message: "管理者セッションが無効です。再度ログインしてください。",
+              });
+              setIsRecordingForRetranslate(false);
+              setIsTranscribing(false);
+              return;
+            }
+            
+            // Whisper APIで音声認識
+            const whisperResponse = await fetch("/api/whisper-transcribe", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                audioBase64: base64Audio,
+                sessionData: sessionData,
+                language: "en",
+              }),
+            });
+
+            if (!whisperResponse.ok) {
+              const errorData = await whisperResponse.json().catch(() => ({}));
+              setMessageDialog({
+                isOpen: true,
+                title: "音声認識エラー",
+                message: errorData.message || "音声認識に失敗しました。",
+              });
+              setIsRecordingForRetranslate(false);
+              setIsTranscribing(false);
+              return;
+            }
+
+            const whisperData = await whisperResponse.json();
+            if (!whisperData.text) {
+              setMessageDialog({
+                isOpen: true,
+                title: "音声認識エラー",
+                message: "音声認識結果が空です。",
+              });
+              setIsRecordingForRetranslate(false);
+              setIsTranscribing(false);
+              return;
+            }
+
+            // 認識したテキストを英語フィールドに設定
+            setTargetEn(whisperData.text);
+
+            // ChatGPT APIで翻訳
+            setIsTranslating(true);
+            const translateResponse = await fetch("/api/translate-chatgpt", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                text: whisperData.text,
+                sessionData: sessionData, // セッション認証を使用
+              }),
+            });
+
+            if (!translateResponse.ok) {
+              const errorData = await translateResponse.json().catch(() => ({}));
+              setMessageDialog({
+                isOpen: true,
+                title: "翻訳エラー",
+                message: errorData.message || "翻訳に失敗しました。",
+              });
+              setIsRecordingForRetranslate(false);
+              setIsTranscribing(false);
+              setIsTranslating(false);
+              return;
+            }
+
+            const translateData = await translateResponse.json();
+            if (translateData.translatedText) {
+              setPromptJp(translateData.translatedText);
+              setMessageDialog({
+                isOpen: true,
+                title: "翻訳完了",
+                message: "音声から翻訳が完了しました。",
+              });
+            }
+          } catch (error) {
+            console.error("Voice retranslate error:", error);
+            setMessageDialog({
+              isOpen: true,
+              title: "エラー",
+              message: "音声再翻訳処理中にエラーが発生しました。",
+            });
+          } finally {
+            setIsRecordingForRetranslate(false);
+            setIsTranscribing(false);
+            setIsTranslating(false);
+          }
+        };
+        reader.readAsDataURL(audioBlob);
+      };
+
+      mediaRecorder.start();
+    } catch (error) {
+      console.error("Failed to start voice recording:", error);
+      setMessageDialog({
+        isOpen: true,
+        title: "エラー",
+        message: "マイクへのアクセスに失敗しました。",
+      });
+      setIsRecordingForRetranslate(false);
+      setIsTranscribing(false);
+    }
+  }
+
+  function stopVoiceRecording() {
+    if (mediaRecorderRef.current && isRecordingForRetranslate) {
+      mediaRecorderRef.current.stop();
+      mediaRecorderRef.current = null;
+    }
+  }
+
+  // 英語文章の自動校正・改善
+  async function handleImproveText() {
+    if (!targetEn.trim()) {
+      setMessageDialog({
+        isOpen: true,
+        title: "入力エラー",
+        message: "英語を入力してください。",
+      });
+      return;
+    }
+
+    if (!isAdminAuthenticated()) {
+      setMessageDialog({
+        isOpen: true,
+        title: "認証エラー",
+        message: "この機能を使用するには管理者ログインが必要です。",
+      });
+      return;
+    }
+
+    setIsImproving(true);
+    try {
+      const sessionData = getSessionData();
+      if (!sessionData) {
+        setMessageDialog({
+          isOpen: true,
+          title: "認証エラー",
+          message: "管理者セッションが無効です。再度ログインしてください。",
+        });
+        setIsImproving(false);
+        return;
+      }
+
+      const response = await fetch("/api/improve-text", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          text: targetEn.trim(),
+          sessionData,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        setMessageDialog({
+          isOpen: true,
+          title: "改善エラー",
+          message: errorData.message || "文章の改善に失敗しました。",
+        });
+        return;
+      }
+
+      const data = await response.json();
+      if (data.improvedText) {
+        setTargetEn(data.improvedText);
+        setMessageDialog({
+          isOpen: true,
+          title: "改善完了",
+          message: "文章を改善しました。",
+        });
+      }
+    } catch (error) {
+      console.error("Text improvement error:", error);
+      setMessageDialog({
+        isOpen: true,
+        title: "エラー",
+        message: "文章改善処理中にエラーが発生しました。",
+      });
+    } finally {
+      setIsImproving(false);
+    }
+  }
 
   const handleSave = async () => {
     if (!targetEn.trim()) {
@@ -294,13 +545,42 @@ export default function CardEditor({
               />
             </label>
             {targetEn.trim() && (
-              <button
-                onClick={handleRetranslate}
-                disabled={isTranslating}
-                className="text-xs bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-400 text-white font-semibold py-1 px-3 rounded-lg transition-colors"
-              >
-                {isTranslating ? "翻訳中..." : "🔄 再翻訳"}
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={handleRetranslate}
+                  disabled={isTranslating}
+                  className="text-xs bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-400 text-white font-semibold py-1 px-3 rounded-lg transition-colors"
+                >
+                  {isTranslating ? "翻訳中..." : "🔄 再翻訳"}
+                </button>
+                {isAdminAuthenticated() && (
+                  <button
+                    onClick={() => {
+                      if (isRecordingForRetranslate) {
+                        stopVoiceRecording();
+                      } else {
+                        handleVoiceRetranslate();
+                      }
+                    }}
+                    disabled={isTranscribing || isTranslating}
+                    className={`text-xs font-semibold py-1 px-3 rounded-lg transition-colors ${
+                      isRecordingForRetranslate
+                        ? "bg-red-600 hover:bg-red-700 text-white"
+                        : isTranscribing || isTranslating
+                        ? "bg-gray-400 text-white cursor-not-allowed"
+                        : "bg-purple-600 hover:bg-purple-700 text-white"
+                    }`}
+                  >
+                    {isTranscribing
+                      ? "認識中..."
+                      : isTranslating
+                      ? "翻訳中..."
+                      : isRecordingForRetranslate
+                      ? "⏹ 停止"
+                      : "🎤 音声で再翻訳"}
+                  </button>
+                )}
+              </div>
             )}
           </div>
           <div className="relative">
