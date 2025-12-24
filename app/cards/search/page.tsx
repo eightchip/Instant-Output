@@ -356,13 +356,34 @@ export default function CardSearchPage() {
           };
 
           // 音声再生を開始（Promiseを適切に処理）
+          // iOS Safariでは、ユーザーの操作コンテキスト内で再生する必要がある
           try {
-            await audio.play();
+            const playPromise = audio.play();
+            if (playPromise !== undefined) {
+              await playPromise;
+            }
             addDebugLog(`Audio started playing for card ${currentIndex}`);
-          } catch (playError) {
+          } catch (playError: any) {
             console.error("Failed to play audio:", playError);
-            addDebugLog(`Failed to play audio for card ${currentIndex}: ${playError}`);
-            // 再生に失敗した場合も次のカードに進む
+            const errorMessage = playError?.name === 'NotAllowedError' 
+              ? `NotAllowedError: ユーザーの操作が必要です（iOS Safariの制限）`
+              : `Failed to play audio: ${playError?.message || playError}`;
+            addDebugLog(errorMessage);
+            
+            // NotAllowedErrorの場合は、ユーザーに通知して停止
+            if (playError?.name === 'NotAllowedError') {
+              setMessageDialog({
+                isOpen: true,
+                title: "音声再生エラー",
+                message: "iOS Safariでは、ユーザーの操作なしに音声を自動再生できません。聞き流しモードを停止して、もう一度開始ボタンを押してください。",
+              });
+              setIsListeningMode(false);
+              URL.revokeObjectURL(audioUrl);
+              currentAudioRef.current = null;
+              return;
+            }
+            
+            // その他のエラーの場合は次のカードに進む
             URL.revokeObjectURL(audioUrl);
             currentAudioRef.current = null;
             if (listeningTimeoutRef.current) {
@@ -685,7 +706,7 @@ export default function CardSearchPage() {
             {/* ボタンと再生間隔（下に配置） */}
             <div className="flex items-center gap-3 flex-wrap">
               <button
-                onClick={() => {
+                onClick={async () => {
                   if (isListeningMode) {
                     // 停止
                     tts.stop();
@@ -699,10 +720,12 @@ export default function CardSearchPage() {
                     }
                     setIsListeningMode(false);
                   } else {
-                    // 開始
+                    // 開始（ユーザーの操作コンテキスト内で実行）
                     setIsListeningMode(true);
                     setListeningIndex(0);
-                    startListeningMode();
+                    // ユーザーのクリックイベント内で直接startListeningModeを呼び出す
+                    // これにより、iOS Safariでも音声再生が許可される
+                    await startListeningMode();
                   }
                 }}
                 className={`px-4 py-2 rounded-lg font-semibold transition-all whitespace-nowrap ${
