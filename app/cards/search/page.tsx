@@ -260,8 +260,8 @@ export default function CardSearchPage() {
           // 再生開始前にcurrentAudioRefに設定
           currentAudioRef.current = audio;
           
-          // イベントハンドラを設定（再生開始前に設定）
-          audio.onended = () => {
+          // モバイルブラウザでの確実な動作のため、onendedとaddEventListenerの両方を使用
+          const handleAudioEnded = () => {
             console.log(`Audio ended for card ${currentIndex}, next: ${currentIndex + 1}, isListeningMode: ${isListeningModeRef.current}`);
             URL.revokeObjectURL(audioUrl);
             if (currentAudioRef.current === audio) {
@@ -283,6 +283,21 @@ export default function CardSearchPage() {
               playCard(currentIndex + 1);
             }, listeningInterval);
           };
+          
+          // 両方の方法でイベントハンドラを設定（モバイルブラウザの互換性のため）
+          audio.onended = handleAudioEnded;
+          audio.addEventListener('ended', handleAudioEnded, { once: true });
+          
+          // モバイルブラウザでの追加の安全策：timeupdateイベントで再生終了を監視
+          let hasEnded = false;
+          const checkAudioEnded = () => {
+            if (!hasEnded && audio.ended && audio.currentTime >= audio.duration - 0.1) {
+              hasEnded = true;
+              audio.removeEventListener('timeupdate', checkAudioEnded);
+              handleAudioEnded();
+            }
+          };
+          audio.addEventListener('timeupdate', checkAudioEnded);
 
           audio.onerror = (event) => {
             console.error("Audio playback error:", event);
