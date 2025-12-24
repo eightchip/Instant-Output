@@ -65,6 +65,8 @@ export default function CardSearchPage() {
   const currentAudioRef = useRef<HTMLAudioElement | null>(null); // 現在再生中の音声
   const playCardRef = useRef<((index: number) => Promise<void>) | null>(null); // playCard関数の参照
   const isListeningModeRef = useRef(false); // isListeningModeの最新値を保持
+  const [debugLogs, setDebugLogs] = useState<string[]>([]); // デバッグログ
+  const debugLogsRef = useRef<string[]>([]); // デバッグログのref
 
   const { displayedItems, sentinelRef } = useInfiniteScroll(filteredCards, {
     initialCount: 20,
@@ -260,9 +262,18 @@ export default function CardSearchPage() {
           // 再生開始前にcurrentAudioRefに設定
           currentAudioRef.current = audio;
           
+          // デバッグログを追加する関数
+          const addDebugLog = (message: string) => {
+            const timestamp = new Date().toLocaleTimeString();
+            const logMessage = `[${timestamp}] ${message}`;
+            console.log(logMessage);
+            debugLogsRef.current = [...debugLogsRef.current.slice(-9), logMessage]; // 最新10件を保持
+            setDebugLogs(debugLogsRef.current);
+          };
+          
           // モバイルブラウザでの確実な動作のため、onendedとaddEventListenerの両方を使用
           const handleAudioEnded = () => {
-            console.log(`Audio ended for card ${currentIndex}, next: ${currentIndex + 1}, isListeningMode: ${isListeningModeRef.current}`);
+            addDebugLog(`Audio ended for card ${currentIndex}, next: ${currentIndex + 1}, isListeningMode: ${isListeningModeRef.current}`);
             URL.revokeObjectURL(audioUrl);
             if (currentAudioRef.current === audio) {
               currentAudioRef.current = null;
@@ -275,10 +286,10 @@ export default function CardSearchPage() {
             // 直接playCardを呼び出す（クロージャでcurrentIndexをキャプチャ）
             listeningTimeoutRef.current = setTimeout(() => {
               if (!isListeningModeRef.current) {
-                console.log(`Skipping next card: listening mode is false`);
+                addDebugLog(`Skipping next card: listening mode is false`);
                 return;
               }
-              console.log(`Playing next card directly: ${currentIndex + 1}`);
+              addDebugLog(`Playing next card directly: ${currentIndex + 1}`);
               // 直接playCardを呼び出す（クロージャで関数自体をキャプチャ）
               playCard(currentIndex + 1);
             }, listeningInterval);
