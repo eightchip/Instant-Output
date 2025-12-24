@@ -59,14 +59,9 @@ export default function CardSearchPage() {
   }, [isListeningMode]);
   const [listeningIndex, setListeningIndex] = useState(0); // 現在再生中のカードインデックス
   const [listeningInterval, setListeningInterval] = useState(3000); // 再生間隔（ミリ秒）
-  const [useOpenAITTS, setUseOpenAITTS] = useState(false); // OpenAI TTSを使用するか
-  const [openAIVoice, setOpenAIVoice] = useState<"alloy" | "echo" | "fable" | "onyx" | "nova" | "shimmer">("alloy"); // OpenAI TTS音声
   const listeningTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const currentAudioRef = useRef<HTMLAudioElement | null>(null); // 現在再生中の音声
   const playCardRef = useRef<((index: number) => Promise<void>) | null>(null); // playCard関数の参照
   const isListeningModeRef = useRef(false); // isListeningModeの最新値を保持
-  const [debugLogs, setDebugLogs] = useState<string[]>([]); // デバッグログ
-  const debugLogsRef = useRef<string[]>([]); // デバッグログのref
 
   const { displayedItems, sentinelRef } = useInfiniteScroll(filteredCards, {
     initialCount: 20,
@@ -176,249 +171,22 @@ export default function CardSearchPage() {
     setFilters({});
   }
 
-  // デバッグログを追加する関数（コンポーネントレベルで定義）
-  const addDebugLog = (message: string) => {
-    const timestamp = new Date().toLocaleTimeString();
-    const logMessage = `[${timestamp}] ${message}`;
-    console.log(logMessage);
-    debugLogsRef.current = [...debugLogsRef.current.slice(-9), logMessage]; // 最新10件を保持
-    setDebugLogs(debugLogsRef.current);
-  };
-  
   // 聞き流しモードの開始
   async function startListeningMode() {
     if (filteredCards.length === 0) return;
-    
-    // デバッグログをクリアして開始
-    debugLogsRef.current = [];
-    setDebugLogs([]);
-    addDebugLog(`聞き流しモード開始: ${filteredCards.length}枚のカード`);
-    
-    // OpenAI TTSを使用する場合、管理者認証を確認
-    if (useOpenAITTS && !isAdminAuthenticated()) {
-      setMessageDialog({
-        isOpen: true,
-        title: "認証エラー",
-        message: "OpenAI TTSを使用するには管理者ログインが必要です。",
-      });
-      setIsListeningMode(false);
-      return;
-    }
-    
-    if (useOpenAITTS) {
-      addDebugLog(`ChatGPT音声を使用: ${openAIVoice}`);
-    } else {
-      addDebugLog(`Web Speech APIを使用`);
-    }
     
     // 最初のカードを再生
     const playCard = async (currentIndex: number) => {
       if (currentIndex >= filteredCards.length) {
         // すべて再生完了
-        addDebugLog(`すべてのカードの再生が完了しました`);
         setIsListeningMode(false);
         return;
       }
 
       const card = filteredCards[currentIndex];
       setListeningIndex(currentIndex);
-      addDebugLog(`カード ${currentIndex + 1}/${filteredCards.length} を再生開始: "${card.target_en.substring(0, 50)}..."`);
 
-      // OpenAI TTSを使用する場合
-      if (useOpenAITTS && isAdminAuthenticated()) {
-        try {
-          // 既存の音声を停止
-          if (currentAudioRef.current) {
-            currentAudioRef.current.pause();
-            currentAudioRef.current.onended = null; // イベントハンドラをクリア
-            currentAudioRef.current.onerror = null;
-            currentAudioRef.current = null;
-          }
-
-          const sessionData = getSessionData();
-          if (!sessionData) {
-            setIsListeningMode(false);
-            return;
-          }
-
-          // OpenAI TTS APIを呼び出し
-          const response = await fetch("/api/openai-tts", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              text: card.target_en,
-              voice: openAIVoice,
-              sessionData,
-            }),
-          });
-
-          if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}));
-            console.error("OpenAI TTS error:", errorData);
-            addDebugLog(`OpenAI TTS API エラー: ${response.status}`);
-            // エラーが発生しても次のカードに進む
-            if (listeningTimeoutRef.current) {
-              clearTimeout(listeningTimeoutRef.current);
-            }
-            listeningTimeoutRef.current = setTimeout(() => {
-              // playCardRef.currentがnullの場合は直接playCardを呼ぶ
-              if (playCardRef.current) {
-                playCardRef.current(currentIndex + 1);
-              } else {
-                playCard(currentIndex + 1);
-              }
-            }, listeningInterval);
-            return;
-          }
-          
-          addDebugLog(`OpenAI TTS API レスポンス取得成功`);
-
-          const data = await response.json();
-          
-          // base64デコードしてAudioオブジェクトを作成
-          const audioData = Uint8Array.from(atob(data.audio), c => c.charCodeAt(0));
-          const audioBlob = new Blob([audioData], { type: "audio/mpeg" });
-          const audioUrl = URL.createObjectURL(audioBlob);
-          
-          const audio = new Audio(audioUrl);
-          
-          // 再生開始前にcurrentAudioRefに設定
-          currentAudioRef.current = audio;
-          
-          // モバイルブラウザでの確実な動作のため、onendedとaddEventListenerの両方を使用
-          const handleAudioEnded = () => {
-            addDebugLog(`Audio ended for card ${currentIndex}, next: ${currentIndex + 1}, isListeningMode: ${isListeningModeRef.current}`);
-            URL.revokeObjectURL(audioUrl);
-            if (currentAudioRef.current === audio) {
-              currentAudioRef.current = null;
-            }
-            // 既存のタイマーをクリア
-            if (listeningTimeoutRef.current) {
-              clearTimeout(listeningTimeoutRef.current);
-            }
-            // 音声再生が終了した後、再生間隔を待ってから次のカードを再生
-            // 直接playCardを呼び出す（クロージャでcurrentIndexをキャプチャ）
-            listeningTimeoutRef.current = setTimeout(() => {
-              if (!isListeningModeRef.current) {
-                addDebugLog(`Skipping next card: listening mode is false`);
-                return;
-              }
-              addDebugLog(`Playing next card directly: ${currentIndex + 1}`);
-              // 直接playCardを呼び出す（クロージャで関数自体をキャプチャ）
-              playCard(currentIndex + 1);
-            }, listeningInterval);
-          };
-          
-          // 両方の方法でイベントハンドラを設定（モバイルブラウザの互換性のため）
-          audio.onended = handleAudioEnded;
-          audio.addEventListener('ended', handleAudioEnded, { once: true });
-          
-          // モバイルブラウザでの追加の安全策：timeupdateイベントで再生終了を監視
-          let hasEnded = false;
-          const checkAudioEnded = () => {
-            if (!hasEnded && audio.ended && audio.currentTime >= audio.duration - 0.1) {
-              hasEnded = true;
-              audio.removeEventListener('timeupdate', checkAudioEnded);
-              addDebugLog(`timeupdateイベントで再生終了を検出`);
-              handleAudioEnded();
-            }
-          };
-          audio.addEventListener('timeupdate', checkAudioEnded);
-          
-          // 音声の長さをログに記録
-          audio.addEventListener('loadedmetadata', () => {
-            addDebugLog(`音声の長さ: ${audio.duration.toFixed(2)}秒`);
-          });
-
-          audio.onerror = (event) => {
-            console.error("Audio playback error:", event);
-            URL.revokeObjectURL(audioUrl);
-            if (currentAudioRef.current === audio) {
-              currentAudioRef.current = null;
-            }
-            // 既存のタイマーをクリア
-            if (listeningTimeoutRef.current) {
-              clearTimeout(listeningTimeoutRef.current);
-            }
-            // エラーが発生しても次のカードに進む
-            listeningTimeoutRef.current = setTimeout(() => {
-              if (!isListeningModeRef.current) {
-                return;
-              }
-              if (playCardRef.current) {
-                playCardRef.current(currentIndex + 1);
-              } else {
-                playCard(currentIndex + 1);
-              }
-            }, listeningInterval);
-          };
-
-          // 音声再生を開始（Promiseを適切に処理）
-          // iOS Safariでは、ユーザーの操作コンテキスト内で再生する必要がある
-          try {
-            const playPromise = audio.play();
-            if (playPromise !== undefined) {
-              await playPromise;
-            }
-            addDebugLog(`Audio started playing for card ${currentIndex}`);
-          } catch (playError: any) {
-            console.error("Failed to play audio:", playError);
-            const errorMessage = playError?.name === 'NotAllowedError' 
-              ? `NotAllowedError: ユーザーの操作が必要です（iOS Safariの制限）`
-              : `Failed to play audio: ${playError?.message || playError}`;
-            addDebugLog(errorMessage);
-            
-            // NotAllowedErrorの場合は、ユーザーに通知して停止
-            if (playError?.name === 'NotAllowedError') {
-              setMessageDialog({
-                isOpen: true,
-                title: "音声再生エラー",
-                message: "iOS Safariでは、ユーザーの操作なしに音声を自動再生できません。聞き流しモードを停止して、もう一度開始ボタンを押してください。",
-              });
-              setIsListeningMode(false);
-              URL.revokeObjectURL(audioUrl);
-              currentAudioRef.current = null;
-              return;
-            }
-            
-            // その他のエラーの場合は次のカードに進む
-            URL.revokeObjectURL(audioUrl);
-            currentAudioRef.current = null;
-            if (listeningTimeoutRef.current) {
-              clearTimeout(listeningTimeoutRef.current);
-            }
-            listeningTimeoutRef.current = setTimeout(() => {
-              if (!isListeningModeRef.current) {
-                return;
-              }
-              if (playCardRef.current) {
-                playCardRef.current(currentIndex + 1);
-              } else {
-                playCard(currentIndex + 1);
-              }
-            }, listeningInterval);
-          }
-        } catch (error) {
-          console.error("Failed to play OpenAI TTS:", error);
-          // 既存のタイマーをクリア
-          if (listeningTimeoutRef.current) {
-            clearTimeout(listeningTimeoutRef.current);
-          }
-          // エラーが発生しても次のカードに進む
-          listeningTimeoutRef.current = setTimeout(() => {
-            if (!isListeningModeRef.current) {
-              return;
-            }
-            if (playCardRef.current) {
-              playCardRef.current(currentIndex + 1);
-            } else {
-              playCard(currentIndex + 1);
-            }
-          }, listeningInterval);
-        }
-      } else {
+      // Web Speech APIを使用
         // Web Speech APIを使用
         if (!tts.isAvailable()) {
           console.warn("音声読み上げは利用できません");
@@ -493,19 +261,10 @@ export default function CardSearchPage() {
       }
       // Web Speech APIを停止
       tts.stop();
-      // OpenAI TTSを停止
-      if (currentAudioRef.current) {
-        currentAudioRef.current.pause();
-        currentAudioRef.current = null;
-      }
     }
     return () => {
       if (listeningTimeoutRef.current) {
         clearTimeout(listeningTimeoutRef.current);
-      }
-      if (currentAudioRef.current) {
-        currentAudioRef.current.pause();
-        currentAudioRef.current = null;
       }
     };
   }, [isListeningMode]);
@@ -521,9 +280,7 @@ export default function CardSearchPage() {
     }
     
     // 音声再生中でない場合のみ再開（音声再生中はonendイベントで処理される）
-    const isPlaying = useOpenAITTS 
-      ? currentAudioRef.current && !currentAudioRef.current.paused && !currentAudioRef.current.ended
-      : tts.getIsSpeaking();
+    const isPlaying = tts.getIsSpeaking();
     
     // 再生中でない場合のみ、現在のカードから再開
     if (!isPlaying && playCardRef.current) {
@@ -531,7 +288,7 @@ export default function CardSearchPage() {
       playCardRef.current(listeningIndex);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [listeningInterval, useOpenAITTS, openAIVoice]);
+  }, [listeningInterval]);
 
   // 同じレッスン内のカードのみ並び替え可能
   const canReorder = filters.lessonId !== undefined && filters.lessonId !== "";
@@ -706,26 +463,20 @@ export default function CardSearchPage() {
             {/* ボタンと再生間隔（下に配置） */}
             <div className="flex items-center gap-3 flex-wrap">
               <button
-                onClick={async () => {
+                onClick={() => {
                   if (isListeningMode) {
                     // 停止
                     tts.stop();
-                    if (currentAudioRef.current) {
-                      currentAudioRef.current.pause();
-                      currentAudioRef.current = null;
-                    }
                     if (listeningTimeoutRef.current) {
                       clearTimeout(listeningTimeoutRef.current);
                       listeningTimeoutRef.current = null;
                     }
                     setIsListeningMode(false);
                   } else {
-                    // 開始（ユーザーの操作コンテキスト内で実行）
+                    // 開始
                     setIsListeningMode(true);
                     setListeningIndex(0);
-                    // ユーザーのクリックイベント内で直接startListeningModeを呼び出す
-                    // これにより、iOS Safariでも音声再生が許可される
-                    await startListeningMode();
+                    startListeningMode();
                   }
                 }}
                 className={`px-4 py-2 rounded-lg font-semibold transition-all whitespace-nowrap ${
@@ -758,56 +509,10 @@ export default function CardSearchPage() {
                 </div>
               )}
             </div>
-            {/* 音声設定（管理者のみ） */}
-            {isAdminAuthenticated() && (
-              <div className="mb-3 p-3 bg-white/50 rounded-lg border border-green-200">
-                <div className="flex items-center gap-4 flex-wrap">
-                  <label className="flex items-center gap-2 text-sm">
-                    <input
-                      type="checkbox"
-                      checked={useOpenAITTS}
-                      onChange={(e) => setUseOpenAITTS(e.target.checked)}
-                      className="rounded"
-                    />
-                    <span className="font-semibold text-gray-700">🤖 ChatGPT音声を使用（管理者専用）</span>
-                  </label>
-                  {useOpenAITTS && (
-                    <div className="flex items-center gap-2">
-                      <label className="text-sm text-gray-700 font-semibold">音声:</label>
-                      <select
-                        value={openAIVoice}
-                        onChange={(e) => setOpenAIVoice(e.target.value as typeof openAIVoice)}
-                        className="border border-gray-300 rounded px-2 py-1 bg-white text-sm"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <option value="alloy">Alloy（中性）</option>
-                        <option value="echo">Echo（男性）</option>
-                        <option value="fable">Fable（女性）</option>
-                        <option value="onyx">Onyx（男性）</option>
-                        <option value="nova">Nova（女性）</option>
-                        <option value="shimmer">Shimmer（女性）</option>
-                      </select>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
             {isListeningMode && (
-              <>
-                <p className="text-xs text-gray-600 mt-2">
-                  💡 電車などの移動中に最適。フィルターで選んだカードを順番に再生します。
-                  {useOpenAITTS && isAdminAuthenticated() && " ChatGPT音声で高品質な発音を楽しめます。"}
-                </p>
-                {/* デバッグログ表示（開発用） */}
-                {debugLogs.length > 0 && (
-                  <div className="mt-3 p-2 bg-black/80 rounded text-xs text-green-400 font-mono max-h-32 overflow-y-auto">
-                    <div className="text-gray-400 mb-1">デバッグログ（最新10件）:</div>
-                    {debugLogs.map((log, idx) => (
-                      <div key={idx} className="mb-1">{log}</div>
-                    ))}
-                  </div>
-                )}
-              </>
+              <p className="text-xs text-gray-600 mt-2">
+                💡 電車などの移動中に最適。フィルターで選んだカードを順番に再生します。
+              </p>
             )}
           </div>
         )}
