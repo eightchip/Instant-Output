@@ -176,9 +176,23 @@ export default function CardSearchPage() {
     setFilters({});
   }
 
+  // デバッグログを追加する関数（コンポーネントレベルで定義）
+  const addDebugLog = (message: string) => {
+    const timestamp = new Date().toLocaleTimeString();
+    const logMessage = `[${timestamp}] ${message}`;
+    console.log(logMessage);
+    debugLogsRef.current = [...debugLogsRef.current.slice(-9), logMessage]; // 最新10件を保持
+    setDebugLogs(debugLogsRef.current);
+  };
+  
   // 聞き流しモードの開始
   async function startListeningMode() {
     if (filteredCards.length === 0) return;
+    
+    // デバッグログをクリアして開始
+    debugLogsRef.current = [];
+    setDebugLogs([]);
+    addDebugLog(`聞き流しモード開始: ${filteredCards.length}枚のカード`);
     
     // OpenAI TTSを使用する場合、管理者認証を確認
     if (useOpenAITTS && !isAdminAuthenticated()) {
@@ -191,16 +205,24 @@ export default function CardSearchPage() {
       return;
     }
     
+    if (useOpenAITTS) {
+      addDebugLog(`ChatGPT音声を使用: ${openAIVoice}`);
+    } else {
+      addDebugLog(`Web Speech APIを使用`);
+    }
+    
     // 最初のカードを再生
     const playCard = async (currentIndex: number) => {
       if (currentIndex >= filteredCards.length) {
         // すべて再生完了
+        addDebugLog(`すべてのカードの再生が完了しました`);
         setIsListeningMode(false);
         return;
       }
 
       const card = filteredCards[currentIndex];
       setListeningIndex(currentIndex);
+      addDebugLog(`カード ${currentIndex + 1}/${filteredCards.length} を再生開始: "${card.target_en.substring(0, 50)}..."`);
 
       // OpenAI TTSを使用する場合
       if (useOpenAITTS && isAdminAuthenticated()) {
@@ -235,6 +257,7 @@ export default function CardSearchPage() {
           if (!response.ok) {
             const errorData = await response.json().catch(() => ({}));
             console.error("OpenAI TTS error:", errorData);
+            addDebugLog(`OpenAI TTS API エラー: ${response.status}`);
             // エラーが発生しても次のカードに進む
             if (listeningTimeoutRef.current) {
               clearTimeout(listeningTimeoutRef.current);
@@ -249,6 +272,8 @@ export default function CardSearchPage() {
             }, listeningInterval);
             return;
           }
+          
+          addDebugLog(`OpenAI TTS API レスポンス取得成功`);
 
           const data = await response.json();
           
@@ -261,15 +286,6 @@ export default function CardSearchPage() {
           
           // 再生開始前にcurrentAudioRefに設定
           currentAudioRef.current = audio;
-          
-          // デバッグログを追加する関数
-          const addDebugLog = (message: string) => {
-            const timestamp = new Date().toLocaleTimeString();
-            const logMessage = `[${timestamp}] ${message}`;
-            console.log(logMessage);
-            debugLogsRef.current = [...debugLogsRef.current.slice(-9), logMessage]; // 最新10件を保持
-            setDebugLogs(debugLogsRef.current);
-          };
           
           // モバイルブラウザでの確実な動作のため、onendedとaddEventListenerの両方を使用
           const handleAudioEnded = () => {
@@ -305,10 +321,16 @@ export default function CardSearchPage() {
             if (!hasEnded && audio.ended && audio.currentTime >= audio.duration - 0.1) {
               hasEnded = true;
               audio.removeEventListener('timeupdate', checkAudioEnded);
+              addDebugLog(`timeupdateイベントで再生終了を検出`);
               handleAudioEnded();
             }
           };
           audio.addEventListener('timeupdate', checkAudioEnded);
+          
+          // 音声の長さをログに記録
+          audio.addEventListener('loadedmetadata', () => {
+            addDebugLog(`音声の長さ: ${audio.duration.toFixed(2)}秒`);
+          });
 
           audio.onerror = (event) => {
             console.error("Audio playback error:", event);
@@ -336,9 +358,10 @@ export default function CardSearchPage() {
           // 音声再生を開始（Promiseを適切に処理）
           try {
             await audio.play();
-            console.log(`Audio started playing for card ${currentIndex}`);
+            addDebugLog(`Audio started playing for card ${currentIndex}`);
           } catch (playError) {
             console.error("Failed to play audio:", playError);
+            addDebugLog(`Failed to play audio for card ${currentIndex}: ${playError}`);
             // 再生に失敗した場合も次のカードに進む
             URL.revokeObjectURL(audioUrl);
             currentAudioRef.current = null;
@@ -747,10 +770,21 @@ export default function CardSearchPage() {
               </div>
             )}
             {isListeningMode && (
-              <p className="text-xs text-gray-600 mt-2">
-                💡 電車などの移動中に最適。フィルターで選んだカードを順番に再生します。
-                {useOpenAITTS && isAdminAuthenticated() && " ChatGPT音声で高品質な発音を楽しめます。"}
-              </p>
+              <>
+                <p className="text-xs text-gray-600 mt-2">
+                  💡 電車などの移動中に最適。フィルターで選んだカードを順番に再生します。
+                  {useOpenAITTS && isAdminAuthenticated() && " ChatGPT音声で高品質な発音を楽しめます。"}
+                </p>
+                {/* デバッグログ表示（開発用） */}
+                {debugLogs.length > 0 && (
+                  <div className="mt-3 p-2 bg-black/80 rounded text-xs text-green-400 font-mono max-h-32 overflow-y-auto">
+                    <div className="text-gray-400 mb-1">デバッグログ（最新10件）:</div>
+                    {debugLogs.map((log, idx) => (
+                      <div key={idx} className="mb-1">{log}</div>
+                    ))}
+                  </div>
+                )}
+              </>
             )}
           </div>
         )}
