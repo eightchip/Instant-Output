@@ -272,20 +272,15 @@ export default function CardSearchPage() {
               clearTimeout(listeningTimeoutRef.current);
             }
             // 音声再生が終了した後、再生間隔を待ってから次のカードを再生
-            // playCardRef.currentを使用して、常に最新の関数を呼び出す
+            // 直接playCardを呼び出す（クロージャでcurrentIndexをキャプチャ）
             listeningTimeoutRef.current = setTimeout(() => {
               if (!isListeningModeRef.current) {
                 console.log(`Skipping next card: listening mode is false`);
                 return;
               }
-              // playCardRef.currentがnullの場合は直接playCardを呼ぶ（フォールバック）
-              if (playCardRef.current) {
-                console.log(`Playing next card via ref: ${currentIndex + 1}`);
-                playCardRef.current(currentIndex + 1);
-              } else {
-                console.log(`Playing next card directly: ${currentIndex + 1}`);
-                playCard(currentIndex + 1);
-              }
+              console.log(`Playing next card directly: ${currentIndex + 1}`);
+              // 直接playCardを呼び出す（クロージャで関数自体をキャプチャ）
+              playCard(currentIndex + 1);
             }, listeningInterval);
           };
 
