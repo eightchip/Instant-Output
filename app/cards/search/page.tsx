@@ -15,7 +15,6 @@ import { useInfiniteScroll } from "@/hooks/useInfiniteScroll";
 import InfiniteScrollSentinel from "@/components/InfiniteScrollSentinel";
 import { saveWordMeaning } from "@/lib/vocabulary";
 import { tts } from "@/lib/tts";
-import { isAdminAuthenticated, getSessionData } from "@/lib/admin-auth";
 
 type FilterType = {
   lessonId?: string;
@@ -187,59 +186,61 @@ export default function CardSearchPage() {
       setListeningIndex(currentIndex);
 
       // Web Speech APIを使用
-        // Web Speech APIを使用
-        if (!tts.isAvailable()) {
-          console.warn("音声読み上げは利用できません");
-          setIsListeningMode(false);
-          return;
-        }
-
-        // 既存の読み上げを停止
-        tts.stop();
-
-        // SpeechSynthesisUtteranceを直接作成して、onendイベントで次のカードを再生
-        const utterance = new SpeechSynthesisUtterance(card.target_en);
-        utterance.lang = "en-US";
-        utterance.rate = 1;
-        utterance.pitch = 1;
-        utterance.volume = 1;
-
-        // 英語音声を明示的に選択
-        const voices = window.speechSynthesis.getVoices();
-        const englishVoice = voices.find(
-          (voice) => voice.lang.startsWith("en") && voice.localService !== false
-        ) || voices.find((voice) => voice.lang.startsWith("en"));
-        
-        if (englishVoice) {
-          utterance.voice = englishVoice;
-        }
-
-        // 音声再生終了時に、再生間隔後に次のカードを再生
-        utterance.onend = () => {
-          if (listeningTimeoutRef.current) {
-            clearTimeout(listeningTimeoutRef.current);
-          }
-          listeningTimeoutRef.current = setTimeout(() => {
-            if (playCardRef.current && isListeningModeRef.current) {
-              playCardRef.current(currentIndex + 1);
-            }
-          }, listeningInterval);
-        };
-
-        utterance.onerror = (event) => {
-          console.error("TTS error:", event);
-          if (listeningTimeoutRef.current) {
-            clearTimeout(listeningTimeoutRef.current);
-          }
-          listeningTimeoutRef.current = setTimeout(() => {
-            if (playCardRef.current && isListeningModeRef.current) {
-              playCardRef.current(currentIndex + 1);
-            }
-          }, listeningInterval);
-        };
-
-        window.speechSynthesis.speak(utterance);
+      if (!tts.isAvailable()) {
+        console.warn("音声読み上げは利用できません");
+        setIsListeningMode(false);
+        return;
       }
+
+      // 既存の読み上げを停止
+      tts.stop();
+
+      // SpeechSynthesisUtteranceを直接作成して、onendイベントで次のカードを再生
+      const utterance = new SpeechSynthesisUtterance(card.target_en);
+      utterance.lang = "en-US";
+      utterance.rate = 1;
+      utterance.pitch = 1;
+      utterance.volume = 1;
+
+      // 英語音声を明示的に選択
+      const voices = window.speechSynthesis.getVoices();
+      const englishVoice = voices.find(
+        (voice) => voice.lang.startsWith("en") && voice.localService !== false
+      ) || voices.find((voice) => voice.lang.startsWith("en"));
+      
+      if (englishVoice) {
+        utterance.voice = englishVoice;
+      }
+
+      // 音声再生終了時に、再生間隔後に次のカードを再生
+      utterance.onend = () => {
+        if (listeningTimeoutRef.current) {
+          clearTimeout(listeningTimeoutRef.current);
+        }
+        listeningTimeoutRef.current = setTimeout(() => {
+          if (playCardRef.current && isListeningModeRef.current) {
+            playCardRef.current(currentIndex + 1);
+          } else {
+            playCard(currentIndex + 1);
+          }
+        }, listeningInterval);
+      };
+
+      utterance.onerror = (event) => {
+        console.error("TTS error:", event);
+        if (listeningTimeoutRef.current) {
+          clearTimeout(listeningTimeoutRef.current);
+        }
+        listeningTimeoutRef.current = setTimeout(() => {
+          if (playCardRef.current && isListeningModeRef.current) {
+            playCardRef.current(currentIndex + 1);
+          } else {
+            playCard(currentIndex + 1);
+          }
+        }, listeningInterval);
+      };
+
+      window.speechSynthesis.speak(utterance);
     };
 
     // playCard関数をrefに保存（イベントハンドラから呼び出せるように）
