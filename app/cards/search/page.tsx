@@ -238,8 +238,11 @@ export default function CardSearchPage() {
               clearTimeout(listeningTimeoutRef.current);
             }
             listeningTimeoutRef.current = setTimeout(() => {
+              // playCardRef.currentがnullの場合は直接playCardを呼ぶ
               if (playCardRef.current) {
                 playCardRef.current(currentIndex + 1);
+              } else {
+                playCard(currentIndex + 1);
               }
             }, listeningInterval);
             return;
@@ -259,7 +262,7 @@ export default function CardSearchPage() {
           
           // イベントハンドラを設定（再生開始前に設定）
           audio.onended = () => {
-            console.log(`Audio ended for card ${currentIndex}, next: ${currentIndex + 1}`);
+            console.log(`Audio ended for card ${currentIndex}, next: ${currentIndex + 1}, isListeningMode: ${isListeningModeRef.current}`);
             URL.revokeObjectURL(audioUrl);
             if (currentAudioRef.current === audio) {
               currentAudioRef.current = null;
@@ -271,11 +274,17 @@ export default function CardSearchPage() {
             // 音声再生が終了した後、再生間隔を待ってから次のカードを再生
             // playCardRef.currentを使用して、常に最新の関数を呼び出す
             listeningTimeoutRef.current = setTimeout(() => {
-              if (playCardRef.current && isListeningModeRef.current) {
-                console.log(`Playing next card: ${currentIndex + 1}`);
+              if (!isListeningModeRef.current) {
+                console.log(`Skipping next card: listening mode is false`);
+                return;
+              }
+              // playCardRef.currentがnullの場合は直接playCardを呼ぶ（フォールバック）
+              if (playCardRef.current) {
+                console.log(`Playing next card via ref: ${currentIndex + 1}`);
                 playCardRef.current(currentIndex + 1);
               } else {
-                console.log(`Skipping next card: listening mode is ${isListeningModeRef.current}`);
+                console.log(`Playing next card directly: ${currentIndex + 1}`);
+                playCard(currentIndex + 1);
               }
             }, listeningInterval);
           };
@@ -292,8 +301,13 @@ export default function CardSearchPage() {
             }
             // エラーが発生しても次のカードに進む
             listeningTimeoutRef.current = setTimeout(() => {
-              if (playCardRef.current && isListeningModeRef.current) {
+              if (!isListeningModeRef.current) {
+                return;
+              }
+              if (playCardRef.current) {
                 playCardRef.current(currentIndex + 1);
+              } else {
+                playCard(currentIndex + 1);
               }
             }, listeningInterval);
           };
@@ -311,8 +325,13 @@ export default function CardSearchPage() {
               clearTimeout(listeningTimeoutRef.current);
             }
             listeningTimeoutRef.current = setTimeout(() => {
-              if (playCardRef.current && isListeningMode) {
+              if (!isListeningModeRef.current) {
+                return;
+              }
+              if (playCardRef.current) {
                 playCardRef.current(currentIndex + 1);
+              } else {
+                playCard(currentIndex + 1);
               }
             }, listeningInterval);
           }
@@ -324,8 +343,13 @@ export default function CardSearchPage() {
           }
           // エラーが発生しても次のカードに進む
           listeningTimeoutRef.current = setTimeout(() => {
-            if (playCardRef.current && isListeningModeRef.current) {
+            if (!isListeningModeRef.current) {
+              return;
+            }
+            if (playCardRef.current) {
               playCardRef.current(currentIndex + 1);
+            } else {
+              playCard(currentIndex + 1);
             }
           }, listeningInterval);
         }
@@ -388,8 +412,10 @@ export default function CardSearchPage() {
     // playCard関数をrefに保存（イベントハンドラから呼び出せるように）
     // 注意: playCard関数内でplayCardRef.currentを更新するのではなく、
     // ここで一度だけ設定する
+    // ただし、playCard関数が定義された直後に設定する必要がある
     playCardRef.current = playCard;
     
+    // 最初のカードを再生
     playCard(0);
   }
 
